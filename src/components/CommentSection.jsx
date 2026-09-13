@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import './CommentSection.css';
 
@@ -76,7 +78,7 @@ const CommentForm = ({ recipeId, parentId = null, onCommentAdded, onCancel }) =>
   );
 };
 
-const CommentThread = ({ comment, recipeId, refreshComments }) => {
+const CommentThread = ({ comment, recipeId, refreshComments, user }) => {
   const [isReplying, setIsReplying] = useState(false);
   const [hasVoted, setHasVoted] = useState(false); // Prevents spam-clicking visually
 
@@ -104,18 +106,27 @@ const CommentThread = ({ comment, recipeId, refreshComments }) => {
       )}
 
       <div className="comment-footer">
-        <button onClick={() => handleVote('like')} className="vote-btn">👍 {comment.likes || 0}</button>
-        <button onClick={() => handleVote('dislike')} className="vote-btn">👎 {comment.dislikes || 0}</button>
-        <button onClick={() => setIsReplying(!isReplying)} className="reply-btn">Reply</button>
+        <span className="vote-count">👍 {comment.likes || 0}</span>
+        <span className="vote-count">👎 {comment.dislikes || 0}</span>
+        
+        {/* Only show interactive buttons if logged in */}
+        {user && (
+          <>
+            <button onClick={() => handleVote('like')} className="vote-btn">Like</button>
+            <button onClick={() => handleVote('dislike')} className="vote-btn">Dislike</button>
+            <button onClick={() => setIsReplying(!isReplying)} className="reply-btn">Reply</button>
+          </>
+        )}
       </div>
 
-      {isReplying && (
+      {isReplying && user && (
         <div className="reply-form-wrapper">
           <CommentForm 
             recipeId={recipeId} 
             parentId={comment.id} 
             onCommentAdded={refreshComments} 
-            onCancel={() => setIsReplying(false)} 
+            onCancel={() => setIsReplying(false)}
+            currentUser={user} 
           />
         </div>
       )}
@@ -123,7 +134,13 @@ const CommentThread = ({ comment, recipeId, refreshComments }) => {
       {comment.children && comment.children.length > 0 && (
         <div className="comment-replies">
           {comment.children.map(child => (
-            <CommentThread key={child.id} comment={child} recipeId={recipeId} refreshComments={refreshComments} />
+            <CommentThread 
+              key={child.id} 
+              comment={child} 
+              recipeId={recipeId} 
+              refreshComments={refreshComments} 
+              user={user} 
+            />
           ))}
         </div>
       )}
@@ -134,6 +151,9 @@ const CommentThread = ({ comment, recipeId, refreshComments }) => {
 export default function CommentSection({ recipeId }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Pull your logged-in user from context
+  const { user } = useAuth();
 
   const fetchComments = async () => {
     try {
@@ -166,18 +186,30 @@ export default function CommentSection({ recipeId }) {
   return (
     <div className="comment-section">
       <h3>Community Notes</h3>
-      <CommentForm recipeId={recipeId} onCommentAdded={fetchComments} />
+      {user ? (
+        <CommentForm recipeId={recipeId} onCommentAdded={fetchComments} currentUser={user} />
+      ) : (
+        <div className="login-prompt">
+          <p>You must be <Link to="/login">logged in</Link> to join the conversation, darling.</p>
+        </div>
+      )}
       
       {loading ? (
         <p>Loading banter...</p>
       ) : comments.length > 0 ? (
         <div className="comments-list">
           {comments.map(comment => (
-            <CommentThread key={comment.id} comment={comment} recipeId={recipeId} refreshComments={fetchComments} />
+            <CommentThread 
+              key={comment.id} 
+              comment={comment} 
+              recipeId={recipeId} 
+              refreshComments={fetchComments} 
+              user={user} 
+            />
           ))}
         </div>
       ) : (
-        <p className="no-comments">No one has chimed in yet. Be the first to review this dish!</p>
+        <p className="no-comments">No one has chimed in yet. Log in to be the first!</p>
       )}
     </div>
   );

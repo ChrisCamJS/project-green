@@ -9,7 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import NutritionPanel from '../components/NutritionPanel';
 import StarRating from '../components/StarRating';
 import CommentSection from '../components/CommentSection';
-import './RecipeDetails.css'; 
+import './RecipeDetails.css';
 
 // ============================================================================
 // COMPONENT: RecipeDetails
