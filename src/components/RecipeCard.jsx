@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import './RecipeCard.css';
+import StarRating from './StarRating';
 
 /**
  * RecipeCard Component
@@ -44,6 +45,11 @@ const RecipeCard = ({ recipe }) => {
                 <h3 className='recipe-title'>
                     {title}
                 </h3>
+                <StarRating 
+                    recipeId={recipe.id} 
+                    initialRating={recipe.averageRating} 
+                    onRate={(id, newRating) => console.log(`Recipe ${id} rated ${newRating} stars`)} 
+                />
                 <p className='recipe-description'>
                     {/* safety check: ensures it only slices if description exists */}
                     {description ? description.slice(0, 200) + '...' : 'A delicious plant-based creation.'}

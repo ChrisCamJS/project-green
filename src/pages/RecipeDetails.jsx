@@ -7,6 +7,8 @@ import { useAuth } from '../context/AuthContext';
 import LiveChat from '../components/LiveChat';
 import ReactMarkdown from 'react-markdown';
 import NutritionPanel from '../components/NutritionPanel';
+import StarRating from '../components/StarRating';
+import CommentSection from '../components/CommentSection';
 import './RecipeDetails.css'; 
 
 // ============================================================================
@@ -136,6 +138,26 @@ const RecipeDetails = () => {
       displayNotes = "### Emma's Deep Dive" + parts[1]; 
   }
 
+  const handleRateRecipe = async (id, newRating) => {
+  try {
+    const response = await api.rateRecipe(id, newRating);
+    
+    if (response.success) {
+      // Instantly update the UI with the fresh maths from the database
+      setRecipe(prevRecipe => ({
+        ...prevRecipe,
+        average_rating: response.averageRating,
+        rating_count: response.ratingCount
+      }));
+      
+      // Optional: Fire off a toast notification here!
+      console.log("Brilliant!", response.message);
+    }
+  } catch (error) {
+    console.error("Failed to submit rating. The database is throwing a wobbly:", error);
+  }
+};
+
   // --- THE UI RENDER ---
   return (
     <div className="recipe-page-container">
@@ -154,6 +176,17 @@ const RecipeDetails = () => {
             <span className="recipe-badge-oil-free">🌱 100% Oil-Free</span>
           )}
           <h1 className="recipe-title">{recipe.title}</h1>
+
+          <div className="recipe-rating-wrapper">
+            <StarRating 
+              recipeId={recipe.id} 
+              initialRating={recipe.average_rating || 0} 
+              onRate={handleRateRecipe} 
+            />
+            <span className="rating-count">
+              ({recipe.rating_count || 0} reviews)
+            </span>
+          </div>
           
           {displayDescription && (
             <div className="recipe-hero-description">
@@ -209,6 +242,8 @@ const RecipeDetails = () => {
               </ol>
             </section>
           </div>
+
+          <CommentSection recipeId="{recipe.id}"/>
 
           {/* RIGHT COLUMN */}
           <div className="recipe-sidebar-col">

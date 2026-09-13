@@ -64,6 +64,37 @@ export const api = {
         return fetchWrapper(`/recipes?id=${id}`, { method: 'DELETE' });
     },
 
+    rateRecipe: (recipeId, rating) => {
+        return fetchWrapper('/recipes/rate', {
+            method: 'POST',
+            body: JSON.stringify({ recipe_id: recipeId, rating }),
+        });
+    },
+
+    // COMMENTS & ENGAGEMENT
+    getComments: (recipeId) => {
+        return fetchWrapper(`/recipes/comments?recipe_id=${recipeId}`, { 
+            method: 'GET',
+            cache: 'no-store' // Keeps the banter fresh
+        });
+    },
+
+    addComment: (commentData) => {
+        // commentData should include: recipe_id, parent_id (optional), author_name, body, and image (base64 string)
+        return fetchWrapper('/recipes/comments', {
+            method: 'POST',
+            body: JSON.stringify(commentData),
+        });
+    },
+
+    voteComment: (commentId, voteType) => {
+        // voteType must be exactly 'like' or 'dislike'
+        return fetchWrapper('/recipes/comments/vote', {
+            method: 'POST',
+            body: JSON.stringify({ comment_id: commentId, vote_type: voteType }),
+        });
+    },
+
     // RECIPE MANAGEMENT & EXTRAS
     toggleDraft: (id, isDraft) => {
         return fetchWrapper('/recipes/draft', {

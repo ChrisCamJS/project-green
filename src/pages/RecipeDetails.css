@@ -163,6 +163,21 @@
   .recipe-title { font-size: 3rem; }
 }
 
+/* Container to keep the stars and review count sitting flush on the same line */
+.recipe-rating-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.5rem 0 1.5rem 0;
+}
+
+/* Subtly style the review count so it doesn't shout louder than the stars */
+.rating-count {
+  color: #718096;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
 .recipe-description {
   font-size: 1.125rem;
   color: #e9d5ff; /* purple-200 */
