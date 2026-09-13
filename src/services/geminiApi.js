@@ -4,7 +4,7 @@ export const sendChatMessage = async (chatHistory, systemInstructionText) => {
   const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
   if (!API_KEY) throw new Error("The Gemini API key is missing. Check your .env file.");
 
-  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${API_KEY}`;
 
   try {
     const response = await fetch(API_URL, {
