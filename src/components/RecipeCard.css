@@ -1,0 +1,107 @@
+.recipe-card {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+  border-top: 5px solid var(--primary-green);
+  transition: transform 0.2s ease-in-out;
+  display: flex;
+  flex-direction: column;
+}
+
+.recipe-card:hover {
+  transform: translateY(-5px);
+}
+
+.image-placeholder {
+  background: var(--vault-dark);
+  color: white;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+}
+
+.recipe-card-content {
+ padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px; 
+  text-align: center; 
+}
+
+.recipe-title{
+    padding-bottom: 0;
+    margin-bottom: 4px;
+}
+
+.recipe-description {
+  margin: 0;
+  color: #444;
+  max-height: 4.5em;
+  border-radius: 20px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  letter-spacing: 0.01em;
+  font-family: inherit;
+  -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+}
+
+.recipe-stats {
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 600;
+  font-size: .85rem;
+  color: #777;
+  gap: 20px;
+}
+
+.oil-free-badge {
+  background: var(--primary-green);
+  color: white;
+  padding: 3px 6px;
+  border-radius: 20px;
+  font-size: .65rem;
+  font-weight: bold;
+}
+.oil-free-badge:hover {
+    transform: scale(1.05)
+}
+
+.recipe-stats span {
+    transition: all 0.35s ease;
+}
+.prep-time:hover {
+    color: var(--primary-green);
+    transform: scale(1.05);
+}
+.cook-time:hover {
+    color: #ba282c;
+    transform: scale(1.05);
+}
+
+.view-recipe-btn {
+  display: block;
+  text-decoration: none;
+  background: transparent;
+  border: 2px solid var(--blazer-red);
+  color: var(--blazer-red);
+  padding: 10px 15px;
+  border-radius: 4px;
+  font-weight: bold;
+  text-align: center;
+  transition: all 0.3s;
+}
+
+.view-recipe-btn:hover {
+  background-color: var(--blazer-red); 
+  color: white;
+}

@@ -1,0 +1,51 @@
+
+.scroll-to-top-button-div {
+  /* Locks the button to the bottom right of the viewport */
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  /* Ensures it always floats above your content and cards */
+  z-index: 999; 
+}
+
+.scroll-to-top-button-div .btn {
+  background-color: white;
+  color: var(--vault-dark, #1a202c);
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* The Hover State */
+.scroll-to-top-button-div .btn:hover {
+  background-color: var(--primary-green, #10b981);
+  color: white;
+  border-color: var(--primary-green, #10b981);
+  transform: translateY(-4px); 
+  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.25);
+}
+
+/* --- Visibility Classes Controlled by Your React State --- */
+.scroll-to-top-button-div .btn.hide {
+  opacity: 0;
+  visibility: hidden;
+  /* Drops down slightly while fading out */
+  transform: translateY(20px); 
+  pointer-events: none; /* Prevents accidental phantom clicks while invisible */
+}
+
+.scroll-to-top-button-div .btn.show {
+  opacity: 1;
+  visibility: visible;
+  /* Rests at its natural position */
+  transform: translateY(0); 
+  pointer-events: auto;
+}

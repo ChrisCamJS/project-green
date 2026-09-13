@@ -1,0 +1,306 @@
+
+.adminHeader {
+  margin-bottom: 20px;
+}
+
+.adminTabs {
+  margin: 20px 0;
+  display: flex;
+  gap: 10px;
+}
+
+.adminTabs button {
+  padding: 10px 20px;
+  border: none;
+  background: #fff;
+  color: var(--vault-dark);
+  cursor: pointer;
+  font-weight: bold;
+  border-radius: 4px;
+  transition:  0.3s;
+}
+
+.adminTabs button.active {
+  background: var(--primary-green);
+  color: white;
+}
+
+.adminTabs button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.adminForm {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.formGroup {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.formGroup label {
+  font-weight: bold;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.formGroup input, 
+.formGroup textarea {
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+.pasteZone {
+  background-color: #f0fdf4;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.parseLabel {
+  font-weight: bold;
+}
+
+.parseInput {
+  width: 83%;
+  background-color: #ffffff;
+  border: 1px dashed var(--primary-green);
+  text-align: left;
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+.parseBtn {
+  width: 64%;
+  background-image: linear-gradient(to right, var(--primary-green), forestgreen);
+  color: #f0fdf4;
+  padding: .5rem 1rem;
+  border-radius: 11px;
+  font-size: 1.5rem;
+  margin: 10px;
+  transition: color 1s ease;
+  letter-spacing: 1px;
+}
+.parseBtn:hover {
+    background-image: linear-gradient(to right, var(--primary-green), var(--vault-dark));
+    color: silver;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.formRow input:focus, textarea:focus {
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+  border-color: var(--primary-green);
+}
+
+.macroInputs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.saveBtn {
+  background: var(--primary-green);
+  color: white;
+  padding: 15px;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.3s;
+}
+
+.saveBtn:hover {
+  background: #236026; /* Slightly darker green */
+}
+
+/* --- Manage Recipes Section --- */
+.manageRecipes {
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+    margin-top: 20px;
+    border: 1px solid #f1f5f9;
+}
+
+.manageRecipes h3 {
+    color: var(--vault-dark, #1e293b);
+    margin-bottom: 25px;
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 12px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.recipeList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.recipeListItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: #fdfdfd;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid var(--primary-green, #10b981);
+    border-radius: 8px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.recipeListItem:hover {
+    transform: translateX(4px); /* A cheeky slide to the right instead of floating up */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    background: #ffffff;
+    border-color: #cbd5e1;
+}
+
+.recipeInfo h4 {
+    margin: 0 0 6px 0;
+    color: var(--vault-dark, #0f172a);
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+.recipeMeta {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    background: #f8fafc;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+}
+
+/* --- Action Buttons --- */
+.recipeActions {
+    display: flex;
+    gap: 8px;
+}
+
+.recipeActions button {
+    padding: 6px 14px;
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.draftBtn {
+    color: #d97706;
+    border-color: #fcd34d;
+}
+.draftBtn:hover {
+    background: #d97706;
+    color: white;
+    border-color: #d97706;
+}
+
+.publishBtn {
+    color: var(--primary-green, #10b981);
+    border-color: #a7f3d0;
+}
+.publishBtn:hover {
+    background: var(--primary-green, #10b981);
+    color: white;
+    border-color: var(--primary-green, #10b981);
+}
+
+.editBtn {
+    color: #2563eb;
+    border-color: #bfdbfe;
+}
+.editBtn:hover {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+}
+
+.deleteBtn {
+    color: var(--blazer-red, #dc2626);
+    border-color: #fecaca;
+}
+.deleteBtn:hover {
+    background: var(--blazer-red, #dc2626);
+    color: white;
+    border-color: var(--blazer-red, #dc2626);
+}
+
+/* --- Pagination Controls --- */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 35px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+    font-weight: 600;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.pageBtn {
+    background: white;
+    color: var(--vault-dark, #1e293b);
+    padding: 8px 16px;
+    border: 2px solid #cbd5e1;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pageBtn:hover:not(:disabled) {
+    border-color: var(--vault-dark, #1e293b);
+    background: #f8fafc;
+}
+
+.pageBtn:disabled {
+    color: #cbd5e1;
+    border-color: #e2e8f0;
+    cursor: not-allowed;
+    background: #f8fafc;
+}
+
+/* --- Mobile View Fixes --- */
+@media (max-width: 768px) {
+  .adminTabs {
+    flex-direction: column; 
+  }
+
+  .formRow {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .macroInputs {
+    grid-template-columns: 1fr; 
+  }
+
+  .adminForm {
+    padding: 20px;
+  }
+}

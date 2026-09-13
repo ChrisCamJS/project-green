@@ -1,0 +1,491 @@
+
+.recipe-dashboard-container {
+  max-width: 800px;
+  margin: .8rem auto;
+  padding: 1.5rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #fcfcfc;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.dashboard-header h2 {
+  margin: 0 0 0.5rem 0;
+  color: #2d3748;
+  font-size: 2rem;
+}
+
+.dashboard-header p {
+  margin: 0;
+  color: #4a5568;
+  font-weight: 500;
+  font-style: italic;
+}
+
+/* Form Styles */
+.recipe-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.input-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #2d3748;
+}
+
+.input-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.input-group textarea:focus {
+  outline: none;
+  border-color: #48bb78;
+  box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.2);
+}
+
+/* The Toggle Switch Magic */
+.toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background-color: #f7fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.toggle-label {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+/* --- EMMA'S DIETARY PILLS --- */
+.dietary-toggles-container {
+    display: flex;
+    justify-content: flex-start; 
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap; 
+}
+
+.diet-pill {
+    background-color: #f7fafc;
+    border: 2px solid #e2e8f0;
+    color: #4a5568;
+    padding: 8px 16px;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.diet-pill:hover:not(:disabled) {
+    background-color: #edf2f7;
+    border-color: #cbd5e0;
+}
+
+.diet-pill:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.diet-pill.active {
+    background-color: #f0fff4;
+    border-color: #48bb78;
+    color: #2f855a;
+    box-shadow: 0 2px 4px rgba(72, 187, 120, 0.15);
+}
+
+.diet-pill.warning {
+    background-color: #fffaf0;
+    border-color: #ed8936;
+    color: #c05621;
+}
+
+/* Submit Button */
+.submit-btn {
+  background-color: #2d3748;
+  color: #ffffff;
+  border: none;
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background-color: #1a202c;
+}
+
+.submit-btn:disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
+}
+
+/* Error Banner */
+.error-banner {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: #fff5f5;
+  border-left: 4px solid #f56565;
+  color: #c53030;
+  border-radius: 4px;
+}
+
+/* Recipe Result Card */
+.recipe-result-card {
+  margin-top: 2rem;
+  padding: 2rem;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+/* Markdown Styling */
+.recipe-content h1 {
+  color: #2d3748;
+  font-size: 2rem;
+  margin-top: 0;
+  border-bottom: 2px solid #edf2f7;
+  padding-bottom: 0.5rem;
+}
+
+.recipe-content h3 {
+  color: #4a5568;
+  margin-top: 1.5rem;
+  border-bottom: 1px solid #edf2f7;
+  padding-bottom: 0.25rem;
+}
+
+.recipe-content ul, .recipe-content ol {
+  padding-left: 1.5rem;
+  line-height: 1.6;
+}
+
+.recipe-content li {
+  margin-bottom: 0.5rem;
+}
+
+.recipe-content strong {
+  color: #2d3748;
+}
+
+.recipe-footer {
+  margin-top: 2rem;
+  text-align: center;
+  color: #a0aec0;
+  font-size: 0.9rem;
+  border-top: 1px solid #edf2f7;
+  padding-top: 1rem;
+}
+
+/* --- Mode Selector Buttons --- */
+.mode-selector-container {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.mode-label {
+  display: inline-block;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+  background-color: #ffffff;
+  color: #4a5568;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  user-select: none;
+}
+
+/* Hide the actual radio circle */
+.mode-label input[type="radio"] {
+  display: none;
+}
+
+.mode-label:hover {
+  border-color: #cbd5e0;
+  background-color: #f7fafc;
+}
+
+/* Active State for the selected mode */
+.mode-label.active {
+  border-color: #48bb78;
+  background-color: #f0fff4;
+  color: #276749;
+  box-shadow: 0 2px 4px rgba(72, 187, 120, 0.15);
+}
+
+/* --- Chat & Messaging --- */
+.chat-container {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.user-message {
+  align-self: flex-end;
+  text-align: right;
+  background-color: #edf2f7;
+  padding: 1rem 1.25rem;
+  border-radius: 12px 12px 0 12px;
+  color: #2d3748;
+  font-style: italic;
+  max-width: 80%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.user-message strong {
+  color: #48bb78;
+  font-style: normal;
+  margin-right: 0.25rem;
+}
+
+/* --- Action Rows & Buttons --- */
+.action-row {
+  display: flex;
+  margin-top: 1rem;
+}
+
+.action-row.top-action {
+  justify-content: flex-end;
+}
+
+.action-row.bottom-action {
+  justify-content: flex-start;
+}
+
+.new-chat-btn {
+  background: #fed7d7;
+  color: #c53030;
+  border: 1px solid #fc8181;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.new-chat-btn:hover:not(:disabled) {
+  background: #feb2b2;
+}
+
+.new-chat-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* --- Follow-up Form --- */
+.follow-up-form {
+  margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.follow-up-input {
+  flex: 1;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+  background-color: #ffffff;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.follow-up-input:focus {
+  outline: none;
+  border-color: #48bb78;
+  box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.2);
+}
+
+.follow-up-input.broke-input {
+  background-color: #edf2f7;
+  border-color: #cbd5e0;
+  color: #a0aec0;
+}
+
+.follow-up-submit {
+  padding: 0.85rem 1.5rem;
+}
+
+.follow-up-submit.broke-btn {
+  background-color: #ecc94b;
+  color: #744210;
+}
+
+/* --- EMMA'S WELCOME MODAL --- */
+.welcome-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; 
+}
+
+.welcome-modal-content {
+    background: #ffffff;
+    padding: 2.5rem;
+    border-radius: 12px;
+    max-width: 550px;
+    width: 90%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    border: 3px solid #48bb78; 
+    text-align: center;
+    animation: popIn 0.3s ease-out forwards;
+}
+
+.welcome-modal-content h3 {
+    color: #2d3748;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.welcome-modal-content p {
+    color: #4a5568;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    font-size: 1.05rem;
+}
+
+.dismiss-modal-btn {
+    margin-top: 1.5rem;
+    background-color: #48bb78;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out, transform 0.1s;
+}
+
+.dismiss-modal-btn:hover {
+    background-color: #38a169;
+    transform: translateY(-2px);
+}
+
+/* --- Modal Preferences Checkbox --- */
+.modal-preferences {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+    text-align: left;
+    display: flex;
+    justify-content: center;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: #718096;
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+    accent-color: #48bb78; /* Vault green for the tick! */
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+@keyframes popIn {
+    0% { transform: scale(0.9); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+/* --- EMMA'S MICROPHONE STYLES --- */
+.textarea-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.mic-btn {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    background: #e2e8f0;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.mic-icon {
+    width: 20px;
+    height: 20px;
+    color: #4a5568;
+    transition: color 0.2s ease-in-out;
+}
+
+.mic-btn:hover:not(:disabled) {
+    background: #cbd5e0;
+}
+
+.mic-btn:hover .mic-icon {
+    color: #2d3748;
+}
+
+/* The magic 'hot mic' animation */
+.mic-btn.listening {
+    background: #fed7d7;
+    animation: pulseMic 1.5s infinite;
+}
+
+.mic-btn.listening .mic-icon {
+    color: #e53e3e;
+}
+
+@keyframes pulseMic {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(229, 62, 62, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); }
+}

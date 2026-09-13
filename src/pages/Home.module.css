@@ -1,0 +1,49 @@
+/* src/pages/Home.module.css */
+
+.homeContainer {
+  padding: 20px 0;
+}
+
+.recipeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+  margin-top: 30px;
+}
+
+.loadingState, .errorState {
+  text-align: center;
+  padding: 50px;
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.errorState {
+  color: var(--blazer-red);
+}
+
+.title {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: var(--vault-dark);
+}
+
+.subTitle {
+  font-style: italic;
+  color: var(--primary-green);
+  margin-top: -8px;
+}
+
+/* Mobile Tweak */
+@media (max-width: 600px) {
+  .recipeGrid {
+    grid-template-columns: 1fr;
+  }
+}
+.recipeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+  margin-top: 40px;
+}

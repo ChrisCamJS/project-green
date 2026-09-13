@@ -1,0 +1,115 @@
+/* ToastProvider.module.css */
+
+.toastContainer {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  pointer-events: none; /* Lets you click through the container space */
+}
+
+.toastItem {
+  pointer-events: auto; /* Re-enables clicking on the toast itself */
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  min-width: 320px;
+  max-width: 400px;
+  background-color: white;
+  
+  /* The magic entrance */
+  animation: slideInRight 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.toastItem:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(120%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* --- Theme Flavours --- */
+
+.success {
+  background: linear-gradient(to right, #f0fdf4, #ffffff);
+  border-color: #bbf7d0;
+  border-left: 4px solid var(--primary-green, #10b981);
+}
+.success .icon, .success .message { color: #065f46; }
+
+.error {
+  background: linear-gradient(to right, #fef2f2, #ffffff);
+  border-color: #fecaca;
+  border-left: 4px solid var(--blazer-red, #ef4444);
+}
+.error .icon, .error .message { color: #991b1b; }
+
+.info {
+  background: linear-gradient(to right, #eff6ff, #ffffff);
+  border-color: #bfdbfe;
+  border-left: 4px solid #3b82f6;
+}
+.info .icon, .info .message { color: #1e40af; }
+
+.warning {
+  background: linear-gradient(to right, #fffbeb, #ffffff);
+  border-color: #fde68a;
+  border-left: 4px solid #f59e0b;
+}
+.warning .icon, .warning .message { color: #92400e; }
+
+/* --- Internal Elements --- */
+
+.icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.message {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.closeBtn:hover {
+  color: #334155;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.closeIcon {
+  width: 1rem;
+  height: 1rem;
+}

@@ -1,0 +1,196 @@
+/* --- 1. Top Level Header Layout --- */
+.main-header {
+  position: relative; 
+  width: 100%;
+  padding: 1.5rem 5%; 
+  box-sizing: border-box;
+  border-bottom: 2px solid var(--vault-green);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #ffffff; 
+}
+
+.logo-container h1 {
+  margin: 0;
+}
+
+.logo-container h1 a {
+  text-decoration: none;
+  color: #1a202c;
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+/* --- 2. Mobile Controls (Hidden on Desktop) --- */
+.mobile-controls {
+  display: none;
+  align-items: center;
+  gap: 15px;
+}
+
+.hamburger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 5px;
+  z-index: 101; /* Keep above the dropdown */
+}
+
+/* The Burger Lines */
+.hamburger span {
+  display: block;
+  width: 28px;
+  height: 3px;
+  background-color: #2d5a27;
+  border-radius: 3px;
+  transition: all 0.3s ease-in-out;
+}
+
+/* The "X" Animation */
+.hamburger.open span:nth-child(1) {
+  transform: translateY(9px) rotate(45deg);
+}
+.hamburger.open span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.open span:nth-child(3) {
+  transform: translateY(-9px) rotate(-45deg);
+}
+
+/* --- 3. Desktop Navigation --- */
+.main-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.main-nav a {
+  text-decoration: none;
+  color: #2d3748;
+  font-weight: 500;
+  font-size: 1.05rem;
+  transition: color 0.2s;
+}
+
+.main-nav a:hover {
+  color: #48bb78;
+}
+
+/* --- 4. User Status & Badges --- */
+.user-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-left: 2px solid #e2e8f0;
+  padding-left: 30px; 
+  margin-left: 5px;
+}
+
+.welcome-text {
+  font-weight: bold;
+  color: #48bb78;
+  white-space: nowrap;
+}
+
+.premium-sparkle {
+  margin-left: 5px;
+}
+
+.token-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #ecc94b;
+  color: #744210;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  white-space: nowrap;
+}
+
+.token-icon {
+  width: 16px;
+  height: 16px;
+  color: #d69e2e;
+}
+
+.mobile-token {
+  display: none; /* Hidden on desktop */
+}
+
+/* Logout */
+.logout-btn {
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: #e53e3e;
+  font-weight: bold;
+  font-size: 1rem;
+  padding: 0;
+  margin-left: 10px;
+  transition: color 0.2s ease-in-out;
+}
+.logout-btn:hover {
+  color: #c53030;
+}
+
+/* --- 5. Mobile Wrangling --- */
+@media (max-width: 768px) {
+  .main-header {
+    padding: 1rem 0;
+  }
+  
+  .mobile-controls {
+    display: flex; /* Show the veggie burger and mobile token */
+  }
+
+  .mobile-token {
+    display: flex;
+  }
+
+  .desktop-token {
+    display: none; /* Hide the duplicate token in the menu */
+  }
+
+  /* The Dropdown Drawer */
+  .main-nav {
+    display: none; /* Hidden by default */
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: #ffffff; 
+    opacity: .98;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    padding: 2rem 0;
+    z-index: 100;
+  }
+
+  .main-nav.open {
+    display: flex; /* Reveal when state is true */
+  }
+
+  .main-nav ul {
+    flex-direction: column;
+    width: 100%;
+    gap: 20px;
+  }
+
+  .user-status {
+    flex-direction: column;
+    background: rgba(236, 201, 75, 0.1);
+    padding: 10px;
+    border-radius: 8px;
+    width: 80%;
+    margin: 0 auto; 
+  }
+}

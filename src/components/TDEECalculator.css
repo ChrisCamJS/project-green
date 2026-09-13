@@ -1,0 +1,136 @@
+/* TDEECalculator.css */
+
+.header-purple { border-bottom-color: #f3e8ff; }
+.btn-purple { color: #9333ea; }
+.btn-purple:hover { color: #7e22ce; }
+
+.dropdown-purple {
+  background-color: #faf5ff; /* Purple-50 */
+  border: 1px solid #f3e8ff;
+  color: #581c87;
+}
+
+/* Fix for the nasty default dropdowns */
+.styled-select {
+  width: 100%;
+  padding: 0.75rem;
+  padding-right: 2.5rem;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none; 
+
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.2em;
+  
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.styled-select:focus {
+  background-color: white;
+  border-color: #9333ea;
+  box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+}
+
+.input-row {
+  display: flex;
+  gap: 1rem;
+  grid-column: span 1;
+}
+
+@media (min-width: 640px) {
+  .input-row { grid-column: span 2; }
+}
+
+/* Results Section Polish */
+.container-purple {
+  background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+  border: 1px solid #ddd6fe;
+  margin-top: 1.5rem;
+}
+
+.results-split-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .results-split-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.results-main-column {
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .results-main-column {
+    border-right: 1px solid #ddd6fe;
+    padding-right: 1.5rem;
+  }
+}
+
+.value-purple { color: #7e22ce; }
+
+.results-unit {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #a855f7;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.results-footer {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f3e8ff;
+}
+
+.footer-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+.footer-value {
+  font-weight: 700;
+  color: #374151;
+}
+
+/* Adjusted Goals Cards */
+.results-goals-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.goals-title {
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #4b5563;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.goal-card {
+  display: flex;
+  justify-content: space-between;
+  background-color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #f3e8ff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  font-size: 0.875rem;
+}
+
+.goal-label { color: #4b5563; }
+.goal-value { font-weight: 800; color: #4c1d95; }

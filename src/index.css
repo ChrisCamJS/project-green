@@ -1,0 +1,141 @@
+/* src/index.css */
+
+/* Define our global color palette */
+:root {
+  --primary-green: #2e7d32;
+  --vault-dark: #121212;
+  --blazer-red: #e03a3e;
+  --bg-light: #f4f6f4;
+  --text-main: #333333;
+}
+
+/* Reset default browser margins */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  background-color: var(--bg-light);
+  color: var(--text-main);
+  line-height: 1.6;
+}
+
+/* --- Layout & Header --- */
+.app-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 15px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+
+
+.main-content {
+  flex: 1; /* Pushes the footer to the bottom */
+}
+
+.main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 0;
+  border-bottom: 3px solid var(--primary-green);
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+  gap: 1rem;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .main-header {
+    flex-direction: column; /* Stack the logo, nav, and user info */
+    text-align: center;
+    padding: 1rem 0;
+  }
+}  
+
+.main-header h1 a {
+  color: var(--vault-dark);
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 2rem;
+  letter-spacing: -1px;
+}
+
+.main-nav ul {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0;
+  justify-content: center;
+}
+
+.main-nav a {
+  text-decoration: none;
+  color: var(--text-main);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  transition: color 0.3s;
+}
+
+.main-nav a:hover {
+  color: var(--primary-green);
+}
+
+/* --- Recipe Details Page --- */
+.recipe-details h2 {
+  font-size: 2.5rem;
+  color: var(--vault-dark);
+  margin-bottom: 20px;
+}
+
+.oil-free-logic {
+  background: #e8f5e9;
+  padding: 20px;
+  border-left: 5px solid var(--primary-green);
+  margin: 30px 0;
+  border-radius: 0 8px 8px 0;
+}
+
+.oil-free-logic h4 {
+  color: var(--primary-green);
+  margin-bottom: 10px;
+  font-size: 1.2rem;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  margin-top: 30px;
+}
+
+.ingredients-list ul, .nutritional-vault p {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.ingredients-list li {
+  margin-left: 20px;
+  margin-bottom: 10px;
+}
+
+/* --- Footer --- */
+footer {
+  text-align: center;
+  padding: 40px 0 20px;
+  color: #888;
+  font-size: 0.9em;
+}

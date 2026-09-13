@@ -1,0 +1,94 @@
+/* src/pages/Login.module.css */
+
+.loginContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh; /* Keeps it nicely centered vertically */
+    padding: 20px;
+}
+
+.loginCard {
+    background: white;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
+    border-top: 5px solid var(--primary-green);
+    text-align: center;
+}
+
+.loginCard h2 {
+    color: var(--vault-dark);
+    margin-bottom: 10px;
+    font-size: 2rem;
+}
+
+.loginCard p {
+    color: #666;
+    margin-bottom: 25px;
+}
+
+.errorMessage {
+    background-color: #fee2e2;
+    color: var(--blazer-red);
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.loginForm {
+    display: flex;
+    flex-direction: column;
+    text-align: left; /* Keep labels aligned left for better UX */
+}
+
+.formGroup {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.formGroup label {
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: var(--vault-dark);
+}
+
+.formGroup input {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.formGroup input:focus {
+    outline: none;
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+}
+
+.loginBtn {
+    background: var(--primary-green);
+    color: white;
+    padding: 15px;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.1s;
+    margin-top: 10px;
+}
+
+.loginBtn:hover {
+    background: #236026;
+}
+
+.loginBtn:active {
+    transform: scale(0.98); /* Satisfying little click effect */
+}
