@@ -243,7 +243,6 @@ const RecipeDetails = () => {
             </section>
           </div>
 
-          <CommentSection recipeId="{recipe.id}"/>
 
           {/* RIGHT COLUMN */}
           <div className="recipe-sidebar-col">
@@ -355,7 +354,8 @@ const RecipeDetails = () => {
                 </p>
             </div>
         )}
-
+        
+        <CommentSection recipeId="{recipe.id}"/>
       </div>
     </div>
   );
