@@ -1,22 +1,27 @@
-import { FaSearch } from 'react-icons/fa';
+// src/components/SearchBar.jsx
+import React from 'react';
 import './SearchBar.css';
 
-const SearchBar = ({ value, handleSearch, clearSearch }) => {
+export default function SearchBar({ searchQuery, onSearchChange }) {
   return (
-    <div className="search-wrapper">
-      <FaSearch className="search-icon" />
+    <div className="search-bar-container">
       <input
         type="text"
-        placeholder="Search articles..."
-        value={value}
-        onChange={handleSearch}
+        placeholder="Search recipes, ingredients, or tags..."
+        value={searchQuery}
+        onChange={(e) => onSearchChange(e.target.value)}
         className="search-input"
       />
-      {value && (
-        <span className="clear-btn" onClick={clearSearch} title="Clear search">X</span>
+      {searchQuery && (
+        <button 
+          type="button" 
+          onClick={() => onSearchChange('')}
+          className="clear-search-btn"
+          aria-label="Clear search"
+        >
+          ×
+        </button>
       )}
     </div>
   );
-};
-
-export default SearchBar;
+}
