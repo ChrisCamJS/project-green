@@ -15,6 +15,7 @@ const RecipeCard = ({ recipe }) => {
     // Destructuring API payload
     const { 
         id, 
+        username,
         title, 
         description, 
         cookTime, 
@@ -45,6 +46,10 @@ const RecipeCard = ({ recipe }) => {
                 <h3 className='recipe-title'>
                     {title}
                 </h3>
+                {/* Add the Author Attribution Here */}
+                <p className="recipe-author" style={{ fontSize: '0.85rem', color: '#718096', fontStyle: 'italic', marginBottom: '0.5rem' }}>
+                    Created by: {recipe.authorName || 'Emma (AI)'}
+                </p>
                 <StarRating 
                     recipeId={recipe.id} 
                     initialRating={recipe.averageRating} 

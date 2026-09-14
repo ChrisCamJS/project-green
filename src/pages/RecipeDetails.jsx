@@ -236,6 +236,12 @@ const RecipeDetails = () => {
           <h1 className="recipe-title">{recipe.title}</h1>
           <FavoriteButton recipeId={recipe.id} initialFavorited={recipe.isFavorited || false} />
         </div>
+        {/* The Creator Tag */}
+        <div className="author-badge" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ background: '#edf2f7', padding: '4px 12px', borderRadius: '16px', fontSize: '0.9rem', color: '#4a5568' }}>
+            🧑‍🍳 Recipe by: <strong>{recipe.authorName || 'Emma (AI)'}</strong>
+          </span>
+        </div>
 
         {/* The Masterpiece Graduation Banner */}
         {user && recipe.user_id === user.id && (!recipe.imageUrl || recipe.imageSource === 'none') && (
