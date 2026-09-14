@@ -87,7 +87,11 @@ const Header = () => {
                                     </span>
                                 )}
                             </li>
-                            
+                            {user && (
+                                <Link to="/favorites" className="nav-link">
+                                    My Vault
+                                </Link>
+                            )}
                             <li>
                                 <button onClick={handleLogout} className="logout-btn">
                                     Logout

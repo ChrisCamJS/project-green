@@ -1,0 +1,63 @@
+.favorites-page {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.favorites-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.favorites-header h1 {
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+}
+
+.favorites-header p {
+  color: #718096;
+}
+
+.favorites-filters {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.filter-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #4a5568;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-btn.active {
+  background: #48bb78;
+  color: #ffffff;
+  border-color: #48bb78;
+  font-weight: 600;
+}
+
+.no-favorites-card {
+  text-align: center;
+  padding: 3rem;
+  background: #f7fafc;
+  border: 1px dashed #cbd5e0;
+  border-radius: 12px;
+  margin-top: 2rem;
+}
+
+.browse-recipes-btn {
+  display: inline-block;
+  margin-top: 1rem;
+  background: #48bb78;
+  color: #ffffff;
+  text-decoration: none;
+  padding: 0.6rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+}

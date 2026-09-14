@@ -8,7 +8,8 @@ import WellnessTools from './pages/WellnessTools';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import EditRecipe from './pages/EditRecipe';
-import EmmasRecipeEngine from './pages/Engine'; 
+import EmmasRecipeEngine from './pages/Engine';
+import Favorites from './pages/Favorites';
 import './App.css'
 
 function App() {
@@ -27,6 +28,15 @@ function App() {
               <Route element={<ProtectedRoute adminOnly={true} />}>
                 <Route path='/admin' element={<AdminDashboard />} />
                 <Route path='/admin/edit/:id' element={<EditRecipe />} />
+
+                <Route 
+                  path="/favorites" 
+                  element={
+                    <ProtectedRoute>
+                      <Favorites />
+                    </ProtectedRoute>
+                  } 
+                />
               </Route>
 
               {/* Protect the Premium Engine route! */}
