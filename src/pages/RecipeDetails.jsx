@@ -186,6 +186,34 @@ const RecipeDetails = () => {
   };
   };
 
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      setIsPublishing(true);
+      try {
+        const res = await api.publishWithPhoto(recipe.id, reader.result);
+        if (res.success) {
+          // Instantly update the UI without reloading
+          setRecipe((prev) => ({
+            ...prev,
+            imageUrl: res.imageUrl, // Matches the camelCase expectation
+            imageSource: 'user',
+            isPublic: true,
+            isDraft: false
+          }));
+        }
+      } catch (err) {
+        console.error('Failed to publish photo:', err);
+      } finally {
+        setIsPublishing(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   // --- THE UI RENDER ---
   return (
     <div className="recipe-page-container">
@@ -209,13 +237,13 @@ const RecipeDetails = () => {
           <FavoriteButton recipeId={recipe.id} initialFavorited={recipe.isFavorited || false} />
         </div>
 
-        {/* Draft Graduation Banner (Only shown if user owns the draft and it lacks an image) */}
-        {user && recipe.user_id === user.id && (!recipe.image_url || recipe.image_source === 'none') && (
-          <div className="draft-promotion-card">
-            <p>
-              <strong>Vault Draft:</strong> This recipe is currently private. Cooked this meal? Upload a photo to turn it into a public masterpiece!
+        {/* The Masterpiece Graduation Banner */}
+        {user && recipe.user_id === user.id && (!recipe.imageUrl || recipe.imageSource === 'none') && (
+          <div className="draft-promotion-card" style={{ background: '#ebf8ff', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #bee3f8' }}>
+            <p style={{ color: '#2b6cb0', marginBottom: '0.75rem', marginTop: '0' }}>
+              <strong>Vault Draft:</strong> This recipe is currently private. Cooked this meal? Upload a photo to graduate it into a public masterpiece!
             </p>
-            <label className="upload-masterpiece-btn">
+            <label className="upload-masterpiece-btn" style={{ background: '#3182ce', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', display: 'inline-block' }}>
               {isPublishing ? 'Publishing to Feed...' : '📸 Upload Dish Photo & Publish'}
               <input 
                 type="file" 
