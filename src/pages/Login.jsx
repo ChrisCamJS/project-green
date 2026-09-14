@@ -1,59 +1,65 @@
-import React, {useState} from 'react';
-import {useNavigate} from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './Login.module.css';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-
-
-
 const Login = () => {
-    //grabbing login from AuthContext
+    // Grabbing the login dispatcher from AuthContext
     const { login } = useAuth();
-    // state to hold user input
-    const [credentials, setCredentials] = useState({username: '', password: '', is_admin: false});
-    // state for errors
+    
+    // State to hold user input (trimmed down to just what the form actually uses)
+    const [credentials, setCredentials] = useState({ username: '', password: '' });
+    
+    // State for catching and displaying validation or server errors
     const [error, setError] = useState('');
 
-    // to redirect the user after a successful login
+    // Navigation hook to redirect the user after a successful vault unlock
     const navigate = useNavigate();
 
-    // handler to update state as the user types
+    // Handler to update local state dynamically as the user types
     const handleChange = (e) => {
-        const {name, value} = e.target;
-        setCredentials(prev => ({...prev, [name]: value}));
-    }
+        const { name, value } = e.target;
+        setCredentials(prev => ({ ...prev, [name]: value }));
+    };
 
-    // handle click for the submit button
+    // Handle click submission for the login form
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
 
-        // basic validation
+        // Basic front-end validation check
         if (!credentials.username || !credentials.password) {
-            setError("Both Fields Are Required");
+            setError("Both fields are required, pet.");
             return;
         }
+
         try {
-            
+            // Send credentials to the PHP backend via our api wrapper
             const response = await api.login(credentials);
 
             if (response.success) {
-                // console.log(response);
+                // Save user data to context
                 login(response.user);
+                
+                // Fixed: Use username instead of email since PHP doesn't pass an email key[cite: 1, 3]
                 const isAdmin = response.user.is_admin;
-                alert(isAdmin === 1 ? `Welcome Back ${response.user.email} => You're an Admin!` : `Welcome Back ${response.user.email}`);
+                const identifier = response.user.username;
+                
+                alert(isAdmin === 1 
+                    ? `Welcome back, ${identifier} => You're wielding Admin privileges!` 
+                    : `Welcome back to the vault, ${identifier}!`
+                );
+                
                 navigate('/admin');
+            } else {
+                setError(response.message || 'Login failed, homie.');
             }
-            else {
-                setError(response.message || 'Login failed Homie.');
-            }
-        }
-        catch (err) {
-            setError('Login failed. Are you sure you belong in the Vault?');
+        } catch (err) {
+            setError('Login failed. Are you entirely sure you belong in the vault?');
             console.error('Login error:', err);
         }
-    }
+    };
 
     return (
         <div className={styles.loginContainer}>
@@ -61,7 +67,7 @@ const Login = () => {
                 <h2>Vault Access</h2>
                 <p>Authorized personnel only.</p>
                 
-                {/* Display errors if we catch any */}
+                {/* Conditionally render error messages if they pop up */}
                 {error && <div className={styles.errorMessage}>{error}</div>}
 
                 <form onSubmit={handleSubmit} className={styles.loginForm}>
@@ -95,7 +101,7 @@ const Login = () => {
                 </form>
             </div>
         </div>
-    )
-}
+    );
+};
 
 export default Login;
