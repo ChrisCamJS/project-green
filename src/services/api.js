@@ -135,4 +135,25 @@ export const api = {
             body: JSON.stringify({ cost })
         });
     },
+    // FAVORITES & DRAFT GRADUATION
+    toggleFavorite: (recipeId) => {
+        return fetchWrapper('/recipes/favorite', {
+            method: 'POST',
+            body: JSON.stringify({ recipe_id: recipeId }),
+        });
+    },
+
+    getFavorites: () => {
+        return fetchWrapper('/recipes/favorites', {
+            method: 'GET',
+            cache: 'no-store',
+        });
+    },
+
+    publishWithPhoto: (recipeId, base64Image) => {
+        return fetchWrapper('/recipes/attach-photo', {
+            method: 'POST',
+            body: JSON.stringify({ recipe_id: recipeId, image: base64Image }),
+        });
+    }
 };

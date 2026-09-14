@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import NutritionPanel from '../components/NutritionPanel';
 import StarRating from '../components/StarRating';
 import CommentSection from '../components/CommentSection';
+import FavoriteButton from '../components/FavoriteButton';
 import './RecipeDetails.css';
 
 // ============================================================================
@@ -22,6 +23,7 @@ const RecipeDetails = () => {
   // --- STATE & ROUTING ---
   const { id } = useParams();
   const { user } = useAuth();
+  const [isPublishing, setIsPublishing] = useState(false);
   const currentUserName = user?.username || 'Love';
   
   const [recipe, setRecipe] = useState(null);
@@ -156,7 +158,33 @@ const RecipeDetails = () => {
   } catch (error) {
     console.error("Failed to submit rating. The database is throwing a wobbly:", error);
   }
-};
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      setIsPublishing(true);
+      try {
+        const res = await api.publishWithPhoto(recipe.id, reader.result);
+        if (res.success) {
+          setRecipe((prev) => ({
+            ...prev,
+            image_url: res.imageUrl,
+            image_source: 'user',
+            is_public: 1,
+          }));
+        }
+      } catch (err) {
+        console.error('Failed to publish photo:', err);
+      } finally {
+        setIsPublishing(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+  };
 
   // --- THE UI RENDER ---
   return (
@@ -175,7 +203,34 @@ const RecipeDetails = () => {
           {Boolean(Number(recipe.is_oil_free)) && (
             <span className="recipe-badge-oil-free">🌱 100% Oil-Free</span>
           )}
+          <div className="recipe-details-header">
+        <div className="title-row">
           <h1 className="recipe-title">{recipe.title}</h1>
+          <FavoriteButton recipeId={recipe.id} initialFavorited={recipe.isFavorited || false} />
+        </div>
+
+        {/* Draft Graduation Banner (Only shown if user owns the draft and it lacks an image) */}
+        {user && recipe.user_id === user.id && (!recipe.image_url || recipe.image_source === 'none') && (
+          <div className="draft-promotion-card">
+            <p>
+              <strong>Vault Draft:</strong> This recipe is currently private. Cooked this meal? Upload a photo to turn it into a public masterpiece!
+            </p>
+            <label className="upload-masterpiece-btn">
+              {isPublishing ? 'Publishing to Feed...' : '📸 Upload Dish Photo & Publish'}
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handlePhotoUpload} 
+                disabled={isPublishing} 
+                hidden 
+              />
+            </label>
+          </div>
+        )}
+        
+        {/* ... existing StarRating, macros, and content ... */}
+      </div>
+          
 
           <div className="recipe-rating-wrapper">
             <StarRating 
@@ -354,7 +409,7 @@ const RecipeDetails = () => {
                 </p>
             </div>
         )}
-        
+
         <CommentSection recipeId="{recipe.id}"/>
       </div>
     </div>
