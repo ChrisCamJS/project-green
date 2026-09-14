@@ -32,6 +32,7 @@ export const sendChatMessage = async (chatHistory, systemInstructionText) => {
   }
 };
 
+
 /**
  * Fires off a prompt to the Gemini 3.1 Flash Image Preview (Nano Banana 2) model.
  * @param {string} dishName - What we want it to draw.
@@ -41,7 +42,7 @@ export const generateRecipeImage = async (dishName) => {
   const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
   
   // Using the unified generateContent endpoint with the new image model
-  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${API_KEY}`;
+  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-image:generateContent?key=${API_KEY}`;
 
   const imagePrompt = `A professional, mouth-watering, high-resolution food photography shot of a vegan, whole-food plant-based dish: ${dishName}. Served on a rustic butcher block counter. Beautiful, natural window lighting.`;
 
