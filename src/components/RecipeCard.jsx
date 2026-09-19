@@ -31,6 +31,7 @@ const RecipeCard = ({ recipe }) => {
     } = recipe;
 
     const targetImage = imageUrl ||image_url; 
+    const recipeLink = `/recipe/${recipe.id}`;
 
     const fullImageUrl = targetImage 
         ? (targetImage.startsWith('http') ? targetImage : `${API_URL}${targetImage}`)
@@ -38,12 +39,14 @@ const RecipeCard = ({ recipe }) => {
 
     return (
         <div className='recipe-card'>
-            <div className='recipe-card-image'>
-                <img src={fullImageUrl} alt={title} style={{width: '100%', height: 'auto'}} />
+            <div className='recipe-card-image' title={recipe.title}>
+                <Link to={recipeLink} className="recipe-card-image-link" aria-label={recipe.title}>
+                    <img src={fullImageUrl} alt={title} style={{width: '100%', height: 'auto'}} />
+                </Link>    
             </div>
 
             <div className='recipe-card-content'>
-                <h3 className='recipe-title'>
+                <h3 className='recipe-title' title={recipe.title}>
                     {title}
                 </h3>
                 {/* Add the Author Attribution Here */}
