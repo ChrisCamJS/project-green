@@ -13,7 +13,7 @@ export default function Favorites() {
     try {
       setLoading(true);
       const data = await api.getFavorites();
-      console.log("RAW API RESPONSE:", data); // Let's see what PHP actually sent!
+      console.log("RAW API RESPONSE:", data);
       setFavorites(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch user favorites:', err);
@@ -55,28 +55,33 @@ export default function Favorites() {
             className={`filter-btn ${filter === 'public' ? 'active' : ''}`}
             onClick={() => setFilter('public')}
           >
-            Public Masterpieces ({favorites.filter(r => r.isPublic).length})
+            Public Masterpieces ({favorites.filter((r) => r.isPublic).length})
           </button>
           <button 
             className={`filter-btn ${filter === 'drafts' ? 'active' : ''}`}
             onClick={() => setFilter('drafts')}
           >
-            Private Drafts ({favorites.filter(r => r.isDraft).length})
+            Private Drafts ({favorites.filter((r) => r.isDraft).length})
           </button>
         </div>
       </div>
 
       {loading ? (
-        <p className="loading-text">Opening your private vault...</p>
+        <div className="favorites-loading">
+          <p className="loading-text">Opening your private vault...</p>
+        </div>
       ) : filteredList.length > 0 ? (
-        <div className="recipe-grid">
-          {filteredList.map((recipe) => (
-            <RecipeCard 
-              key={recipe.id} 
-              recipe={recipe} 
-              onFavoriteToggle={handleFavoriteToggle} 
-            />
-          ))}
+        <div className="favorites-grid-container">
+          <div className="recipe-grid">
+            {filteredList.map((recipe) => (
+              <div key={recipe.id} className="grid-item">
+                <RecipeCard 
+                  recipe={recipe} 
+                  onFavoriteToggle={handleFavoriteToggle} 
+                />
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="no-favorites-card">
@@ -86,6 +91,4 @@ export default function Favorites() {
       )}
     </div>
   );
-
-  
 }
