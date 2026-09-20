@@ -50,6 +50,18 @@
   min-height: 2.6em; /* Keeps card rows uniformly aligned */
 }
 
+.recipe-card-image {
+  position: relative;
+  overflow: hidden;
+}
+
+.recipe-card-favorite-wrapper {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+}
+
 .recipe-description {
   margin: 0;
   color: #555;

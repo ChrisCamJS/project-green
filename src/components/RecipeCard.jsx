@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import './RecipeCard.css';
 import StarRating from './StarRating';
+import FavoriteButton from './FavoriteButton';
 
 /**
  * RecipeCard Component
@@ -27,8 +28,13 @@ const RecipeCard = ({ recipe }) => {
         protein_g,
         carbs_g,
         fat_g,
-        createdAt
+        createdAt,
+        is_favorite,
+        isFavorited
     } = recipe;
+
+    // Normalise favorite status from API (handles boolean, 1/0, or snake_case)
+    const initialFavorited = Boolean(Number(is_favorite ?? isFavorited ?? 0));
 
     const targetImage = imageUrl ||image_url; 
     const recipeLink = `/recipe/${recipe.id}`;
@@ -42,7 +48,14 @@ const RecipeCard = ({ recipe }) => {
             <div className='recipe-card-image' title={recipe.title}>
                 <Link to={recipeLink} className="recipe-card-image-link" aria-label={recipe.title}>
                     <img src={fullImageUrl} alt={title} style={{width: '100%', height: 'auto'}} />
-                </Link>    
+                </Link>
+                {/* Floating Interactive Favorite Cue */}
+                <div className="recipe-card-favorite-wrapper">
+                    <FavoriteButton 
+                        recipeId={id} 
+                        initialFavorited={initialFavorited} 
+                    />
+                </div>    
             </div>
 
             <div className='recipe-card-content'>
