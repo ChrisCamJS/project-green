@@ -9,7 +9,7 @@ const Login = () => {
     const { login } = useAuth();
     
     // State to hold user input (trimmed down to just what the form actually uses)
-    const [credentials, setCredentials] = useState({ username: '', password: '' });
+    const [credentials, setCredentials] = useState({ email: '', password: '' });
     
     // State for catching and displaying validation or server errors
     const [error, setError] = useState('');
@@ -29,8 +29,8 @@ const Login = () => {
         setError('');
 
         // Basic front-end validation check
-        if (!credentials.username || !credentials.password) {
-            setError("Both fields are required, pet.");
+        if (!credentials.email || !credentials.password) {
+            setError("Both fields are required.");
             return;
         }
 
@@ -42,7 +42,6 @@ const Login = () => {
                 // Save user data to context
                 login(response.user);
                 
-                // Fixed: Use username instead of email since PHP doesn't pass an email key[cite: 1, 3]
                 const isAdmin = response.user.is_admin;
                 const identifier = response.user.username;
                 
@@ -53,7 +52,7 @@ const Login = () => {
                 
                 navigate('/admin');
             } else {
-                setError(response.message || 'Login failed, homie.');
+                setError(response.message || 'Login failed.');
             }
         } catch (err) {
             setError('Login failed. Are you entirely sure you belong in the vault?');
@@ -72,14 +71,14 @@ const Login = () => {
 
                 <form onSubmit={handleSubmit} className={styles.loginForm}>
                     <div className={styles.formGroup}>
-                        <label htmlFor="username">Username</label>
+                        <label htmlFor="email">Email</label>
                         <input 
                             type="text" 
-                            id="username"
-                            name="username" 
-                            value={credentials.username}
+                            id="email"
+                            name="email" 
+                            value={credentials.email}
                             onChange={handleChange}
-                            placeholder="Enter your username"
+                            placeholder="Enter your email address"
                         />
                     </div>
 
