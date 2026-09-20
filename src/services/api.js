@@ -96,11 +96,14 @@ export const api = {
     },
 
     // RECIPE MANAGEMENT & EXTRAS
-    toggleDraft: (id, isDraft) => {
-        return fetchWrapper('/recipes/draft', {
+    toggleDraft: async (id, isPublicStatus) => {
+        const response = await fetch(`${API_BASE_URL}/recipes/draft`, {
             method: 'PUT',
-            body: JSON.stringify({ id, is_draft: isDraft ? 1 : 0 }),
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ id, is_public: isPublicStatus })
         });
+    return response.json();
     },
 
     uploadImages: (formData) => {
