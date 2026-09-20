@@ -97,6 +97,9 @@ const Login = () => {
                     <button type="submit" className={styles.loginBtn}>
                         Unlock Vault
                     </button>
+                    <p className={styles.toggleText} style={{ marginTop: '10px' }}>
+                        Forgot your password? <span onClick={() => navigate('/forgot-password')}>Reset it here</span>.
+                    </p>
                 </form>
             </div>
         </div>

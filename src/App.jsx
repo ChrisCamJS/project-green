@@ -7,14 +7,15 @@ import RecipeDetails from './pages/RecipeDetails';
 import WellnessTools from './pages/WellnessTools';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import EditRecipe from './pages/EditRecipe';
 import EmmasRecipeEngine from './pages/Engine';
 import Favorites from './pages/Favorites';
+import ResetPassword from './pages/ResetPassword';
+import ForgotPassword from './pages/ForgotPassword';
 import './App.css'
 
 function App() {
-  
-
   return (
     <>
       <Router>
@@ -23,7 +24,10 @@ function App() {
               <Route path='/' element={<Home />} />
               <Route path='/recipe/:id' element={<RecipeDetails />} />
               <Route path='/wellness' element={<WellnessTools />} />
-              
+              <Route path='/register' element={<Register />} />
+              <Route path='/reset-password' element={<ResetPassword />} />
+              <Route path='/forgot-password' element={<ForgotPassword />} /> {/* Route added here */}
+
               {/* Protect the admin routes */}
               <Route element={<ProtectedRoute adminOnly={true} />}>
                 <Route path='/admin' element={<AdminDashboard />} />
@@ -43,7 +47,6 @@ function App() {
               <Route element={<ProtectedRoute premiumOnly={true} />}>
                 <Route path='/engine' element={<EmmasRecipeEngine />} />
               </Route>
-
               <Route path='/login' element={<Login />} />
               <Route path='*' element={<h2>404: Oh My Goodness Gracious, Child - Page Not Found</h2>} />
             </Routes>

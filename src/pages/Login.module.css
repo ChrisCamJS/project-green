@@ -72,6 +72,14 @@
     box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
 }
 
+.inputGroup {
+    padding: .25rem;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+    margin-bottom: .6rem;
+}
+
 .loginBtn {
     background: var(--primary-green);
     color: white;
@@ -87,8 +95,49 @@
 
 .loginBtn:hover {
     background: #236026;
+    cursor: pointer;
 }
 
 .loginBtn:active {
-    transform: scale(0.98); /* Satisfying little click effect */
+    transform: scale(0.98); 
+}
+
+.loginButton {
+    background: var(--primary-green);
+    color: white;
+    padding: 15px;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.1s;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    width: 90%;
+}
+
+.loginButton:hover {
+    background-color: #1e7e34;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+.loginButton:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(40, 167, 69, 0.4);
+}
+
+
+/* Sprucing up the interactive text links */
+.toggleText span {
+    color: #28a745;
+    cursor: pointer;
+    font-weight: 600;
+    transition: color 0.2s ease-in-out, text-decoration 0.2s ease-in-out;
+}
+
+.toggleText span:hover {
+    color: #155d27;
+    text-decoration: underline;
 }
