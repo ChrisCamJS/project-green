@@ -37,6 +37,41 @@ const RecipeDetails = () => {
   const [isChatting, setIsChatting] = useState(false);
   const [showLiveChat, setShowLiveChat] = useState(false);
 
+  useEffect(() => {
+  if (!recipe) return;
+
+  // Update browser document title
+  document.title = `${recipe.title} | The Veggie Vault`;
+
+  // Helper to dynamically set or replace meta tag content
+  const setMetaTag = (attr, key, content) => {
+    let element = document.querySelector(`meta[${attr}="${key}"]`);
+    if (!element) {
+      element = document.createElement('meta');
+      element.setAttribute(attr, key);
+      document.head.appendChild(element);
+    }
+    element.setAttribute('content', content || '');
+  };
+
+  const currentUrl = window.location.href;
+  const recipeDesc = recipe.description || `Explore this WFPB recipe for ${recipe.title} on The Veggie Vault.`;
+  const recipeImg = recipe.imageUrl;
+
+  // Open Graph
+  setMetaTag('property', 'og:type', 'article');
+  setMetaTag('property', 'og:title', recipe.title);
+  setMetaTag('property', 'og:description', recipeDesc);
+  setMetaTag('property', 'og:image', recipeImg);
+  setMetaTag('property', 'og:url', currentUrl);
+
+  // Twitter
+  setMetaTag('name', 'twitter:card', 'summary_large_image');
+  setMetaTag('name', 'twitter:title', recipe.title);
+  setMetaTag('name', 'twitter:description', recipeDesc);
+  setMetaTag('name', 'twitter:image', recipeImg);
+}, [recipe]);
+
   // --- DATA FETCHING (useEffect) ---
   useEffect(() => {
     const fetchRecipe = async () => {
