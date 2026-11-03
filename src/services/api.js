@@ -26,6 +26,11 @@ async function fetchWrapper(endpoint, options = {}) {
         const data = await response.json();
 
         if (!response.ok) {
+            // If PHP says our session died (401), clear out the ghost login!
+            if (response.status === 401 && endpoint !== '/login') {
+                localStorage.removeItem('vault_user');
+                window.location.href = '/login'; // Or reload so AuthContext resets
+            }
             throw new Error(data.error || data.message || 'Something went wrong with the API!');
         }
         return data;

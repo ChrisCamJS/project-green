@@ -4,7 +4,8 @@ export const sendChatMessage = async (chatHistory, systemInstructionText) => {
   const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
   if (!API_KEY) throw new Error("The Gemini API key is missing. Check your .env file.");
 
-  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${API_KEY}`;
+  // Updated to the new 3.5 Flash-Lite model (or gemini-3.5-flash if you prefer the full version)
+  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${API_KEY}`;
 
   try {
     const response = await fetch(API_URL, {
@@ -14,8 +15,8 @@ export const sendChatMessage = async (chatHistory, systemInstructionText) => {
         systemInstruction: {
           parts: [{ text: systemInstructionText }]
         },
-        contents: chatHistory, // This is our array of { role: 'user'/'model', parts: [{ text: '...' }] }
-        generationConfig: { temperature: 0.7, maxOutputTokens: 5000 },
+        contents: chatHistory, // Strictly alternating { role: 'user'/'model', parts: [{ text: '...' }] }
+        // Removed custom temperature/sampling so the new 3.x models don't throw a strop
       }),
     });
 
@@ -34,14 +35,13 @@ export const sendChatMessage = async (chatHistory, systemInstructionText) => {
 
 
 /**
- * Fires off a prompt to the Gemini 3.1 Flash Image Preview (Nano Banana 2) model.
+ * Fires off a prompt to the Gemini 3.1 Flash Image model.
  * @param {string} dishName - What we want it to draw.
  * @returns {Promise<string>} The base64 image string.
  */
 export const generateRecipeImage = async (dishName) => {
   const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
   
-  // Using the unified generateContent endpoint with the new image model
   const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-image:generateContent?key=${API_KEY}`;
 
   const imagePrompt = `A professional, mouth-watering, high-resolution food photography shot of a vegan, whole-food plant-based dish: ${dishName}. Served on a rustic butcher block counter. Beautiful, natural window lighting.`;
@@ -52,9 +52,8 @@ export const generateRecipeImage = async (dishName) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [
-            { parts: [{ text: imagePrompt }] }
+          { parts: [{ text: imagePrompt }] }
         ]
-        // Notice we completely removed the generationConfig block here!
       }),
     });
 
