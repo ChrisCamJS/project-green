@@ -144,7 +144,7 @@ const Header = () => {
                                 <>
                                     <li>
                                         <Link to="/buy-tokens" onClick={closeMenu} className="nav-link">
-                                            🪙 Buy Tokens
+                                            Buy Tokens
                                         </Link>
                                     </li>
                                     <li>

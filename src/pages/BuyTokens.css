@@ -88,7 +88,7 @@
   background: linear-gradient(135deg, #f0fff4 0%, #fefcbf 100%);
   border: 1.5px solid #c6f6d5;
   border-radius: 18px;
-  padding: 2rem;
+  padding: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -126,9 +126,16 @@
   padding: 0.5rem 0.95rem;
   border-radius: 9999px;
   font-size: 0.94rem;
+  text-align: center;
+  justify-content: center;
+}
+
+.buy-tokens-rate-pill div {
+  text-align: center;
 }
 
 .buy-tokens-balance-card {
+  width: fit-content;
   flex: 0 0 auto;
   min-width: 270px;
   background-color: #ffffff;

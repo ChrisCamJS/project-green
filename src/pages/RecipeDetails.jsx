@@ -490,7 +490,7 @@ const RecipeDetails = () => {
         {/* The Creator Tag */}
         <div className="author-badge" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           <span style={{ background: '#edf2f7', padding: '5px 14px', borderRadius: '16px', fontSize: '0.92rem', color: '#4a5568' }}>
-            🧑‍🍳 Recipe by:{' '}
+            Recipe by:{' '}
             {authorProfileLink ? (
               <Link to={authorProfileLink} style={{ color: '#2f855a', fontWeight: 700, textDecoration: 'none' }}>
                 {recipe.authorName || 'Emma (AI)'}

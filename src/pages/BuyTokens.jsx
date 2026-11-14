@@ -238,7 +238,7 @@ const BuyTokens = () => {
 
       <section className="buy-tokens-hero">
         <div className="buy-tokens-hero-copy">
-          <h1>🪙 Top Up Emma Tokens</h1>
+          <h1>Top Up Emma Tokens</h1>
           <p className="buy-tokens-subtitle">
             Power Emma&apos;s Masterpiece Recipes, AI Dish Photography, Full Micronutrient Deep Dives, and Live Audio Sessions.
           </p>
