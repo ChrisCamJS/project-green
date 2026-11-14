@@ -35,16 +35,162 @@
   margin-top: -8px;
 }
 
+.filterBar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 760px;
+  margin: -0.75rem auto 2rem auto;
+  padding: 0 8px;
+}
+
+.filterLabel {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #5c6b60;
+}
+
+.filterPills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.filterPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 15px;
+  border-radius: 999px;
+  border: 1.5px solid #d5e2d7;
+  background-color: #ffffff;
+  color: #2d3a30;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.filterPill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.filterCount {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background-color: #eef3ef;
+  color: #4a5d4f;
+  transition: all 0.2s ease;
+}
+
+.oilFreePill:hover {
+  border-color: var(--primary-green);
+}
+
+.oilFreePill.filterPillActive {
+  background-color: #2e7d32;
+  border-color: #2e7d32;
+  color: #ffffff;
+}
+
+.glutenFreePill:hover {
+  border-color: #d97706;
+}
+
+.glutenFreePill.filterPillActive {
+  background-color: #b45309;
+  border-color: #b45309;
+  color: #ffffff;
+}
+
+.sugarFreePill:hover {
+  border-color: #0284c7;
+}
+
+.sugarFreePill.filterPillActive {
+  background-color: #0369a1;
+  border-color: #0369a1;
+  color: #ffffff;
+}
+
+.filterPillActive .filterCount {
+  background-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.clearFiltersBtn {
+  background: transparent;
+  border: 1px dashed #cbd5e0;
+  color: #64748b;
+  padding: 7px 13px;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clearFiltersBtn:hover {
+  border-color: var(--blazer-red);
+  color: var(--blazer-red);
+  background-color: #fff5f5;
+}
+
+.filterStatusText {
+  margin: 2px 0 0;
+  font-size: 0.86rem;
+  color: #4a5d4f;
+}
+
+.emptyStateBox {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 36px 20px;
+  background-color: #ffffff;
+  border: 1px dashed #cfd8dc;
+  border-radius: 12px;
+  color: #4a5568;
+}
+
+.emptyResetBtn {
+  margin-top: 14px;
+  padding: 9px 18px;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--primary-green);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.emptyResetBtn:hover {
+  background-color: #1b5e20;
+}
+
 /* Mobile Tweak */
 @media (max-width: 600px) {
+  .filterBar {
+    margin: -0.5rem auto 1.5rem auto;
+  }
+
+  .filterPill {
+    font-size: 0.84rem;
+    padding: 7px 12px;
+  }
+
   .recipeGrid {
     grid-template-columns: 1fr;
   }
-}
-.recipeGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 30px;
-  margin-top: 40px;
 }
 
