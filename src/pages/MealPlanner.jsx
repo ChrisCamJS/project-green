@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
+import SEOHead from '../components/SEOHead';
 import {
   MEAL_SLOTS,
   getMealSlotMeta,
@@ -295,6 +296,12 @@ export default function MealPlanner() {
 
   return (
     <div className="meal-planner-page">
+      <SEOHead
+        title="Meal Planner Calendar"
+        description="Plan your weekly and monthly whole-food, oil-free plant-based meals using published recipes and your private drafts."
+        canonicalPath="/meal-planner"
+        noindex={true}
+      />
       <div className="mp-top-header">
         <div>
           <h1>📅 My Meal Planner</h1>

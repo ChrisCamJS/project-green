@@ -5,12 +5,20 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
+    <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
+    <link rel="canonical" href="https://veggievault.chrisandemmashow.com/" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#2f855a" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Veggie Vault" />
+
+    <!-- Search Engine SEO -->
+    <meta name="description" content="Discover, generate, and plan whole-food, oil-free plant-based recipes with complete macro and micronutrient breakdowns powered by The Chris &amp; Emma Show." />
+    <meta name="keywords" content="whole food plant based recipes, WFPB, oil-free vegan recipes, vegan meal planner, plant-based nutrition calculator, refined sugar-free recipes, gluten-free vegan, The Veggie Vault" />
+    <meta name="author" content="The Chris &amp; Emma Show" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
 
     <!-- Open Graph / Facebook / LinkedIn / WhatsApp -->
     <meta property="og:type" content="website" />
@@ -29,8 +37,36 @@
     <meta name="twitter:description" content="Discover, generate, and track wholesome, oil-free, plant-based culinary creations with intelligent nutritional analysis." />
     <meta name="twitter:image" content="https://veggievault.chrisandemmashow.com/og-vault-preview.jpeg" />
 
+    <!-- Base Organization & WebSite Structured Data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://veggievault.chrisandemmashow.com/#organization",
+            "name": "The Veggie Vault",
+            "url": "https://veggievault.chrisandemmashow.com/",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://veggievault.chrisandemmashow.com/pwa-512x512.png"
+            }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://veggievault.chrisandemmashow.com/#website",
+            "url": "https://veggievault.chrisandemmashow.com/",
+            "name": "The Veggie Vault",
+            "description": "Whole-food, oil-free plant-based recipes, AI culinary engine, nutrition tracking, and meal planner.",
+            "publisher": {
+              "@id": "https://veggievault.chrisandemmashow.com/#organization"
+            }
+          }
+        ]
+      }
+    </script>
 
-    <title>The Veggie Vault</title>
+    <title>The Veggie Vault | Whole Food Plant-Based Recipes &amp; Engine</title>
   </head>
   <body>
     <div id="root"></div>

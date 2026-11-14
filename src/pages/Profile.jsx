@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import RecipeCard from '../components/RecipeCard';
+import SEOHead from '../components/SEOHead';
+import { SITE_URL, cleanSeoText } from '../utils/seoUtils';
 import './Profile.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -249,6 +251,40 @@ export default function Profile() {
     }
   };
 
+  const profileSeo = useMemo(() => {
+    if (!profile) return null;
+    const name = profile.display_name || profile.username || 'Chef Profile';
+    const path = identifier
+      ? `/profile/${encodeURIComponent(identifier)}`
+      : '/profile';
+    const desc = cleanSeoText(
+      profile.bio ||
+        `Explore ${recipes.length} published whole-food plant-based recipes shared by ${name} on The Veggie Vault.`,
+      160
+    );
+    const avatar = resolveAssetUrl(profile.profile_image);
+    return {
+      title: `${name} (@${profile.username}) — Chef Profile`,
+      description: desc,
+      canonicalPath: path,
+      ogType: 'profile',
+      image: avatar || undefined,
+      noindex: !identifier,
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@type': 'ProfilePage',
+        url: `${SITE_URL}${path}`,
+        mainEntity: {
+          '@type': 'Person',
+          name,
+          alternateName: `@${profile.username}`,
+          description: desc,
+          ...(avatar ? { image: avatar } : {}),
+        },
+      },
+    };
+  }, [profile, identifier, recipes.length]);
+
   if (loading) {
     return (
       <div className="profile-page-container">
@@ -278,6 +314,7 @@ export default function Profile() {
 
   return (
     <div className="profile-page-container">
+      {profileSeo && <SEOHead {...profileSeo} />}
       <div className="profile-top-nav">
         <Link to="/" className="profile-back-link">&larr; Back to Recipes</Link>
         {profile.is_own_profile && (

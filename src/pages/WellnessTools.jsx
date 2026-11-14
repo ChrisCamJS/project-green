@@ -1,12 +1,31 @@
 import React from 'react';
 import './WellnessTools.css';
+import SEOHead from '../components/SEOHead';
+import { SITE_URL } from '../utils/seoUtils';
 import BMICalculator from '../components/BMICalculator.jsx';
 import TDEECalculator from '../components/TDEECalculator.jsx';
 import MacroNutrientPlanner from '../components/MacroNutrientPlanner.jsx';
 
+const WELLNESS_JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'The Veggie Vault Wellness & Nutrition Calculators',
+  url: `${SITE_URL}/wellness`,
+  applicationCategory: 'HealthApplication',
+  operatingSystem: 'Web',
+  description:
+    'Interactive Body Mass Index (BMI), Total Daily Energy Expenditure (TDEE), and whole-food plant-based macronutrient calculators.',
+};
+
 const WellnessTools = () => {
   return (
     <div className="wellness-page-container">
+      <SEOHead
+        title="Wellness Calculators — BMI, TDEE & Plant-Based Macro Planner"
+        description="Calculate your BMI, daily calorie needs (TDEE), and whole-food plant-based macronutrient targets with interactive precision tools powered by The Chris & Emma Show."
+        canonicalPath="/wellness"
+        jsonLd={WELLNESS_JSON_LD}
+      />
       <div className="wellness-content-wrapper">
         {/* Page Header Section */}
         <header className="wellness-header">

@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Allow: /recipe/
+Allow: /wellness
+Allow: /sitemap
+Allow: /profile/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /login
+Disallow: /register
+Disallow: /reset-password
+Disallow: /forgot-password
+Disallow: /buy-tokens
+Disallow: /favorites
+Disallow: /meal-planner
+Disallow: /pantry-rebuild-api/
+
+Sitemap: https://veggievault.chrisandemmashow.com/sitemap.xml

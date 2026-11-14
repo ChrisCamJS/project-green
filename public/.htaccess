@@ -1,15 +1,18 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # 1. Intercept social media crawlers on /recipe/:id and serve dynamic OG/Twitter meta tags
+    # 1. Serve dynamic XML sitemap directly at /sitemap.xml
+    RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
+    # 2. Intercept social media crawlers on /recipe/:id and serve dynamic OG/Twitter meta tags
     RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|facebot|meta-externalagent|twitterbot|linkedinbot|whatsapp|discordbot|skype|slackbot|telegrambot|pinterest|applebot|redditbot|bluesky|cardyb|mastodon|embedly|iframely) [NC]
     RewriteRule ^recipe/([0-9]+)/?$ bot-handler.php?id=$1 [QSA,L]
 
-    # 2. Let API requests and existing static files/directories pass through untouched
+    # 3. Let API requests and existing static files/directories pass through untouched
     RewriteRule ^pantry-rebuild-api - [L]
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
 
-    # 3. Standard SPA routing for human visitors
+    # 4. Standard SPA routing for human visitors
     RewriteRule ^ index.html [L]
 </IfModule>

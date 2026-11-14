@@ -16,6 +16,7 @@ import BuyTokens from './pages/BuyTokens';
 import MealPlanner from './pages/MealPlanner';
 import ResetPassword from './pages/ResetPassword';
 import ForgotPassword from './pages/ForgotPassword';
+import Sitemap from './pages/Sitemap';
 import './App.css'
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
               <Route path='/' element={<Home />} />
               <Route path='/recipe/:id' element={<RecipeDetails />} />
               <Route path='/wellness' element={<WellnessTools />} />
+              <Route path='/sitemap' element={<Sitemap />} />
               <Route path='/profile/:identifier' element={<Profile />} />
               <Route path='/register' element={<Register />} />
               <Route path='/reset-password' element={<ResetPassword />} />
