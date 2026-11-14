@@ -559,3 +559,149 @@
 .workshop-btn.publish-btn:hover:not(:disabled) {
   background-color: #1b5e20;
 }
+
+.workshop-style-section {
+  margin-bottom: 0.9rem;
+}
+
+/* --- Image Style & Kitchen Studio (Standalone Recipe Details) --- */
+.image-style-studio {
+  background: #ffffff;
+  border: 1px solid #cbd5e0;
+  border-radius: 10px;
+  padding: 0.75rem 0.95rem;
+}
+
+.style-studio-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.style-studio-toggle {
+  background: transparent;
+  border: none;
+  padding: 0.15rem 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #553c9a;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.style-studio-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.style-active-badge {
+  background-color: #805ad5;
+  color: #ffffff;
+  font-size: 0.74rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+}
+
+.style-toggle-chevron {
+  font-size: 0.72rem;
+  color: #6b46c1;
+}
+
+.style-reset-btn {
+  background: transparent;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #4a5568;
+  cursor: pointer;
+}
+
+.style-reset-btn:hover:not(:disabled) {
+  background-color: #edf2f7;
+}
+
+.style-studio-body {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.style-field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.style-field-block label {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #2d3748;
+}
+
+.color-preset-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.color-preset-pill {
+  padding: 0.3rem 0.7rem;
+  border-radius: 9999px;
+  border: 1px solid #cbd5e0;
+  background-color: #ffffff;
+  color: #4a5568;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.color-preset-pill:hover:not(:disabled) {
+  border-color: #805ad5;
+  color: #553c9a;
+}
+
+.color-preset-pill.active {
+  background-color: #805ad5;
+  border-color: #6b46c1;
+  color: #ffffff;
+}
+
+.style-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.75rem;
+}
+
+.style-text-input,
+.style-select,
+.style-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  background-color: #ffffff;
+  color: #1a202c;
+}
+
+.style-text-input:focus,
+.style-select:focus,
+.style-textarea:focus {
+  outline: none;
+  border-color: #805ad5;
+  box-shadow: 0 0 0 3px rgba(128, 90, 213, 0.15);
+}

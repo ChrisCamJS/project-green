@@ -31,7 +31,7 @@ export function deriveChatTitle(chatHistory = [], engineMode = 'chat') {
     }
 
     const firstUserMsg = chatHistory.find((msg) => msg.role === 'user');
-    const rawText = firstUserMsg?.parts?.[0]?.text?.trim() || '';
+    const rawText = (firstUserMsg?.displayParts?.userText || firstUserMsg?.parts?.[0]?.text || '').trim();
     const cleaned = rawText.replace(/^I want a recipe for:\s*/i, '').replace(/\s+/g, ' ').trim();
 
     if (!cleaned) {
@@ -103,12 +103,30 @@ export function loadRecentChats(userId) {
 }
 
 /**
+ * Removes heavy binary inlineData payloads before persisting chats to browser storage.
+ */
+function sanitizeChatHistoryForStorage(chatHistory = []) {
+    if (!Array.isArray(chatHistory)) return [];
+    return chatHistory.map((msg) => {
+        if (!msg || typeof msg !== 'object') return msg;
+        const safeParts = Array.isArray(msg.parts)
+            ? msg.parts.filter((part) => part && typeof part.text === 'string' && !part.inlineData)
+            : [];
+        return {
+            ...msg,
+            parts: safeParts.length > 0 ? safeParts : [{ text: msg.displayParts?.userText || '' }],
+        };
+    });
+}
+
+/**
  * Save or update a chat session in 10-day temporary browser storage.
  */
 export function saveChatSession(userId, sessionData) {
     const key = getStorageKey(userId);
     const { id, engineMode = 'chat', dietaryPrefs = {}, chatHistory = [] } = sessionData || {};
 
+    const sanitizedHistory = sanitizeChatHistoryForStorage(chatHistory);
     const existingChats = loadRecentChats(userId);
     const existingIndex = existingChats.findIndex((item) => item.id === id);
     const existingSession = existingIndex >= 0 ? existingChats[existingIndex] : null;
@@ -118,8 +136,8 @@ export function saveChatSession(userId, sessionData) {
         id: id || `chat_${now}_${Math.random().toString(36).slice(2, 7)}`,
         engineMode,
         dietaryPrefs,
-        chatHistory,
-        title: deriveChatTitle(chatHistory, engineMode),
+        chatHistory: sanitizedHistory,
+        title: deriveChatTitle(sanitizedHistory, engineMode),
         createdAt: existingSession?.createdAt || now,
         updatedAt: now,
         expiresAt: now + TEN_DAYS_MS,

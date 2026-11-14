@@ -58,6 +58,20 @@ function extractModelText(msg) {
 }
 
 /**
+ * Extract clean user prompt text plus any attached reference labels for exports.
+ */
+function extractUserText(msg) {
+    const baseText = (msg.displayParts?.userText || msg.parts?.[0]?.text || '').trim();
+    const badges = Array.isArray(msg.displayParts?.referenceBadges)
+        ? msg.displayParts.referenceBadges
+        : [];
+    if (badges.length > 0) {
+        return `${baseText}\n[Attached References: ${badges.join(', ')}]`;
+    }
+    return baseText;
+}
+
+/**
  * Trigger a browser file download from a Blob.
  */
 function triggerDownload(blob, filename) {
@@ -99,7 +113,7 @@ export function exportChatToTxt({
 
     chatHistory.forEach((msg) => {
         if (msg.role === 'user') {
-            const userText = (msg.parts?.[0]?.text || '').trim();
+            const userText = extractUserText(msg);
             lines.push(`[${userName}]:`);
             lines.push(userText);
         } else {
@@ -253,7 +267,7 @@ export function exportChatToPdf({
         const isUser = msg.role === 'user';
         const speakerLabel = isUser ? `You (${safeUser}):` : 'Emma Advanced:';
         const rawText = isUser
-            ? (msg.parts?.[0]?.text || '')
+            ? extractUserText(msg)
             : cleanMarkdownForText(extractModelText(msg), '- ');
 
         ensureSpace(LINE_HEIGHT * 2);

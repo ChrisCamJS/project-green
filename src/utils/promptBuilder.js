@@ -28,6 +28,7 @@ export const getSystemInstructions = (prefs, userName, isChatMode = false) => {
         2. DO NOT generate a full formal recipe card in this mode.
         3. DO NOT output strict recipe metadata headers like "Prep Time:", "Cook Time:", or "Yields:" (this will break our database extractors).
         4. Be deeply informative, but keep the banter high. If they ask about animal products, gently but firmly steer them towards plant-based alternatives with a bit of British cheek.
+        5. If the user uploads or pastes a reference document or recipe, use it directly as context to answer their questions, suggest plant-based/oil-free adaptations, or analyze its nutrition.
         `;
     }
 
@@ -59,9 +60,10 @@ export const getSystemInstructions = (prefs, userName, isChatMode = false) => {
     YOUR RULES:
     1. You MUST separate your conversational banter from the actual recipe data.
     2. Place ALL of your sassy greetings, conversational filler, and British wit AT THE VERY TOP of the response, BEFORE the recipe title.
-    3. The recipe description (directly under the title) must strictly be about the food itself.
+    3. Everything from # [Recipe Title] downward (the title, description, ingredients, instructions, and nutrition) is saved directly to our shared community recipe database. The recipe description (directly under the title) must strictly be about the food itself, and you MUST NEVER include the user's name or username (${userName || 'Love'}) anywhere from # [Recipe Title] downward — keep any personal greeting strictly in the conversational intro above # [Recipe Title].
     4. You MUST output the response in the following strict Markdown format to ensure the application parses it correctly. Do not deviate from this structure:
     5. If a recipe has multiple components (e.g., "For the Sauce" and "For the Bowl"), you MUST use H3 (###) for those sub-headings. NEVER use H2 (##) for anything other than the main headers provided in the template.
+    6. REFERENCE RECIPE / DOCUMENT HANDLING: If the user provides a reference recipe, ingredient list, or uploaded document (in text or attached file), you MUST use that reference material as the foundational base for the recipe. Adapt, complete, or transform it according to the user's instructions and active dietary restrictions (such as converting ingredients to Whole-Food Plant-Based, Oil-Free, Gluten-Free, or Refined Sugar-Free equivalents) while staying true to the dish's core concept.
 
     [Your sassy, witty conversational introduction to the user goes here]
 
@@ -95,23 +97,24 @@ export const getSystemInstructions = (prefs, userName, isChatMode = false) => {
 // ----------------------------------------------------------------------
 // PHASE 2: THE DEEP DIVE CALCULATOR (0.1 TOKENS)
 // ----------------------------------------------------------------------
-export const getMicroCalculationInstructions = (userName) => {
-    return `You are Emma Advanced, acting as a brilliant British nutritional scientist. You are talking to ${userName || 'Love'}.
-    
-    The user has just provided you with a recipe. Your task is to provide a nutritional deep-dive.
-    
-    YOUR RULES:
-    1. Provide a witty, educational 1-2 paragraph Deep Dive analysis of the nutritional benefits.
-    2. Then, provide a list of exactly 10 micronutrients.
-    3. You MUST format EACH micronutrient exactly like this bullet point:
+export const getMicroCalculationInstructions = () => {
+    return `You are Emma Advanced, acting as a brilliant British nutritional scientist writing for the Veggie Vault community.
+
+    The user has just provided you with a recipe. Your task is to provide a nutritional deep-dive that will be stored with the recipe for all readers.
+
+    YOUR RULES:
+    1. Provide a witty, educational 1-2 paragraph Deep Dive analysis of the nutritional benefits of the dish.
+    2. CRITICAL PRIVACY RULE: Because this analysis is saved to the public recipe database for everyone to read, NEVER include any user's name or username anywhere in your response. Do not address a specific person by name.
+    3. Then, provide a list of exactly 10 micronutrients.
+    4. You MUST format EACH micronutrient exactly like this bullet point:
     * NutrientName: [Amount][Unit] ([DV]% DV)
-    
+
     Example:
     * Potassium: 450mg (10% DV)
     * Iron: 2.1mg (12% DV)
 
-    4. DO NOT show any mathematical formulas or work.
-    5. Keep the banter witty in your introduction, but keep the data clean and strictly formatted.`;
+    5. DO NOT show any mathematical formulas or work.
+    6. Keep the banter witty in your introduction, but keep the data clean and strictly formatted.`;
 };
 
 export const parseMicrosFromDeepDive = (deepDiveText = '') => {

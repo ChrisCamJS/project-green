@@ -4,10 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { sendChatMessage, generateRecipeImage } from '../../services/geminiApi';
+import {
+  sendChatMessage,
+  generateRecipeImage,
+  DEFAULT_IMAGE_STYLE_OPTIONS,
+} from '../../services/geminiApi';
 import { getMicroCalculationInstructions, parseMicrosFromDeepDive } from '../../utils/promptBuilder';
 import { useEmmaVoice } from '../../hooks/useEmmaVoice';
 import LiveChat from '../LiveChat'; // Bringing in Live Mode
+import ImageStyleOptions from './ImageStyleOptions';
 import './RecipeResult.css';
 
 const RecipeResult = ({
@@ -18,11 +23,14 @@ const RecipeResult = ({
   dietaryPrefs = { oilFree: true, glutenFree: false, sugarFree: true },
   isGeneratingImage = false,
   imageGenFailed = false,
-  onRetryImage = null
+  onRetryImage = null,
+  imageStyleOptions = DEFAULT_IMAGE_STYLE_OPTIONS,
+  onUpdateImageStyleOptions = null,
+  onToggleLiveChat = null,
+  externalShowLiveChat = false,
 }) => {
   const navigate = useNavigate();
-  const { user, spendToken } = useAuth(); 
-  const currentUserName = user?.username || 'Love';
+  const { user, spendToken, confirmTokenUsage } = useAuth(); 
 
   const [isSaving, setIsSaving] = useState(false);
   const [savedRecipeId, setSavedRecipeId] = useState(null);
@@ -34,6 +42,10 @@ const RecipeResult = ({
   const [isPublishingDraft, setIsPublishingDraft] = useState(false);
   const [isPublishedMasterpiece, setIsPublishedMasterpiece] = useState(false);
   const [upgradeStatusMsg, setUpgradeStatusMsg] = useState(null);
+  const [workshopImageOptions, setWorkshopImageOptions] = useState({
+    ...DEFAULT_IMAGE_STYLE_OPTIONS,
+    ...(imageStyleOptions || {}),
+  });
 
   const [advancedMicros, setAdvancedMicros] = useState(null);
   const [isCalculatingMicros, setIsCalculatingMicros] = useState(false);
@@ -53,7 +65,7 @@ const RecipeResult = ({
         const fetchBackgroundMicros = async () => {
             setIsCalculatingMicros(true);
             try {
-                const instructions = getMicroCalculationInstructions(currentUserName);
+                const instructions = getMicroCalculationInstructions();
                 const chatHistory = [{ role: 'user', parts: [{ text: `Here is the recipe I need you to deeply analyze:\n\n${recipeMarkdown}` }] }];
                 
                 const mathResult = await sendChatMessage(chatHistory, instructions);
@@ -68,7 +80,7 @@ const RecipeResult = ({
         
         fetchBackgroundMicros();
     }
-  }, [recipeMarkdown, isChat, isDraft, advancedMicros, isCalculatingMicros, currentUserName]);
+  }, [recipeMarkdown, isChat, isDraft, advancedMicros, isCalculatingMicros]);
 
   const handleDownload = () => {
     if (!recipeMarkdown) return;
@@ -197,7 +209,8 @@ const RecipeResult = ({
     setUpgradeStatusMsg(null);
     try {
       if (!draftAiImagePaid) {
-        const tokenRes = await spendToken(0.5);
+        const tokenRes = await spendToken(0.5, 'Generating an AI Dish Photo');
+        if (tokenRes?.cancelled) return;
         if (!tokenRes?.success) {
           alert(tokenRes?.message || 'Unable to deduct 0.5 tokens.');
           return;
@@ -206,7 +219,7 @@ const RecipeResult = ({
       }
 
       const dishTitle = extractRecipeTitle();
-      const base64Data = await generateRecipeImage(dishTitle);
+      const base64Data = await generateRecipeImage(dishTitle, workshopImageOptions);
       if (!base64Data) {
         const retryMsg = "Emma's camera jammed while painting your dish! You can retry generating the AI image for free (0 tokens).";
         setUpgradeStatusMsg(retryMsg);
@@ -231,10 +244,18 @@ const RecipeResult = ({
     }
   };
 
+  const activeRetryStyleOptions = onUpdateImageStyleOptions ? imageStyleOptions : workshopImageOptions;
+  const handleRetryStyleChange = (nextOpts) => {
+    if (onUpdateImageStyleOptions) {
+      onUpdateImageStyleOptions(nextOpts);
+    }
+    setWorkshopImageOptions(nextOpts);
+  };
+
   const handleMasterpieceImageRetry = async () => {
     if (!onRetryImage || isGeneratingImage) return;
     setUpgradeStatusMsg(null);
-    const generatedDataUrl = await onRetryImage(extractRecipeTitle());
+    const generatedDataUrl = await onRetryImage(extractRecipeTitle(), activeRetryStyleOptions);
     if (generatedDataUrl && savedRecipeId) {
       try {
         const res = await api.publishWithPhoto(savedRecipeId, generatedDataUrl, 'ai');
@@ -286,13 +307,14 @@ const RecipeResult = ({
     setIsCalculatingMicros(true);
     setUpgradeStatusMsg(null);
     try {
-      const tokenRes = await spendToken(0.5);
+      const tokenRes = await spendToken(0.5, 'Generating Masterpiece Nutritional Analysis');
+      if (tokenRes?.cancelled) return;
       if (!tokenRes?.success) {
         alert(tokenRes?.message || 'Unable to deduct 0.5 tokens.');
         return;
       }
 
-      const instructions = getMicroCalculationInstructions(currentUserName);
+      const instructions = getMicroCalculationInstructions();
       const chatPayload = [{ role: 'user', parts: [{ text: `Here is the recipe I need you to deeply analyze:\n\n${recipeMarkdown}` }] }];
       const mathResult = await sendChatMessage(chatPayload, instructions);
       const parsedMicros = parseMicrosFromDeepDive(mathResult);
@@ -342,6 +364,23 @@ const RecipeResult = ({
     speakBtnClass = "speak-btn-paused"; 
   }
 
+  const handleToggleRecipeLiveChat = async () => {
+    if (showLiveChat) {
+      setShowLiveChat(false);
+      return;
+    }
+
+    if (Number(user?.generation_tokens ?? 0) < 1) {
+      alert('Oh dear, love! You need at least 1 token to start a Live Audio session with Emma.');
+      return;
+    }
+
+    const confirmed = await confirmTokenUsage(1, 'Entering Live Audio Mode with Emma');
+    if (!confirmed) return;
+
+    setShowLiveChat(true);
+  };
+
   if (!recipeMarkdown) return null;
 
   if (isChat) {
@@ -355,13 +394,26 @@ const RecipeResult = ({
               <span className="emma-subtitle">Culinary Confidante</span>
             </div>
           </div>
-          <button
-            onClick={() => handleSpeak(recipeMarkdown)}
-            className={`emma-chat-speak-btn ${speakBtnClass}`}
-            title="Listen to Emma's reply"
-          >
-            {speakBtnText}
-          </button>
+          <div className="emma-chat-header-actions">
+            {onToggleLiveChat && (
+              <button
+                type="button"
+                onClick={onToggleLiveChat}
+                className={`emma-chat-live-btn ${externalShowLiveChat ? 'active' : ''}`}
+                title="Switch into Live Audio Mode with full chat context (1 Token)"
+              >
+                {externalShowLiveChat ? '🛑 Close Live' : '🎙️ Live Mode'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => handleSpeak(recipeMarkdown)}
+              className={`emma-chat-speak-btn ${speakBtnClass}`}
+              title="Listen to Emma's reply"
+            >
+              {speakBtnText}
+            </button>
+          </div>
         </div>
 
         <div className="recipe-content chat-markdown">
@@ -388,18 +440,28 @@ const RecipeResult = ({
           )}
           {imageGenFailed && !isGeneratingImage && (
             <div className="masterpiece-image-status failed">
-              <div className="status-text">
-                <strong>⚠️ Image Generation Failed</strong>
-                <p>Your Masterpiece recipe is ready, but the AI camera jammed while creating the photo. You won&apos;t be charged again to retry!</p>
+              <div className="masterpiece-failed-top">
+                <div className="status-text">
+                  <strong>⚠️ Image Generation Failed</strong>
+                  <p>Your Masterpiece recipe is ready, but the AI camera jammed while creating the photo. You won&apos;t be charged again to retry!</p>
+                </div>
+                <button
+                  type="button"
+                  className="retry-image-btn"
+                  onClick={handleMasterpieceImageRetry}
+                  disabled={isGeneratingImage}
+                >
+                  🔄 Try Generating Image Again (Free)
+                </button>
               </div>
-              <button
-                type="button"
-                className="retry-image-btn"
-                onClick={handleMasterpieceImageRetry}
-                disabled={isGeneratingImage}
-              >
-                🔄 Try Generating Image Again (Free)
-              </button>
+              <div className="masterpiece-failed-style-box">
+                <ImageStyleOptions
+                  value={activeRetryStyleOptions}
+                  onChange={handleRetryStyleChange}
+                  disabled={isGeneratingImage}
+                  compact
+                />
+              </div>
             </div>
           )}
         </>
@@ -408,7 +470,8 @@ const RecipeResult = ({
       {/* Live Chat Toggle Button */}
       {!isChat && (
           <button 
-              onClick={() => setShowLiveChat(!showLiveChat)}
+              type="button"
+              onClick={handleToggleRecipeLiveChat}
               style={{ 
                   float: 'right', 
                   background: showLiveChat ? '#fed7d7' : '#e6fffa', 
@@ -437,7 +500,10 @@ const RecipeResult = ({
       {/* The Inline Live Chat Box */}
       {showLiveChat && !isChat && (
           <div style={{ marginBottom: '2rem', clear: 'both', width: '100%' }}>
-              <LiveChat recipeContext={`The user is currently cooking or reviewing this recipe: \n\n${recipeMarkdown.substring(0, 1000)}`} />
+              <LiveChat
+                  recipeContext={`The user is currently cooking or reviewing this recipe: \n\n${recipeMarkdown.substring(0, 1000)}`}
+                  preConfirmed={true}
+              />
           </div>
       )}
 
@@ -501,6 +567,15 @@ const RecipeResult = ({
               {upgradeStatusMsg}
             </div>
           )}
+
+          <div className="workshop-style-section">
+            <ImageStyleOptions
+              value={workshopImageOptions}
+              onChange={setWorkshopImageOptions}
+              disabled={isGeneratingAiImage || isUploadingImage || isCalculatingMicros}
+              compact
+            />
+          </div>
 
           <div className="workshop-actions">
             <button

@@ -301,6 +301,24 @@
   background-color: #fffaf0;
   border: 1px solid #fbd38d;
   color: #9c4221;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.masterpiece-failed-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.masterpiece-failed-style-box {
+  width: 100%;
+}
+
+.workshop-style-section {
+  margin-bottom: 0.9rem;
 }
 
 .masterpiece-image-status .status-text strong {

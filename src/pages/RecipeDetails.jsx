@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../services/api';
-import { sendChatMessage, generateRecipeImage } from '../services/geminiApi';
+import {
+  sendChatMessage,
+  generateRecipeImage,
+  DEFAULT_IMAGE_STYLE_OPTIONS,
+} from '../services/geminiApi';
 import { getMicroCalculationInstructions, parseMicrosFromDeepDive } from '../utils/promptBuilder';
 import { useEmmaVoice } from '../hooks/useEmmaVoice';
 import { useAuth } from '../context/AuthContext';
 import LiveChat from '../components/LiveChat';
+import ImageStyleOptions from '../components/RecipeDashboard/ImageStyleOptions';
 import ReactMarkdown from 'react-markdown';
 import NutritionPanel from '../components/NutritionPanel';
 import StarRating from '../components/StarRating';
@@ -23,13 +28,14 @@ const API_URL = import.meta.env.VITE_API_BASE_URL;
 const RecipeDetails = () => {
   // --- STATE & ROUTING ---
   const { id } = useParams();
-  const { user, spendToken } = useAuth();
+  const { user, spendToken, confirmTokenUsage } = useAuth();
   const [isPublishing, setIsPublishing] = useState(false);
   const [isGeneratingAiImage, setIsGeneratingAiImage] = useState(false);
   const [aiImagePaid, setAiImagePaid] = useState(false);
   const [isUpgradingNutrition, setIsUpgradingNutrition] = useState(false);
   const [followBusy, setFollowBusy] = useState(false);
   const [upgradeFeedback, setUpgradeFeedback] = useState(null);
+  const [imageStyleOptions, setImageStyleOptions] = useState({ ...DEFAULT_IMAGE_STYLE_OPTIONS });
   const currentUserName = user?.username || 'Love';
   
   const [recipe, setRecipe] = useState(null);
@@ -276,7 +282,8 @@ const RecipeDetails = () => {
     setUpgradeFeedback(null);
     try {
       if (!aiImagePaid) {
-        const tokenRes = await spendToken(0.5);
+        const tokenRes = await spendToken(0.5, 'Generating an AI Dish Photo');
+        if (tokenRes?.cancelled) return;
         if (!tokenRes?.success) {
           alert(tokenRes?.message || 'Unable to deduct 0.5 tokens.');
           return;
@@ -284,7 +291,10 @@ const RecipeDetails = () => {
         setAiImagePaid(true);
       }
 
-      const base64Data = await generateRecipeImage(recipe.title || 'Whole Food Plant-Based Dish');
+      const base64Data = await generateRecipeImage(
+        recipe.title || 'Whole Food Plant-Based Dish',
+        imageStyleOptions
+      );
       if (!base64Data) {
         const retryMsg = "Emma's camera jammed! Click retry to try generating your AI photo again at no cost (0 tokens).";
         setUpgradeFeedback(retryMsg);
@@ -357,7 +367,8 @@ const RecipeDetails = () => {
     setIsUpgradingNutrition(true);
     setUpgradeFeedback(null);
     try {
-      const tokenRes = await spendToken(0.5);
+      const tokenRes = await spendToken(0.5, 'Generating Masterpiece Nutritional Analysis');
+      if (tokenRes?.cancelled) return;
       if (!tokenRes?.success) {
         alert(tokenRes?.message || 'Unable to deduct 0.5 tokens.');
         return;
@@ -384,7 +395,7 @@ const RecipeDetails = () => {
         mappedMacros?.fat_g ? `Fat: ${mappedMacros.fat_g}g` : '',
       ].filter(Boolean).join('\n\n');
 
-      const instructions = getMicroCalculationInstructions(currentUserName);
+      const instructions = getMicroCalculationInstructions();
       const mathResult = await sendChatMessage(
         [{ role: 'user', parts: [{ text: `Here is the recipe I need you to deeply analyze:\n\n${recipeSummary}` }] }],
         instructions
@@ -434,6 +445,20 @@ const RecipeDetails = () => {
     } finally {
       setIsPublishing(false);
     }
+  };
+
+  const handleToggleDetailsLiveChat = async () => {
+    if (showLiveChat) {
+      setShowLiveChat(false);
+      return;
+    }
+    if (Number(user?.generation_tokens ?? 0) < 1) {
+      alert('Oh dear, love! You need at least 1 token to start a Live Audio session with Emma.');
+      return;
+    }
+    const confirmed = await confirmTokenUsage(1, 'Entering Live Audio Mode with Emma');
+    if (!confirmed) return;
+    setShowLiveChat(true);
   };
 
   // --- THE UI RENDER ---
@@ -530,6 +555,15 @@ const RecipeDetails = () => {
                 {upgradeFeedback}
               </div>
             )}
+
+            <div className="workshop-style-section">
+              <ImageStyleOptions
+                value={imageStyleOptions}
+                onChange={setImageStyleOptions}
+                disabled={isGeneratingAiImage || isPublishing || isUpgradingNutrition}
+                compact
+              />
+            </div>
 
             <div className="workshop-actions">
               <button
@@ -683,7 +717,8 @@ const RecipeDetails = () => {
                 {/* --- LIVE AUDIO CHAT TOGGLE --- */}
                 <div style={{ margin: '0 1.5rem 1rem 1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
                     <button
-                        onClick={() => setShowLiveChat(!showLiveChat)}
+                        type="button"
+                        onClick={handleToggleDetailsLiveChat}
                         style={{
                             background: showLiveChat ? '#fed7d7' : '#e6fffa',
                             color: showLiveChat ? '#c53030' : '#319795',
@@ -704,6 +739,15 @@ const RecipeDetails = () => {
                     <div style={{ margin: '0 1.5rem 2rem 1.5rem' }}>
                         <LiveChat
                             recipeContext={`The user is currently viewing the recipe: "${recipe.title}". Ingredients: ${recipe.ingredients?.map(i => i.ingredient_name).join(', ')}`}
+                            chatContext={
+                                chatHistory.length > 0
+                                    ? chatHistory
+                                        .slice(-10)
+                                        .map((m) => `${m.role === 'user' ? currentUserName : 'Emma'}: ${m.parts?.[0]?.text || ''}`)
+                                        .join('\n\n')
+                                    : null
+                            }
+                            preConfirmed={true}
                         />
                     </div>
                 )}
