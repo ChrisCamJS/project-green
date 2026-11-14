@@ -157,6 +157,11 @@ const Header = () => {
                                             My Vault
                                         </Link>
                                     </li>
+                                    <li>
+                                        <Link to="/meal-planner" onClick={closeMenu} className="nav-link">
+                                            📅 Meal Plan
+                                        </Link>
+                                    </li>
                                 </>
                             )}
                             <li>

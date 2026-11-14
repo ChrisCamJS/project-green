@@ -3,6 +3,7 @@ import Header from './Header';
 import ScrollToTop from './ScrollToTop';
 import Footer from './Footer';
 import InstallAppBanner from './InstallAppBanner';
+import MealPlanModal from './MealPlanModal';
 
 /**
  * Layout Component
@@ -19,6 +20,7 @@ const Layout = ({children}) => {
                 </main>
                 <Footer />
                 <InstallAppBanner />
+                <MealPlanModal />
                 <ScrollToTop />
          </div>
     );

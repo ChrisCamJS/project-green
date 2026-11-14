@@ -705,3 +705,20 @@
   border-color: #805ad5;
   box-shadow: 0 0 0 3px rgba(128, 90, 213, 0.15);
 }
+
+.recipe-details-plan-btn {
+  padding: 6px 14px;
+  border-radius: 16px;
+  border: 1.5px solid #68d391;
+  background-color: #2f855a;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.86rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.recipe-details-plan-btn:hover {
+  background-color: #276749;
+  transform: translateY(-1px);
+}

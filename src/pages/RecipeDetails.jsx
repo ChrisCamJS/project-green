@@ -518,6 +518,17 @@ const RecipeDetails = () => {
               {followBusy ? 'Updating...' : (recipe.isFollowedAuthor ? '✓ Following Chef' : '➕ Follow Chef')}
             </button>
           )}
+          <button
+            type="button"
+            className="recipe-details-plan-btn"
+            onClick={() =>
+              window.dispatchEvent(
+                new CustomEvent('veggie-vault:open-meal-plan', { detail: { recipe } })
+              )
+            }
+          >
+            📅 Add to Meal Plan
+          </button>
         </div>
 
         {/* The Masterpiece Graduation Workshop */}

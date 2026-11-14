@@ -250,5 +250,44 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ session_id: sessionId }),
         });
+    },
+
+    // MEAL PLANNER
+    getMealPlans: (startDate, endDate) => {
+        const params = new URLSearchParams();
+        if (startDate) params.set('start', startDate);
+        if (endDate) params.set('end', endDate);
+        const query = params.toString();
+        return fetchWrapper(`/meal-plans${query ? `?${query}` : ''}`, {
+            method: 'GET',
+            cache: 'no-store',
+        });
+    },
+
+    getPlannableRecipes: () => {
+        return fetchWrapper('/meal-plans/recipes', {
+            method: 'GET',
+            cache: 'no-store',
+        });
+    },
+
+    addMealPlanEntry: (payload) => {
+        return fetchWrapper('/meal-plans', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+    },
+
+    updateMealPlanEntry: (payload) => {
+        return fetchWrapper('/meal-plans', {
+            method: 'PUT',
+            body: JSON.stringify(payload),
+        });
+    },
+
+    deleteMealPlanEntry: (id) => {
+        return fetchWrapper(`/meal-plans?id=${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+        });
     }
 };

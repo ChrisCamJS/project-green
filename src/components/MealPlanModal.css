@@ -1,0 +1,269 @@
+.meal-plan-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 10005;
+}
+
+.meal-plan-modal-card {
+  background-color: #ffffff;
+  color: #1a202c;
+  border: 2px solid #48bb78;
+  border-radius: 16px;
+  max-width: 500px;
+  width: 100%;
+  padding: 1.5rem;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.25);
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+.meal-plan-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.meal-plan-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1c4532;
+}
+
+.meal-plan-modal-close {
+  background: #edf2f7;
+  border: none;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  font-weight: 700;
+  color: #4a5568;
+  cursor: pointer;
+}
+
+.meal-plan-recipe-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.85rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.meal-plan-preview-img {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid #cbd5e0;
+}
+
+.meal-plan-preview-info {
+  min-width: 0;
+}
+
+.meal-plan-preview-info h4 {
+  margin: 0.35rem 0 0 0;
+  font-size: 1rem;
+  color: #1a202c;
+  line-height: 1.3;
+}
+
+.meal-plan-status-pill {
+  display: inline-block;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.18rem 0.55rem;
+  border-radius: 9999px;
+}
+
+.meal-plan-status-pill.published {
+  background-color: #c6f6d5;
+  color: #22543d;
+}
+
+.meal-plan-status-pill.draft {
+  background-color: #feebc8;
+  color: #9c4221;
+}
+
+.meal-plan-feedback {
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.92rem;
+}
+
+.meal-plan-feedback p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.meal-plan-feedback-success {
+  background-color: #f0fff4;
+  border: 1px solid #68d391;
+  color: #22543d;
+}
+
+.meal-plan-feedback-error {
+  background-color: #fff5f5;
+  border: 1px solid #feb2b2;
+  color: #9b2c2c;
+}
+
+.meal-plan-success-links {
+  margin-top: 0.6rem;
+}
+
+.meal-plan-go-btn {
+  background-color: #2f855a;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.45rem 0.85rem;
+  font-weight: 700;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+
+.meal-plan-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.meal-plan-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.meal-plan-field label,
+.meal-plan-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #2d3748;
+}
+
+.meal-plan-field input {
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e0;
+  font-size: 0.95rem;
+  color: #1a202c;
+}
+
+.meal-plan-field input:focus {
+  outline: none;
+  border-color: #48bb78;
+}
+
+.meal-plan-quick-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.25rem;
+}
+
+.meal-plan-chip {
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid #cbd5e0;
+  background-color: #f8fafc;
+  color: #4a5568;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.meal-plan-chip.active {
+  background-color: #2f855a;
+  border-color: #2f855a;
+  color: #ffffff;
+}
+
+.meal-plan-slot-pills {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.meal-plan-slot-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background-color: #f8fafc;
+  color: #2d3748;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.meal-plan-slot-pill.active {
+  background-color: #f0fff4;
+  border-color: #2f855a;
+  color: #22543d;
+}
+
+.meal-plan-row-2 {
+  display: flex;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.meal-plan-row-2 > .meal-plan-field:first-child {
+  width: 110px;
+}
+
+.meal-plan-notes-field {
+  flex: 1 1 200px;
+}
+
+.meal-plan-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  margin-top: 0.35rem;
+}
+
+.meal-plan-cancel-btn {
+  padding: 0.6rem 1.05rem;
+  border-radius: 9px;
+  border: 1px solid #cbd5e0;
+  background-color: #ffffff;
+  color: #4a5568;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.meal-plan-save-btn {
+  padding: 0.6rem 1.2rem;
+  border-radius: 9px;
+  border: none;
+  background-color: #2f855a;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.meal-plan-save-btn:hover:not(:disabled) {
+  background-color: #276749;
+}
+
+.meal-plan-save-btn:disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
+}

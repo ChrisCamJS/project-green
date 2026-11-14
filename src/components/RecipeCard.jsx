@@ -3,14 +3,13 @@ import { Link } from 'react-router-dom';
 import './RecipeCard.css';
 import StarRating from './StarRating';
 import FavoriteButton from './FavoriteButton';
+import { resolveRecipeImageUrl } from '../utils/mealPlanUtils';
 
 /**
  * RecipeCard Component
  * Displays a summary of a single recipe, now with pristine relational data!
  * @param {Object} recipe - The recipe data object
  */
-
-const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 const RecipeCard = ({ recipe }) => {
     // Destructuring API payload
@@ -22,8 +21,6 @@ const RecipeCard = ({ recipe }) => {
         cookTime, 
         prepTime, 
         isOilFree, 
-        image_url,
-        imageUrl,
         calories,
         protein_g,
         carbs_g,
@@ -35,6 +32,7 @@ const RecipeCard = ({ recipe }) => {
     const authorId = recipe.authorId || recipe.user_id || null;
     const authorName = recipe.authorName || username || 'Emma (AI)';
     const isFollowedAuthor = Boolean(recipe.isFollowedAuthor);
+    const isDraftCard = Boolean(recipe.isDraft || recipe.is_draft || recipe.is_public === 0 || recipe.is_public === false);
     const authorProfileLink = authorId
         ? `/profile/${authorId}`
         : (authorName && authorName !== 'Emma (AI)' ? `/profile/${encodeURIComponent(authorName)}` : null);
@@ -46,24 +44,40 @@ const RecipeCard = ({ recipe }) => {
     // Normalise favorite status from API (handles boolean, 1/0, or snake_case)
     const initialFavorited = Boolean(Number(is_favorite ?? isFavorited ?? 0));
 
-    const targetImage = imageUrl || image_url; 
     const recipeLink = `/recipe/${recipe.id}`;
+    const fullImageUrl = resolveRecipeImageUrl(recipe);
 
-    const fullImageUrl = targetImage 
-        ? (targetImage.startsWith('http') ? targetImage : `${API_URL}${targetImage}`)
-        : '/belle-house-fiesta-bowl.jpg'; // The fallback image
+    const handleAddToMealPlan = () => {
+        window.dispatchEvent(
+            new CustomEvent('veggie-vault:open-meal-plan', { detail: { recipe } })
+        );
+    };
 
     return (
         <div className='recipe-card'>
             <div className='recipe-card-image' title={recipe.title}>
                 <Link to={recipeLink} className="recipe-card-image-link" aria-label={recipe.title}>
-                    <img src={fullImageUrl} alt={title} style={{width: '100%', height: 'auto'}} />
+                    <img
+                        src={fullImageUrl}
+                        alt={title}
+                        style={{width: '100%', height: 'auto'}}
+                        onError={(e) => {
+                            e.currentTarget.src = '/og-vault-preview.jpeg';
+                        }}
+                    />
                 </Link>
-                {isFollowedAuthor && (
-                    <span className="recipe-followed-badge" title="Chef you follow">
-                        👥 Following
-                    </span>
-                )}
+                <div className="recipe-card-top-badges">
+                    {isFollowedAuthor && (
+                        <span className="recipe-followed-badge" title="Chef you follow">
+                            👥 Following
+                        </span>
+                    )}
+                    {isDraftCard && (
+                        <span className="recipe-draft-badge" title="Private Draft">
+                            🔒 Draft
+                        </span>
+                    )}
+                </div>
                 {/* Floating Interactive Favorite Cue */}
                 <div className="recipe-card-favorite-wrapper">
                     <FavoriteButton 
@@ -134,9 +148,19 @@ const RecipeCard = ({ recipe }) => {
                     </div>
                 )}
                 
-                <Link to={`/recipe/${id}`} className='view-recipe-btn'>
-                    View Full Recipe
-                </Link>
+                <div className="recipe-card-actions">
+                    <Link to={`/recipe/${id}`} className='view-recipe-btn'>
+                        View Recipe
+                    </Link>
+                    <button
+                        type="button"
+                        className="plan-recipe-card-btn"
+                        onClick={handleAddToMealPlan}
+                        title="Add this recipe to your Meal Plan"
+                    >
+                        📅 + Plan
+                    </button>
+                </div>
             </div>
         </div>
     );

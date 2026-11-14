@@ -79,6 +79,9 @@ export default function Favorites() {
       <div className="favorites-header">
         <h1>My Vault Collection</h1>
         <p>Saved community masterpieces, private kitchen drafts, and chefs you follow.</p>
+        <Link to="/meal-planner" className="browse-recipes-btn" style={{ display: 'inline-block', marginBottom: '1rem' }}>
+          📅 Open Meal Planner Calendar &rarr;
+        </Link>
 
         <div className="favorites-filters">
           <button 
