@@ -4,6 +4,7 @@ import './RecipeCard.css';
 import StarRating from './StarRating';
 import FavoriteButton from './FavoriteButton';
 import { resolveRecipeImageUrl } from '../utils/mealPlanUtils';
+import { getRecipeDietaryFlags } from '../utils/dietaryUtils';
 
 /**
  * RecipeCard Component
@@ -20,7 +21,6 @@ const RecipeCard = ({ recipe }) => {
         description, 
         cookTime, 
         prepTime, 
-        isOilFree, 
         calories,
         protein_g,
         carbs_g,
@@ -37,9 +37,11 @@ const RecipeCard = ({ recipe }) => {
         ? `/profile/${authorId}`
         : (authorName && authorName !== 'Emma (AI)' ? `/profile/${encodeURIComponent(authorName)}` : null);
 
-    const showOilFree = Boolean(Number(isOilFree ?? recipe.is_oil_free ?? 0));
-    const showGlutenFree = Boolean(Number(recipe.isGlutenFree ?? recipe.is_gluten_free ?? 0));
-    const showSugarFree = Boolean(Number(recipe.isSugarFree ?? recipe.is_sugar_free ?? 0));
+    const {
+        oilFree: showOilFree,
+        glutenFree: showGlutenFree,
+        sugarFree: showSugarFree,
+    } = getRecipeDietaryFlags(recipe);
 
     // Normalise favorite status from API (handles boolean, 1/0, or snake_case)
     const initialFavorited = Boolean(Number(is_favorite ?? isFavorited ?? 0));

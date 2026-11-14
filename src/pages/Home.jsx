@@ -4,23 +4,9 @@ import SearchBar from '../components/SearchBar';
 import Paginator from '../components/Paginator';
 import SEOHead from '../components/SEOHead';
 import { SITE_URL, cleanSeoText } from '../utils/seoUtils';
+import { isTruthyFlag, getRecipeDietaryFlags } from '../utils/dietaryUtils';
 import { api } from '../services/api';
 import styles from './Home.module.css';
-
-/**
- * Normalize backend boolean/int dietary flags (handles boolean, 1/0, '1'/'0', camelCase/snake_case).
- */
-const isTruthyFlag = (val) => val === true || val === 1 || val === '1' || val === 'true';
-
-const getRecipeDietaryFlags = (recipe) => ({
-    glutenFree: isTruthyFlag(recipe?.is_gluten_free ?? recipe?.isGlutenFree),
-    oilFree: isTruthyFlag(recipe?.is_oil_free ?? recipe?.isOilFree),
-    sugarFree: isTruthyFlag(recipe?.is_sugar_free ?? recipe?.isSugarFree),
-    wfpb:
-        recipe?.is_wfpb !== undefined || recipe?.isWfpb !== undefined
-            ? isTruthyFlag(recipe?.is_wfpb ?? recipe?.isWfpb)
-            : true,
-});
 
 const DIETARY_FILTER_OPTIONS = [
     { key: 'glutenFree', label: 'Gluten-Free', icon: '🌾' },
@@ -89,18 +75,39 @@ const Home = () => {
         setCurrentPage(1);
     };
 
+    const normalizedRecipes = useMemo(() => {
+        const needsGlutenFallback =
+            recipes.length > 0 &&
+            recipes.every((r) => !isTruthyFlag(r?.is_gluten_free ?? r?.isGlutenFree));
+
+        return recipes.map((recipe) => {
+            const flags = getRecipeDietaryFlags(recipe, {
+                useGlutenHeuristicFallback: needsGlutenFallback,
+            });
+            return {
+                ...recipe,
+                isGlutenFree: flags.glutenFree,
+                is_gluten_free: flags.glutenFree ? 1 : 0,
+                isOilFree: flags.oilFree,
+                is_oil_free: flags.oilFree ? 1 : 0,
+                isSugarFree: flags.sugarFree,
+                is_sugar_free: flags.sugarFree ? 1 : 0,
+                isWfpb: flags.wfpb,
+            };
+        });
+    }, [recipes]);
+
     const dietaryCounts = useMemo(() => {
-        return recipes.reduce(
+        return normalizedRecipes.reduce(
             (counts, recipe) => {
-                const flags = getRecipeDietaryFlags(recipe);
-                if (flags.glutenFree) counts.glutenFree += 1;
-                if (flags.oilFree) counts.oilFree += 1;
-                if (flags.sugarFree) counts.sugarFree += 1;
+                if (recipe.isGlutenFree) counts.glutenFree += 1;
+                if (recipe.isOilFree) counts.oilFree += 1;
+                if (recipe.isSugarFree) counts.sugarFree += 1;
                 return counts;
             },
             { glutenFree: 0, oilFree: 0, sugarFree: 0 }
         );
-    }, [recipes]);
+    }, [normalizedRecipes]);
 
     const filteredRecipes = useMemo(() => {
         const rawQuery = searchQuery.trim().toLowerCase();
@@ -125,18 +132,16 @@ const Home = () => {
         }
         const normalizedRemaining = remainingQuery.replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
 
-        return recipes.filter((recipe) => {
-            const flags = getRecipeDietaryFlags(recipe);
-
+        return normalizedRecipes.filter((recipe) => {
             // 1. Apply pill filters
-            if (activeFilters.glutenFree && !flags.glutenFree) return false;
-            if (activeFilters.oilFree && !flags.oilFree) return false;
-            if (activeFilters.sugarFree && !flags.sugarFree) return false;
+            if (activeFilters.glutenFree && !recipe.isGlutenFree) return false;
+            if (activeFilters.oilFree && !recipe.isOilFree) return false;
+            if (activeFilters.sugarFree && !recipe.isSugarFree) return false;
 
             // 2. Apply dietary tags parsed from search bar input
-            if (queryRequiredFlags.glutenFree && !flags.glutenFree) return false;
-            if (queryRequiredFlags.oilFree && !flags.oilFree) return false;
-            if (queryRequiredFlags.sugarFree && !flags.sugarFree) return false;
+            if (queryRequiredFlags.glutenFree && !recipe.isGlutenFree) return false;
+            if (queryRequiredFlags.oilFree && !recipe.isOilFree) return false;
+            if (queryRequiredFlags.sugarFree && !recipe.isSugarFree) return false;
 
             // 3. Apply remaining free-text search across title, description, author, ingredients, and WFPB tags
             if (!remainingQuery) return true;
@@ -148,7 +153,7 @@ const Home = () => {
                 : '';
 
             const generalTags = [
-                flags.wfpb ? 'wfpb whole food plant-based whole-food plant-based plant-based plant based vegan' : '',
+                recipe.isWfpb ? 'wfpb whole food plant-based whole-food plant-based plant-based plant based vegan' : '',
             ]
                 .filter(Boolean)
                 .join(' ');
@@ -170,7 +175,7 @@ const Home = () => {
                 (normalizedRemaining && normalizedSearchable.includes(normalizedRemaining))
             );
         });
-    }, [recipes, searchQuery, activeFilters]);
+    }, [normalizedRecipes, searchQuery, activeFilters]);
 
     const hasActiveFilters =
         Boolean(searchQuery.trim()) ||

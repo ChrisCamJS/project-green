@@ -11,6 +11,7 @@ import { useEmmaVoice } from '../hooks/useEmmaVoice';
 import { useAuth } from '../context/AuthContext';
 import SEOHead from '../components/SEOHead';
 import { SITE_URL, DEFAULT_OG_IMAGE, cleanSeoText, toIsoDuration } from '../utils/seoUtils';
+import { getRecipeDietaryFlags } from '../utils/dietaryUtils';
 import LiveChat from '../components/LiveChat';
 import ImageStyleOptions from '../components/RecipeDashboard/ImageStyleOptions';
 import ReactMarkdown from 'react-markdown';
@@ -90,7 +91,8 @@ const RecipeDetails = () => {
     const totalMins = prepMins + cookMins;
 
     const suitableForDiet = ['https://schema.org/VeganDiet', 'https://schema.org/VegetarianDiet'];
-    if (Number(recipe.is_gluten_free ?? recipe.isGlutenFree ?? 0)) {
+    const resolvedDietary = getRecipeDietaryFlags(recipe);
+    if (resolvedDietary.glutenFree) {
       suitableForDiet.push('https://schema.org/GlutenFreeDiet');
     }
 
@@ -619,13 +621,13 @@ const RecipeDetails = () => {
       <div className="recipe-card">
         <header className="recipe-header">
           <div className="recipe-dietary-header-badges">
-            {Boolean(Number(recipe.is_oil_free ?? recipe.isOilFree ?? 0)) && (
+            {getRecipeDietaryFlags(recipe).oilFree && (
               <span className="recipe-badge-oil-free">🌱 100% Oil-Free</span>
             )}
-            {Boolean(Number(recipe.is_gluten_free ?? recipe.isGlutenFree ?? 0)) && (
+            {getRecipeDietaryFlags(recipe).glutenFree && (
               <span className="recipe-badge-gluten-free">🌾 Gluten-Free</span>
             )}
-            {Boolean(Number(recipe.is_sugar_free ?? recipe.isSugarFree ?? 0)) && (
+            {getRecipeDietaryFlags(recipe).sugarFree && (
               <span className="recipe-badge-sugar-free">🍯 Refined Sugar-Free</span>
             )}
           </div>
