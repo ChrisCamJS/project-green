@@ -184,5 +184,49 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ recipe_id: recipeId }),
         });
+    },
+
+    // USER PROFILES & FOLLOWING
+    getUserProfile: (identifier = '') => {
+        const query = identifier ? `?identifier=${encodeURIComponent(identifier)}` : '';
+        return fetchWrapper(`/users/profile${query}`, {
+            method: 'GET',
+            cache: 'no-store',
+        });
+    },
+
+    updateUserProfile: (profileData) => {
+        return fetchWrapper('/users/profile', {
+            method: 'PUT',
+            body: JSON.stringify(profileData),
+        });
+    },
+
+    updateUserEmail: (emailData) => {
+        return fetchWrapper('/users/email', {
+            method: 'PUT',
+            body: JSON.stringify(emailData),
+        });
+    },
+
+    updateUserPassword: (passwordData) => {
+        return fetchWrapper('/users/password', {
+            method: 'PUT',
+            body: JSON.stringify(passwordData),
+        });
+    },
+
+    toggleFollowUser: (followedId, action = null) => {
+        return fetchWrapper('/users/follow', {
+            method: 'POST',
+            body: JSON.stringify({ followed_id: followedId, action }),
+        });
+    },
+
+    getFollowedUsers: () => {
+        return fetchWrapper('/users/following', {
+            method: 'GET',
+            cache: 'no-store',
+        });
     }
 };

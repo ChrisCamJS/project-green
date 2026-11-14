@@ -137,9 +137,24 @@
   }
 }
 
-.recipe-badge-oil-free {
+.recipe-dietary-header-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 640px) {
+  .recipe-dietary-header-badges {
+    justify-content: flex-start;
+  }
+}
+
+.recipe-badge-oil-free,
+.recipe-badge-gluten-free,
+.recipe-badge-sugar-free {
   display: inline-block;
-  background-color: #22c55e;
   color: #ffffff;
   font-size: 0.75rem;
   font-weight: 700;
@@ -147,11 +162,22 @@
   border-radius: 9999px;
   text-transform: uppercase;
   letter-spacing: 0.025em;
-  margin-bottom: 1rem;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
-.recipe-title {
+.recipe-badge-oil-free {
+  background-color: #22c55e;
+}
+
+.recipe-badge-gluten-free {
+  background-color: #2563eb;
+}
+
+.recipe-badge-sugar-free {
+  background-color: #d97706;
+}
+
+.recipe-header .recipe-title {
   font-size: 1.875rem;
   font-weight: 800;
   letter-spacing: -0.025em;
@@ -160,7 +186,7 @@
 }
 
 @media (min-width: 640px) {
-  .recipe-title { font-size: 3rem; }
+  .recipe-header .recipe-title { font-size: 3rem; }
 }
 
 /* Container to keep the stars and review count sitting flush on the same line */

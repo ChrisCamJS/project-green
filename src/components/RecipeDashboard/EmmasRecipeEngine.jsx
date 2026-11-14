@@ -571,6 +571,7 @@ const EmmasRecipeEngine = () => {
                                     imageUrl={index === 1 ? recipeImage : null} 
                                     isDraft={engineMode === 'draft'} 
                                     isChat={engineMode === 'chat'}
+                                    dietaryPrefs={dietaryPrefs}
                                     isGeneratingImage={index === 1 ? isGeneratingImage : false}
                                     imageGenFailed={index === 1 ? imageGenFailed : false}
                                     onRetryImage={index === 1 ? handleRetryMasterpieceImage : null}

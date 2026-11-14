@@ -118,3 +118,186 @@
   }
 }
 
+/* --- Vault Following Management --- */
+.vault-following-summary {
+  margin-top: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1.15rem;
+  border-radius: 9999px;
+  background: #f0fff4;
+  border: 1px solid #9ae6b4;
+  color: #22543d;
+  font-size: 0.9rem;
+}
+
+.vault-manage-following-link {
+  background: none;
+  border: none;
+  color: #2f855a;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  font-size: 0.9rem;
+}
+
+.following-management-section {
+  margin-top: 1rem;
+}
+
+.following-section-header {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.following-section-header h2 {
+  margin: 0 0 0.35rem 0;
+  color: #1e293b;
+  font-size: 1.5rem;
+}
+
+.following-section-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.96rem;
+}
+
+.following-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 1.5rem;
+}
+
+.followed-chef-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.followed-chef-top {
+  display: flex;
+  align-items: center;
+  gap: 0.95rem;
+}
+
+.followed-chef-avatar,
+.followed-chef-avatar-fallback {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #9ae6b4;
+  flex-shrink: 0;
+}
+
+.followed-chef-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2f855a, #48bb78);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1.4rem;
+}
+
+.followed-chef-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.followed-chef-name {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #1e293b;
+  text-decoration: none;
+}
+
+.followed-chef-name:hover {
+  color: #2f855a;
+  text-decoration: underline;
+}
+
+.followed-chef-handle {
+  font-size: 0.85rem;
+  color: #2f855a;
+  font-weight: 600;
+}
+
+.followed-chef-location {
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.followed-chef-bio {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #475569;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.followed-chef-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.83rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.followed-chef-actions {
+  display: flex;
+  gap: 0.65rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.view-chef-profile-btn {
+  flex: 1;
+  text-align: center;
+  padding: 0.55rem 0.85rem;
+  background: #f0fff4;
+  color: #22543d;
+  border: 1px solid #9ae6b4;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.view-chef-profile-btn:hover {
+  background: #dcfce7;
+}
+
+.unfollow-chef-btn {
+  padding: 0.55rem 0.95rem;
+  background: #fff5f5;
+  color: #c53030;
+  border: 1px solid #feb2b2;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.unfollow-chef-btn:hover:not(:disabled) {
+  background: #fed7d7;
+}
+
+.unfollow-chef-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+

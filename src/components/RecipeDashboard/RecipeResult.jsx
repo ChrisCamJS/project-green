@@ -15,6 +15,7 @@ const RecipeResult = ({
   imageUrl,
   isDraft,
   isChat,
+  dietaryPrefs = { oilFree: true, glutenFree: false, sugarFree: true },
   isGeneratingImage = false,
   imageGenFailed = false,
   onRetryImage = null
@@ -43,6 +44,9 @@ const RecipeResult = ({
   const { speechState, handleSpeak } = useEmmaVoice();
 
   const displayImageUrl = localImageUrl || imageUrl;
+  const isOilFree = Boolean(dietaryPrefs?.oilFree ?? true);
+  const isGlutenFree = Boolean(dietaryPrefs?.glutenFree || /gluten[-\s]?free/i.test(recipeMarkdown || ''));
+  const isSugarFree = Boolean(dietaryPrefs?.sugarFree ?? true);
 
   useEffect(() => {
     if (recipeMarkdown && !isChat && !isDraft && !advancedMicros && !isCalculatingMicros) {
@@ -152,7 +156,10 @@ const RecipeResult = ({
           carbs_g,
           fat_g,
           fiber_g,
-          micros: parsedMicros
+          micros: parsedMicros,
+          isOilFree,
+          isGlutenFree,
+          isSugarFree
         });
         if (res?.recipeId) {
           setSavedRecipeId(res.recipeId);
@@ -417,6 +424,14 @@ const RecipeResult = ({
           >
               {showLiveChat ? '🛑 Close Live Chat' : '🎙️ Ask Emma Live'}
           </button>
+      )}
+
+      {(isOilFree || isGlutenFree || isSugarFree) && (
+        <div className="result-dietary-badges">
+          {isOilFree && <span className="result-dietary-pill oil-free">🌿 Oil-Free</span>}
+          {isGlutenFree && <span className="result-dietary-pill gluten-free">🌾 Gluten-Free</span>}
+          {isSugarFree && <span className="result-dietary-pill sugar-free">🍯 Refined Sugar-Free</span>}
+        </div>
       )}
 
       {/* The Inline Live Chat Box */}

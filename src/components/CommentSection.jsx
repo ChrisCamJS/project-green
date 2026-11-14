@@ -96,7 +96,13 @@ const CommentThread = ({ comment, recipeId, refreshComments, user }) => {
   return (
     <div className="comment-item">
       <div className="comment-header">
-        <span className="comment-author">{comment.author_name || 'Vault Guest'}</span>
+        {comment.user_id ? (
+          <Link to={`/profile/${comment.user_id}`} className="comment-author comment-author-link">
+            {comment.author_name || 'Vault Guest'}
+          </Link>
+        ) : (
+          <span className="comment-author">{comment.author_name || 'Vault Guest'}</span>
+        )}
         <span className="comment-date">{new Date(comment.created_at).toLocaleDateString()}</span>
       </div>
       <p className="comment-body">{comment.body}</p>

@@ -104,6 +104,16 @@
   color: #2d3748;
 }
 
+.comment-author-link {
+  color: #2f855a;
+  text-decoration: none;
+}
+
+.comment-author-link:hover {
+  text-decoration: underline;
+  color: #22543d;
+}
+
 .comment-date {
   font-size: 0.85rem;
   color: #a0aec0;

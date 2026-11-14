@@ -11,6 +11,7 @@ import Register from './pages/Register';
 import EditRecipe from './pages/EditRecipe';
 import EmmasRecipeEngine from './pages/Engine';
 import Favorites from './pages/Favorites';
+import Profile from './pages/Profile';
 import ResetPassword from './pages/ResetPassword';
 import ForgotPassword from './pages/ForgotPassword';
 import './App.css'
@@ -24,6 +25,7 @@ function App() {
               <Route path='/' element={<Home />} />
               <Route path='/recipe/:id' element={<RecipeDetails />} />
               <Route path='/wellness' element={<WellnessTools />} />
+              <Route path='/profile/:identifier' element={<Profile />} />
               <Route path='/register' element={<Register />} />
               <Route path='/reset-password' element={<ResetPassword />} />
               <Route path='/forgot-password' element={<ForgotPassword />} /> {/* Route added here */}
@@ -37,6 +39,7 @@ function App() {
               {/* Protect authenticated user routes */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/favorites" element={<Favorites />} />
+                <Route path="/profile" element={<Profile />} />
               </Route>
 
               {/* Protect the Premium Engine route! */}

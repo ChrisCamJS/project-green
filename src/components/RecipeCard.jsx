@@ -28,15 +28,25 @@ const RecipeCard = ({ recipe }) => {
         protein_g,
         carbs_g,
         fat_g,
-        createdAt,
         is_favorite,
         isFavorited
     } = recipe;
 
+    const authorId = recipe.authorId || recipe.user_id || null;
+    const authorName = recipe.authorName || username || 'Emma (AI)';
+    const isFollowedAuthor = Boolean(recipe.isFollowedAuthor);
+    const authorProfileLink = authorId
+        ? `/profile/${authorId}`
+        : (authorName && authorName !== 'Emma (AI)' ? `/profile/${encodeURIComponent(authorName)}` : null);
+
+    const showOilFree = Boolean(Number(isOilFree ?? recipe.is_oil_free ?? 0));
+    const showGlutenFree = Boolean(Number(recipe.isGlutenFree ?? recipe.is_gluten_free ?? 0));
+    const showSugarFree = Boolean(Number(recipe.isSugarFree ?? recipe.is_sugar_free ?? 0));
+
     // Normalise favorite status from API (handles boolean, 1/0, or snake_case)
     const initialFavorited = Boolean(Number(is_favorite ?? isFavorited ?? 0));
 
-    const targetImage = imageUrl ||image_url; 
+    const targetImage = imageUrl || image_url; 
     const recipeLink = `/recipe/${recipe.id}`;
 
     const fullImageUrl = targetImage 
@@ -49,6 +59,11 @@ const RecipeCard = ({ recipe }) => {
                 <Link to={recipeLink} className="recipe-card-image-link" aria-label={recipe.title}>
                     <img src={fullImageUrl} alt={title} style={{width: '100%', height: 'auto'}} />
                 </Link>
+                {isFollowedAuthor && (
+                    <span className="recipe-followed-badge" title="Chef you follow">
+                        👥 Following
+                    </span>
+                )}
                 {/* Floating Interactive Favorite Cue */}
                 <div className="recipe-card-favorite-wrapper">
                     <FavoriteButton 
@@ -62,10 +77,18 @@ const RecipeCard = ({ recipe }) => {
                 <h3 className='recipe-title' title={recipe.title}>
                     {title}
                 </h3>
-                {/* Add the Author Attribution Here */}
-                <p className="recipe-author" style={{ fontSize: '0.85rem', color: '#718096', fontStyle: 'italic', marginBottom: '0.5rem' }}>
-                    Created by: {recipe.authorName || 'Emma (AI)'}
-                </p>
+                <div className="recipe-author-row">
+                    <p className="recipe-author">
+                        Created by:{' '}
+                        {authorProfileLink ? (
+                            <Link to={authorProfileLink} className="recipe-author-link">
+                                {authorName}
+                            </Link>
+                        ) : (
+                            <span>{authorName}</span>
+                        )}
+                    </p>
+                </div>
                 <StarRating 
                     recipeId={recipe.id} 
                     initialRating={recipe.averageRating} 
@@ -89,14 +112,27 @@ const RecipeCard = ({ recipe }) => {
                 <div className='recipe-stats'>
                     <span className='prep-time'>⏱️ Prep: {prepTime || 0}m</span>
                     <span className='cook-time'>🔥 Cook: {cookTime || 0}m</span>
-                    
-                    {/* MySQL returns booleans as 1 or 0, so we convert it to a true boolean */}
-                    {Boolean(Number(isOilFree)) && (
-                        <div className='oil-free-badge'>
-                            🌿 Oil-Free
-                        </div>
-                    )}
                 </div>
+
+                {(showOilFree || showGlutenFree || showSugarFree) && (
+                    <div className='recipe-dietary-badges'>
+                        {showOilFree && (
+                            <span className='dietary-badge oil-free-badge'>
+                                🌿 Oil-Free
+                            </span>
+                        )}
+                        {showGlutenFree && (
+                            <span className='dietary-badge gluten-free-badge'>
+                                🌾 Gluten-Free
+                            </span>
+                        )}
+                        {showSugarFree && (
+                            <span className='dietary-badge sugar-free-badge'>
+                                🍯 Refined Sugar-Free
+                            </span>
+                        )}
+                    </div>
+                )}
                 
                 <Link to={`/recipe/${id}`} className='view-recipe-btn'>
                     View Full Recipe

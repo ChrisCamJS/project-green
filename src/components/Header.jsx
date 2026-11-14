@@ -70,12 +70,14 @@ const Header = () => {
                             )}
                             
                             <li className="user-status">
-                                <span className="welcome-text">
-                                    Welcome, {user.username || 'Love'} 
-                                    {user?.account_tier === 'premium' && (
-                                        <span title="Premium Member" className="premium-sparkle">✨</span>
-                                    )}
-                                </span>
+                                <Link to="/profile" onClick={closeMenu} className="welcome-link" title="View or edit your profile">
+                                    <span className="welcome-text">
+                                        Welcome, {user.username || 'Love'} 
+                                        {user?.account_tier === 'premium' && (
+                                            <span title="Premium Member" className="premium-sparkle">✨</span>
+                                        )}
+                                    </span>
+                                </Link>
                                 
                                 {/* Desktop Token Badge */}
                                 {user?.account_tier === 'premium' && (
@@ -88,9 +90,18 @@ const Header = () => {
                                 )}
                             </li>
                             {user && (
-                                <Link to="/favorites" className="nav-link">
-                                    My Vault
-                                </Link>
+                                <>
+                                    <li>
+                                        <Link to="/profile" onClick={closeMenu} className="nav-link">
+                                            My Profile
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link to="/favorites" onClick={closeMenu} className="nav-link">
+                                            My Vault
+                                        </Link>
+                                    </li>
+                                </>
                             )}
                             <li>
                                 <button onClick={handleLogout} className="logout-btn">

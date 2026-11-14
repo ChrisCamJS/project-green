@@ -28,6 +28,7 @@ const RecipeDetails = () => {
   const [isGeneratingAiImage, setIsGeneratingAiImage] = useState(false);
   const [aiImagePaid, setAiImagePaid] = useState(false);
   const [isUpgradingNutrition, setIsUpgradingNutrition] = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
   const [upgradeFeedback, setUpgradeFeedback] = useState(null);
   const currentUserName = user?.username || 'Love';
   
@@ -43,39 +44,69 @@ const RecipeDetails = () => {
   const [showLiveChat, setShowLiveChat] = useState(false);
 
   useEffect(() => {
-  if (!recipe) return;
+    if (!recipe) return;
 
-  // Update browser document title
-  document.title = `${recipe.title} | The Veggie Vault`;
+    // Update browser document title
+    document.title = `${recipe.title} | The Veggie Vault`;
 
-  // Helper to dynamically set or replace meta tag content
-  const setMetaTag = (attr, key, content) => {
-    let element = document.querySelector(`meta[${attr}="${key}"]`);
-    if (!element) {
-      element = document.createElement('meta');
-      element.setAttribute(attr, key);
-      document.head.appendChild(element);
-    }
-    element.setAttribute('content', content || '');
-  };
+    // Helper to dynamically set or replace meta tag content
+    const setMetaTag = (attr, key, content) => {
+      let element = document.querySelector(`meta[${attr}="${key}"]`);
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute(attr, key);
+        document.head.appendChild(element);
+      }
+      element.setAttribute('content', content || '');
+    };
 
-  const currentUrl = window.location.href;
-  const recipeDesc = recipe.description || `Explore this WFPB recipe for ${recipe.title} on The Veggie Vault.`;
-  const recipeImg = recipe.imageUrl;
+    const currentUrl = window.location.href;
+    const rawDesc = (recipe.description || '').split(/###\s*Emma'?s Deep Dive/i)[0];
+    const cleanDesc = rawDesc
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/^#{1,6}\s*/gm, '')
+      .replace(/[*_`~]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const recipeDesc = cleanDesc || `Explore this WFPB recipe for ${recipe.title} on The Veggie Vault.`;
 
-  // Open Graph
-  setMetaTag('property', 'og:type', 'article');
-  setMetaTag('property', 'og:title', recipe.title);
-  setMetaTag('property', 'og:description', recipeDesc);
-  setMetaTag('property', 'og:image', recipeImg);
-  setMetaTag('property', 'og:url', currentUrl);
+    const rawImg = (recipe.imageUrl || recipe.image_url || '').trim();
+    const imgSource = recipe.imageSource || recipe.image_source || 'none';
+    const hasValidDishImg = Boolean(
+      rawImg &&
+      imgSource !== 'none' &&
+      !rawImg.includes('default-veggie-vault-placeholder')
+    );
 
-  // Twitter
-  setMetaTag('name', 'twitter:card', 'summary_large_image');
-  setMetaTag('name', 'twitter:title', recipe.title);
-  setMetaTag('name', 'twitter:description', recipeDesc);
-  setMetaTag('name', 'twitter:image', recipeImg);
-}, [recipe]);
+    const apiOrigin = (API_URL || '').replace(/\/+$/, '');
+    const resolvedApiBase = apiOrigin.startsWith('http')
+      ? apiOrigin
+      : `${window.location.origin}${apiOrigin ? (apiOrigin.startsWith('/') ? '' : '/') + apiOrigin : ''}`;
+
+    const recipeImg = hasValidDishImg
+      ? (
+          rawImg.startsWith('http') || rawImg.startsWith('data:')
+            ? rawImg
+            : encodeURI(`${resolvedApiBase}${rawImg.startsWith('/') ? '' : '/'}${rawImg}`)
+        )
+      : `${window.location.origin}/og-vault-preview.jpeg`;
+
+    // Open Graph
+    setMetaTag('property', 'og:type', 'article');
+    setMetaTag('property', 'og:title', recipe.title);
+    setMetaTag('property', 'og:description', recipeDesc);
+    setMetaTag('property', 'og:image', recipeImg);
+    setMetaTag('property', 'og:image:secure_url', recipeImg);
+    setMetaTag('property', 'og:image:alt', recipe.title);
+    setMetaTag('property', 'og:url', currentUrl);
+
+    // Twitter
+    setMetaTag('name', 'twitter:card', 'summary_large_image');
+    setMetaTag('name', 'twitter:title', recipe.title);
+    setMetaTag('name', 'twitter:description', recipeDesc);
+    setMetaTag('name', 'twitter:image', recipeImg);
+    setMetaTag('name', 'twitter:image:alt', recipe.title);
+  }, [recipe]);
 
   // --- DATA FETCHING (useEffect) ---
   useEffect(() => {
@@ -180,6 +211,30 @@ const RecipeDetails = () => {
   );
   const hasMicros = Array.isArray(mappedMicros) && mappedMicros.length > 0;
   const isDraftRecipe = !Number(recipe.is_public ?? (recipe.isPublic ? 1 : 0));
+
+  const authorId = recipe.authorId || recipe.user_id || null;
+  const authorProfileLink = authorId
+    ? `/profile/${authorId}`
+    : (recipe.authorName && recipe.authorName !== 'Emma (AI)' ? `/profile/${encodeURIComponent(recipe.authorName)}` : null);
+  const canFollowAuthor = Boolean(user && authorId && Number(authorId) !== Number(user.id));
+
+  const handleToggleFollowAuthor = async () => {
+    if (!canFollowAuthor || followBusy) return;
+    setFollowBusy(true);
+    try {
+      const res = await api.toggleFollowUser(authorId);
+      if (res?.success) {
+        setRecipe((prev) => ({
+          ...prev,
+          isFollowedAuthor: res.isFollowing,
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to update follow status:', err);
+    } finally {
+      setFollowBusy(false);
+    }
+  };
 
   // Extract the display string (Accounting for our old legacy descriptions vs new clean notes)
   let displayDescription = recipe.description;
@@ -395,19 +450,53 @@ const RecipeDetails = () => {
 
       <div className="recipe-card">
         <header className="recipe-header">
-          {Boolean(Number(recipe.is_oil_free)) && (
-            <span className="recipe-badge-oil-free">🌱 100% Oil-Free</span>
-          )}
+          <div className="recipe-dietary-header-badges">
+            {Boolean(Number(recipe.is_oil_free ?? recipe.isOilFree ?? 0)) && (
+              <span className="recipe-badge-oil-free">🌱 100% Oil-Free</span>
+            )}
+            {Boolean(Number(recipe.is_gluten_free ?? recipe.isGlutenFree ?? 0)) && (
+              <span className="recipe-badge-gluten-free">🌾 Gluten-Free</span>
+            )}
+            {Boolean(Number(recipe.is_sugar_free ?? recipe.isSugarFree ?? 0)) && (
+              <span className="recipe-badge-sugar-free">🍯 Refined Sugar-Free</span>
+            )}
+          </div>
           <div className="recipe-details-header">
         <div className="title-row">
           <h1 className="recipe-title">{recipe.title}</h1>
           <FavoriteButton recipeId={recipe.id} initialFavorited={recipe.isFavorited || false} />
         </div>
         {/* The Creator Tag */}
-        <div className="author-badge" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ background: '#edf2f7', padding: '4px 12px', borderRadius: '16px', fontSize: '0.9rem', color: '#4a5568' }}>
-            🧑‍🍳 Recipe by: <strong>{recipe.authorName || 'Emma (AI)'}</strong>
+        <div className="author-badge" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+          <span style={{ background: '#edf2f7', padding: '5px 14px', borderRadius: '16px', fontSize: '0.92rem', color: '#4a5568' }}>
+            🧑‍🍳 Recipe by:{' '}
+            {authorProfileLink ? (
+              <Link to={authorProfileLink} style={{ color: '#2f855a', fontWeight: 700, textDecoration: 'none' }}>
+                {recipe.authorName || 'Emma (AI)'}
+              </Link>
+            ) : (
+              <strong>{recipe.authorName || 'Emma (AI)'}</strong>
+            )}
           </span>
+          {canFollowAuthor && (
+            <button
+              type="button"
+              onClick={handleToggleFollowAuthor}
+              disabled={followBusy}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '16px',
+                border: recipe.isFollowedAuthor ? '1px solid #cbd5e0' : '1px solid #2f855a',
+                background: recipe.isFollowedAuthor ? '#f8fafc' : '#2f855a',
+                color: recipe.isFollowedAuthor ? '#2d3748' : '#ffffff',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+              }}
+            >
+              {followBusy ? 'Updating...' : (recipe.isFollowedAuthor ? '✓ Following Chef' : '➕ Follow Chef')}
+            </button>
+          )}
         </div>
 
         {/* The Masterpiece Graduation Workshop */}

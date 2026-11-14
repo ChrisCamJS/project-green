@@ -16,6 +16,16 @@ export const AuthProvider = ({children}) => {
         setUser(userData);
         localStorage.setItem('vault_user', JSON.stringify(userData));
     }
+
+    // merge updated profile/email fields into active user state and localStorage
+    const updateUser = (partialOrFullUser) => {
+        setUser((prev) => {
+            if (!prev) return prev;
+            const merged = { ...prev, ...partialOrFullUser };
+            localStorage.setItem('vault_user', JSON.stringify(merged));
+            return merged;
+        });
+    }
     
     // call this to bin the session and kick them out
     const logoutContext = async () => {
@@ -55,7 +65,7 @@ export const AuthProvider = ({children}) => {
     }
 
     return (
-        <AuthContext.Provider value={{ user, login: loginContext, logout: logoutContext, spendToken }}>
+        <AuthContext.Provider value={{ user, login: loginContext, logout: logoutContext, spendToken, updateUser }}>
             {children}
         </AuthContext.Provider>
     );
