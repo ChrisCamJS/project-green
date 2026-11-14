@@ -68,7 +68,8 @@
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 30px;
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
 .main-nav a {
@@ -103,7 +104,8 @@
   margin-left: 5px;
 }
 
-.token-badge {
+.token-badge,
+.main-nav a.token-badge {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -115,6 +117,15 @@
   font-weight: bold;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   white-space: nowrap;
+  text-decoration: none;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.token-badge:hover,
+.main-nav a.token-badge:hover {
+  color: #744210;
+  background-color: #f6e05e;
+  transform: translateY(-1px);
 }
 
 .token-icon {
@@ -143,6 +154,29 @@
   color: #c53030;
 }
 
+.install-app-btn {
+  cursor: pointer;
+  background-color: #2f855a;
+  color: #ffffff;
+  border: 1.5px solid #276749;
+  border-radius: 9999px;
+  padding: 0.42rem 0.9rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.install-app-btn:hover {
+  background-color: #276749;
+  transform: translateY(-1px);
+}
+
+.mobile-install-btn {
+  padding: 0.34rem 0.7rem;
+  font-size: 0.82rem;
+}
+
 /* --- 5. Mobile Wrangling --- */
 @media (max-width: 768px) {
   .main-header {
@@ -157,8 +191,9 @@
     display: flex;
   }
 
-  .desktop-token {
-    display: none; /* Hide the duplicate token in the menu */
+  .desktop-token,
+  .desktop-install-btn {
+    display: none; /* Hide duplicates already shown in mobile-controls */
   }
 
   /* The Dropdown Drawer */

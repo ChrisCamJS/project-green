@@ -12,6 +12,7 @@ import EditRecipe from './pages/EditRecipe';
 import EmmasRecipeEngine from './pages/Engine';
 import Favorites from './pages/Favorites';
 import Profile from './pages/Profile';
+import BuyTokens from './pages/BuyTokens';
 import ResetPassword from './pages/ResetPassword';
 import ForgotPassword from './pages/ForgotPassword';
 import './App.css'
@@ -40,6 +41,7 @@ function App() {
               <Route element={<ProtectedRoute />}>
                 <Route path="/favorites" element={<Favorites />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/buy-tokens" element={<BuyTokens />} />
               </Route>
 
               {/* Protect the Premium Engine route! */}

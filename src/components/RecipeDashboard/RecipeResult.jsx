@@ -30,7 +30,7 @@ const RecipeResult = ({
   externalShowLiveChat = false,
 }) => {
   const navigate = useNavigate();
-  const { user, spendToken, confirmTokenUsage } = useAuth(); 
+  const { user, spendToken, confirmTokenUsage, promptPurchaseTokens } = useAuth(); 
 
   const [isSaving, setIsSaving] = useState(false);
   const [savedRecipeId, setSavedRecipeId] = useState(null);
@@ -201,7 +201,7 @@ const RecipeResult = ({
   const handleGenerateDraftAiImage = async () => {
     if (!savedRecipeId) return;
     if (!draftAiImagePaid && Number(user?.generation_tokens ?? 0) < 0.5) {
-      alert('Oh dear! You need at least 0.5 tokens to generate an AI image.');
+      await promptPurchaseTokens(0.5, 'Generating an AI Dish Photo');
       return;
     }
 
@@ -300,7 +300,7 @@ const RecipeResult = ({
   const handleUpgradeDraftNutrition = async () => {
     if (!savedRecipeId) return;
     if (Number(user?.generation_tokens ?? 0) < 0.5) {
-      alert('Oh dear! You need at least 0.5 tokens to generate Masterpiece nutrition.');
+      await promptPurchaseTokens(0.5, 'Generating Masterpiece Nutritional Analysis');
       return;
     }
 
@@ -367,11 +367,6 @@ const RecipeResult = ({
   const handleToggleRecipeLiveChat = async () => {
     if (showLiveChat) {
       setShowLiveChat(false);
-      return;
-    }
-
-    if (Number(user?.generation_tokens ?? 0) < 1) {
-      alert('Oh dear, love! You need at least 1 token to start a Live Audio session with Emma.');
       return;
     }
 

@@ -28,7 +28,7 @@ const API_URL = import.meta.env.VITE_API_BASE_URL;
 const RecipeDetails = () => {
   // --- STATE & ROUTING ---
   const { id } = useParams();
-  const { user, spendToken, confirmTokenUsage } = useAuth();
+  const { user, spendToken, confirmTokenUsage, promptPurchaseTokens } = useAuth();
   const [isPublishing, setIsPublishing] = useState(false);
   const [isGeneratingAiImage, setIsGeneratingAiImage] = useState(false);
   const [aiImagePaid, setAiImagePaid] = useState(false);
@@ -166,7 +166,7 @@ const RecipeDetails = () => {
 
           const reply = await sendChatMessage(updatedHistory, systemPrompt);
           setChatHistory([...updatedHistory, { role: 'model', parts: [{ text: reply }] }]);
-      } catch (err) {
+      } catch {
           setChatHistory([...updatedHistory, { role: 'model', parts: [{ text: "Oh dear, my brain seems to have short-circuited. Could you ask that again, love?" }] }]);
       } finally {
           setIsChatting(false);
@@ -274,7 +274,7 @@ const RecipeDetails = () => {
 
   const handleGenerateAiImage = async () => {
     if (!aiImagePaid && Number(user?.generation_tokens ?? 0) < 0.5) {
-      alert('Oh dear! You need at least 0.5 tokens to generate an AI image.');
+      await promptPurchaseTokens(0.5, 'Generating an AI Dish Photo');
       return;
     }
 
@@ -360,7 +360,7 @@ const RecipeDetails = () => {
 
   const handleUpgradeNutrition = async () => {
     if (Number(user?.generation_tokens ?? 0) < 0.5) {
-      alert('Oh dear! You need at least 0.5 tokens to generate Masterpiece nutrition.');
+      await promptPurchaseTokens(0.5, 'Generating Masterpiece Nutritional Analysis');
       return;
     }
 
@@ -450,10 +450,6 @@ const RecipeDetails = () => {
   const handleToggleDetailsLiveChat = async () => {
     if (showLiveChat) {
       setShowLiveChat(false);
-      return;
-    }
-    if (Number(user?.generation_tokens ?? 0) < 1) {
-      alert('Oh dear, love! You need at least 1 token to start a Live Audio session with Emma.');
       return;
     }
     const confirmed = await confirmTokenUsage(1, 'Entering Live Audio Mode with Emma');

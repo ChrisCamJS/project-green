@@ -1,7 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext'; 
 import './Header.css';
+
+const checkStandaloneMode = () => {
+    if (typeof window === 'undefined') return false;
+    return Boolean(
+        window.matchMedia?.('(display-mode: standalone)')?.matches ||
+        window.navigator?.standalone === true
+    );
+};
 
 const Header = () => {
     const { user, logout } = useAuth();
@@ -9,6 +17,27 @@ const Header = () => {
     
     // State to handle our veggie burger menu
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isStandalone, setIsStandalone] = useState(checkStandaloneMode);
+
+    useEffect(() => {
+        const mediaQuery = window.matchMedia?.('(display-mode: standalone)');
+        const onDisplayChange = (e) => {
+            if (e.matches) setIsStandalone(true);
+        };
+        const onInstalled = () => setIsStandalone(true);
+
+        mediaQuery?.addEventListener?.('change', onDisplayChange);
+        window.addEventListener('appinstalled', onInstalled);
+        return () => {
+            mediaQuery?.removeEventListener?.('change', onDisplayChange);
+            window.removeEventListener('appinstalled', onInstalled);
+        };
+    }, []);
+
+    const handleInstallClick = () => {
+        setIsMenuOpen(false);
+        window.dispatchEvent(new CustomEvent('veggie-vault:install-app'));
+    };
 
     const handleLogout = async () => {
         await logout();
@@ -31,15 +60,32 @@ const Header = () => {
                 <h1><Link to="/" onClick={closeMenu}>The Veggie Vault</Link></h1>
             </div>
 
-            {/* Mobile-Only Top Right Controls (Token + Hamburger) */}
+            {/* Mobile-Only Top Right Controls (Install + Token + Hamburger) */}
             <div className="mobile-controls">
+                {!isStandalone && (
+                    <button
+                        type="button"
+                        onClick={handleInstallClick}
+                        className="install-app-btn mobile-install-btn"
+                        title="Download The Veggie Vault App"
+                        aria-label="Install App"
+                    >
+                        📲 Get App
+                    </button>
+                )}
+
                 {user?.account_tier === 'premium' && (
-                    <span className="token-badge mobile-token" title="Emma Generation Tokens Remaining">
+                    <Link
+                        to="/buy-tokens"
+                        onClick={closeMenu}
+                        className="token-badge mobile-token"
+                        title="Emma Generation Tokens — Click to Buy More Tokens"
+                    >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="token-icon">
                             <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22ZM12 15.5C13.933 15.5 15.5 13.933 15.5 12C15.5 10.067 13.933 8.5 12 8.5C10.067 8.5 8.5 10.067 8.5 12C8.5 13.933 10.067 15.5 12 15.5Z"></path>
                         </svg>
                         {Number(Number(user.generation_tokens ?? 0).toFixed(1))}
-                    </span>
+                    </Link>
                 )}
                 
                 <button 
@@ -81,16 +127,26 @@ const Header = () => {
                                 
                                 {/* Desktop Token Badge */}
                                 {user?.account_tier === 'premium' && (
-                                    <span className="token-badge desktop-token" title="Emma Generation Tokens Remaining">
+                                    <Link
+                                        to="/buy-tokens"
+                                        onClick={closeMenu}
+                                        className="token-badge desktop-token"
+                                        title="Emma Generation Tokens — Click to Buy More Tokens"
+                                    >
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="token-icon">
                                             <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22ZM12 15.5C13.933 15.5 15.5 13.933 15.5 12C15.5 10.067 13.933 8.5 12 8.5C10.067 8.5 8.5 10.067 8.5 12C8.5 13.933 10.067 15.5 12 15.5Z"></path>
                                         </svg>
                                         {Number(Number(user.generation_tokens ?? 0).toFixed(1))}
-                                    </span>
+                                    </Link>
                                 )}
                             </li>
                             {user && (
                                 <>
+                                    <li>
+                                        <Link to="/buy-tokens" onClick={closeMenu} className="nav-link">
+                                            🪙 Buy Tokens
+                                        </Link>
+                                    </li>
                                     <li>
                                         <Link to="/profile" onClick={closeMenu} className="nav-link">
                                             My Profile
@@ -114,6 +170,19 @@ const Header = () => {
                             <li><Link to="/login" onClick={closeMenu}>Login</Link></li>
                             <li><Link to="/register" onClick={closeMenu}>Register</Link></li>
                         </>
+                    )}
+
+                    {!isStandalone && (
+                        <li>
+                            <button
+                                type="button"
+                                onClick={handleInstallClick}
+                                className="install-app-btn desktop-install-btn"
+                                title="Download The Veggie Vault as an app on your device"
+                            >
+                                📲 Install App
+                            </button>
+                        </li>
                     )}
                 </ul>
             </nav>

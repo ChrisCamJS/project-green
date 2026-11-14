@@ -1,0 +1,62 @@
+{
+  "id": "/",
+  "name": "The Veggie Vault",
+  "short_name": "Veggie Vault",
+  "description": "Discover, generate, and track wholesome, oil-free, plant-based culinary creations with Emma Advanced.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f7fafc",
+  "theme_color": "#2f855a",
+  "categories": ["food", "health", "lifestyle"],
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Emma's Flavor Forge",
+      "short_name": "Flavor Forge",
+      "description": "Generate plant-based recipes or chat with Emma",
+      "url": "/engine",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Vault",
+      "short_name": "My Vault",
+      "description": "View saved recipes and followed chefs",
+      "url": "/favorites",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Wellness Tools",
+      "short_name": "Wellness",
+      "description": "BMI, TDEE, and calorie calculators",
+      "url": "/wellness",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}

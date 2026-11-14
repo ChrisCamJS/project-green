@@ -31,7 +31,7 @@ import LiveChat from '../LiveChat';
 import './EmmasRecipeEngine.css';
 
 const EmmasRecipeEngine = () => {
-    const { user, spendToken, confirmTokenUsage } = useAuth();
+    const { user, spendToken, confirmTokenUsage, promptPurchaseTokens } = useAuth();
     const currentUserName = user?.username || 'Love';
 
     const { speechState, handleSpeak } = useEmmaVoice();
@@ -139,8 +139,8 @@ const EmmasRecipeEngine = () => {
     ) => {
         if (engineMode === 'full') {
             if (Number(user?.generation_tokens ?? 0) < 1) {
-                alert("Oh dear, love! Your token stash is completely empty. Switch to a Free mode or top up to keep generating images.");
-                return; 
+                await promptPurchaseTokens(1, 'Creating a Full Masterpiece Recipe');
+                return;
             }
 
             const tokenResult = await spendToken(1, 'Creating a Full Masterpiece Recipe');
@@ -330,11 +330,6 @@ const EmmasRecipeEngine = () => {
             return;
         }
 
-        if (Number(user?.generation_tokens ?? 0) < 1) {
-            alert('Oh dear, love! You need at least 1 token to start a Live Audio session with Emma.');
-            return;
-        }
-
         const confirmed = await confirmTokenUsage(1, 'Entering Live Audio Mode with Emma');
         if (!confirmed) return;
 
@@ -344,13 +339,11 @@ const EmmasRecipeEngine = () => {
 
     const handleModeChange = async (nextMode) => {
         if (nextMode === 'live' && engineMode !== 'live') {
-            if (Number(user?.generation_tokens ?? 0) < 1) {
-                alert('Oh dear, love! You need at least 1 token to start a Live Audio session with Emma.');
-                return;
-            }
             const confirmed = await confirmTokenUsage(1, 'Entering Live Audio Mode with Emma');
             if (!confirmed) return;
             setLivePreConfirmed(true);
+        } else if (nextMode === 'full' && engineMode !== 'full' && Number(user?.generation_tokens ?? 0) < 1) {
+            await promptPurchaseTokens(1, 'Creating a Full Masterpiece Recipe');
         }
         setEngineMode(nextMode);
     };

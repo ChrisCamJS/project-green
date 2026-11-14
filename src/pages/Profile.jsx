@@ -379,6 +379,9 @@ export default function Profile() {
             <div className="profile-stat">
               <strong>{Number(Number(profile.generation_tokens ?? 0).toFixed(1))}</strong>
               <span>Emma Tokens</span>
+              <Link to="/buy-tokens" className="profile-buy-tokens-link">
+                + Buy More
+              </Link>
             </div>
           )}
         </div>

@@ -109,6 +109,7 @@ const RecipeForm = ({ onGenerate, isLoading, isBroke, engineMode }) => {
     if (isLoading) return "Emma's having a think...";
     if (engineMode === 'chat') return "Chat with Emma (free)";
     if (engineMode === 'draft') return "Create Recipe (free)";
+    if (isBroke) return "🪙 Create Full Masterpiece (Top Up Tokens)";
     return "Create Full Masterpiece";
   };
 
@@ -306,7 +307,7 @@ const RecipeForm = ({ onGenerate, isLoading, isBroke, engineMode }) => {
       <button
         type="submit"
         className="submit-btn"
-        disabled={isBroke || isLoading || isParsingFile || !canSubmit}
+        disabled={isLoading || isParsingFile || !canSubmit}
       >
         {getButtonText()}
       </button>

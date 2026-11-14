@@ -2,6 +2,7 @@ import React from 'react';
 import Header from './Header';
 import ScrollToTop from './ScrollToTop';
 import Footer from './Footer';
+import InstallAppBanner from './InstallAppBanner';
 
 /**
  * Layout Component
@@ -17,6 +18,7 @@ const Layout = ({children}) => {
                     {children}
                 </main>
                 <Footer />
+                <InstallAppBanner />
                 <ScrollToTop />
          </div>
     );

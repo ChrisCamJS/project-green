@@ -17,6 +17,9 @@ export const AuthProvider = ({ children }) => {
     const [tokenPrompt, setTokenPrompt] = useState(null);
     const [dontAskAgain, setDontAskAgain] = useState(false);
 
+    // Out-of-tokens purchase prompt modal state
+    const [outOfTokensPrompt, setOutOfTokensPrompt] = useState(null);
+
     // call when login succeeds
     const loginContext = (userData) => {
         setUser(userData);
@@ -47,8 +50,38 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('vault_user');
     };
 
+    const navigateToBuyTokens = () => {
+        window.history.pushState({}, '', '/buy-tokens');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+    };
+
+    const promptPurchaseTokens = (requiredCost = 1, actionLabel = 'Use Vault Tokens') => {
+        return new Promise((resolve) => {
+            setOutOfTokensPrompt({ requiredCost, actionLabel, resolve });
+        });
+    };
+
+    const handleDismissOutOfTokens = () => {
+        if (!outOfTokensPrompt) return;
+        const { resolve } = outOfTokensPrompt;
+        setOutOfTokensPrompt(null);
+        resolve(false);
+    };
+
+    const handleGoToBuyTokens = () => {
+        if (!outOfTokensPrompt) return;
+        const { resolve } = outOfTokensPrompt;
+        setOutOfTokensPrompt(null);
+        resolve(false);
+        navigateToBuyTokens();
+    };
+
     // Prompt the user before spending tokens unless they opted out via checkbox
     const confirmTokenUsage = (cost = 1, actionLabel = 'Use Vault Tokens') => {
+        if (Number(user?.generation_tokens ?? 0) < Number(cost)) {
+            return promptPurchaseTokens(cost, actionLabel);
+        }
+
         try {
             if (localStorage.getItem(SKIP_TOKEN_PROMPT_KEY) === 'true') {
                 return Promise.resolve(true);
@@ -99,6 +132,16 @@ export const AuthProvider = ({ children }) => {
             skipConfirm = false,
         } = normalizedOptions;
 
+        if (Number(user?.generation_tokens ?? 0) < Number(cost)) {
+            await promptPurchaseTokens(cost, actionLabel);
+            return {
+                success: false,
+                cancelled: true,
+                insufficientTokens: true,
+                message: 'Insufficient tokens.',
+            };
+        }
+
         if (!skipConfirm) {
             const confirmed = await confirmTokenUsage(cost, actionLabel);
             if (!confirmed) {
@@ -122,6 +165,15 @@ export const AuthProvider = ({ children }) => {
             };
         } catch (error) {
             console.error('Token deduction threw a strop:', error);
+            if (/too light|top up|insufficient|out of tokens/i.test(error?.message || '')) {
+                await promptPurchaseTokens(cost, actionLabel);
+                return {
+                    success: false,
+                    cancelled: true,
+                    insufficientTokens: true,
+                    message: error.message,
+                };
+            }
             return { success: false, message: error.message };
         }
     };
@@ -130,6 +182,8 @@ export const AuthProvider = ({ children }) => {
     const promptCost = Number(tokenPrompt?.cost ?? 0);
     const projectedBalance = Math.max(0, currentBalance - promptCost);
     const tokenUnit = promptCost === 1 ? 'Token' : 'Tokens';
+    const outOfTokensRequired = Number(outOfTokensPrompt?.requiredCost ?? 1);
+    const outOfTokensUnit = outOfTokensRequired === 1 ? 'Token' : 'Tokens';
 
     return (
         <AuthContext.Provider
@@ -140,6 +194,7 @@ export const AuthProvider = ({ children }) => {
                 spendToken,
                 updateUser,
                 confirmTokenUsage,
+                promptPurchaseTokens,
             }}
         >
             {children}
@@ -281,6 +336,128 @@ export const AuthProvider = ({ children }) => {
                                 }}
                             >
                                 Continue ({promptCost} {tokenUnit})
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {outOfTokensPrompt && (
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="out-of-tokens-title"
+                    onClick={handleDismissOutOfTokens}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        backgroundColor: 'rgba(15, 23, 42, 0.62)',
+                        backdropFilter: 'blur(4px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '1rem',
+                        zIndex: 10001,
+                    }}
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            backgroundColor: '#ffffff',
+                            borderRadius: '14px',
+                            maxWidth: '470px',
+                            width: '100%',
+                            padding: '1.65rem',
+                            boxShadow: '0 24px 48px rgba(0, 0, 0, 0.24)',
+                            border: '2px solid #ed8936',
+                            color: '#1a202c',
+                            fontFamily: 'inherit',
+                        }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.85rem' }}>
+                            <h3 id="out-of-tokens-title" style={{ margin: 0, fontSize: '1.25rem', color: '#1a202c' }}>
+                                🪙 Out of Vault Tokens!
+                            </h3>
+                            <span
+                                style={{
+                                    backgroundColor: '#feebc8',
+                                    color: '#9c4221',
+                                    border: '1px solid #fbd38d',
+                                    padding: '0.28rem 0.7rem',
+                                    borderRadius: '9999px',
+                                    fontSize: '0.84rem',
+                                    fontWeight: 700,
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
+                                Needs {outOfTokensRequired} {outOfTokensUnit}
+                            </span>
+                        </div>
+
+                        <p style={{ margin: '0 0 0.85rem 0', color: '#2d3748', lineHeight: 1.5, fontSize: '0.96rem' }}>
+                            <strong>Action:</strong> {outOfTokensPrompt.actionLabel}
+                        </p>
+
+                        <div
+                            style={{
+                                backgroundColor: '#fffaf0',
+                                border: '1px solid #fbd38d',
+                                borderRadius: '10px',
+                                padding: '0.85rem 1rem',
+                                marginBottom: '1rem',
+                                fontSize: '0.92rem',
+                                color: '#4a5568',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.35rem',
+                            }}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span>Current Balance:</span>
+                                <strong style={{ color: '#c05621' }}>{currentBalance.toFixed(1)} tokens</strong>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span>Required for This Action:</span>
+                                <strong>{outOfTokensRequired.toFixed(1)} {outOfTokensUnit.toLowerCase()}</strong>
+                            </div>
+                        </div>
+
+                        <p style={{ margin: '0 0 1.25rem 0', color: '#2d3748', lineHeight: 1.55, fontSize: '0.95rem' }}>
+                            Need a top-up, love? Grab <strong>5 tokens for $1.00</strong> ($0.20 each) using <strong>Card or Crypto</strong>!
+                        </p>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap' }}>
+                            <button
+                                type="button"
+                                onClick={handleDismissOutOfTokens}
+                                style={{
+                                    padding: '0.6rem 1.1rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid #cbd5e0',
+                                    backgroundColor: '#ffffff',
+                                    color: '#4a5568',
+                                    fontWeight: 600,
+                                    fontSize: '0.92rem',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                Maybe Later
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleGoToBuyTokens}
+                                style={{
+                                    padding: '0.6rem 1.25rem',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    backgroundColor: '#2f855a',
+                                    color: '#ffffff',
+                                    fontWeight: 700,
+                                    fontSize: '0.92rem',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                🪙 Purchase More Tokens
                             </button>
                         </div>
                     </div>

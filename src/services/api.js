@@ -228,5 +228,27 @@ export const api = {
             method: 'GET',
             cache: 'no-store',
         });
+    },
+
+    // PAYMENTS & TOKEN PURCHASES
+    getPaymentConfig: () => {
+        return fetchWrapper('/payments/config', {
+            method: 'GET',
+            cache: 'no-store',
+        });
+    },
+
+    createCheckoutSession: (tokens, paymentMethod = 'card') => {
+        return fetchWrapper('/payments/create-checkout-session', {
+            method: 'POST',
+            body: JSON.stringify({ tokens, paymentMethod }),
+        });
+    },
+
+    verifyCheckoutSession: (sessionId) => {
+        return fetchWrapper('/payments/verify-session', {
+            method: 'POST',
+            body: JSON.stringify({ session_id: sessionId }),
+        });
     }
 };

@@ -9,7 +9,7 @@ const LiveChat = ({ recipeContext = null, chatContext = null, preConfirmed = fal
   // 1. ALL HOOKS MUST LIVE AT THE VERY TOP!
   const [isLive, setIsLive] = useState(false);
   const [status, setStatus] = useState('Disconnected');
-  const { user, spendToken } = useAuth();
+  const { user, spendToken, promptPurchaseTokens } = useAuth();
   const { startRecording, stopRecording, audioError } = useAudioStream();
 
   const wsRef = useRef(null);
@@ -38,6 +38,7 @@ const LiveChat = ({ recipeContext = null, chatContext = null, preConfirmed = fal
     // THE BOUNCER
     if (Number(user?.generation_tokens ?? 0) < 1) {
       setStatus('Skint! You are out of tokens, love.');
+      await promptPurchaseTokens(1, 'Live Audio Session with Emma');
       return;
     }
 

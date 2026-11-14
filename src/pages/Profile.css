@@ -250,6 +250,24 @@
   font-weight: 600;
 }
 
+.profile-buy-tokens-link {
+  display: inline-block;
+  margin-top: 0.45rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  background-color: #fefcbf;
+  color: #744210;
+  border: 1px solid #f6e05e;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.profile-buy-tokens-link:hover {
+  background-color: #ecc94b;
+}
+
 /* Tabs */
 .profile-tabs {
   display: flex;
