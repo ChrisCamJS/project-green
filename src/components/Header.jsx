@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext'; 
 import './Header.css';
@@ -18,6 +18,36 @@ const Header = () => {
     // State to handle our veggie burger menu
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isStandalone, setIsStandalone] = useState(checkStandaloneMode);
+    const navRef = useRef(null);
+    const hamburgerRef = useRef(null);
+
+    useEffect(() => {
+        if (!isMenuOpen) return undefined;
+
+        const handleOutsideInteraction = (event) => {
+            const clickedInsideNav = navRef.current?.contains(event.target);
+            const clickedHamburger = hamburgerRef.current?.contains(event.target);
+            if (!clickedInsideNav && !clickedHamburger) {
+                setIsMenuOpen(false);
+            }
+        };
+
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                setIsMenuOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleOutsideInteraction);
+        document.addEventListener('touchstart', handleOutsideInteraction, { passive: true });
+        document.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            document.removeEventListener('mousedown', handleOutsideInteraction);
+            document.removeEventListener('touchstart', handleOutsideInteraction);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isMenuOpen]);
 
     useEffect(() => {
         const mediaQuery = window.matchMedia?.('(display-mode: standalone)');
@@ -89,9 +119,12 @@ const Header = () => {
                 )}
                 
                 <button 
+                    ref={hamburgerRef}
+                    type="button"
                     className={`hamburger ${isMenuOpen ? 'open' : ''}`} 
                     onClick={toggleMenu} 
                     aria-label="Toggle navigation"
+                    aria-expanded={isMenuOpen}
                 >
                     <span></span>
                     <span></span>
@@ -100,7 +133,7 @@ const Header = () => {
             </div>
 
             {/* The Nav Drawer */}
-            <nav className={`main-nav ${isMenuOpen ? 'open' : ''}`}>
+            <nav ref={navRef} className={`main-nav ${isMenuOpen ? 'open' : ''}`}>
                 <ul>
                     <li><Link to="/" onClick={closeMenu}>Home</Link></li>
                     <li><Link to="/wellness" onClick={closeMenu}>Wellness Tools</Link></li>

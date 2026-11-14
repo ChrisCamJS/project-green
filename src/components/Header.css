@@ -5,6 +5,7 @@
   padding: 1.5rem 5%; 
   box-sizing: border-box;
   border-bottom: 2px solid var(--vault-green);
+  margin-bottom: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -180,7 +181,8 @@
 /* --- 5. Mobile Wrangling --- */
 @media (max-width: 768px) {
   .main-header {
-    padding: 1rem 0;
+    padding: 0.75rem 0;
+    margin-bottom: 8px;
   }
   
   .mobile-controls {
