@@ -1,11 +1,20 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import './CommentSection.css';
 
-const CommentForm = ({ recipeId, parentId = null, onCommentAdded, onCancel }) => {
-  const [authorName, setAuthorName] = useState('');
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+
+const resolveCommentImageUrl = (url) => {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url) || url.startsWith('data:')) return url;
+  return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
+const CommentForm = ({ recipeId, parentId = null, onCommentAdded, onCancel, currentUser }) => {
+  const { user: authUser } = useAuth();
+  const activeUser = currentUser || authUser;
   const [body, setBody] = useState('');
   const [image, setImage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,26 +29,24 @@ const CommentForm = ({ recipeId, parentId = null, onCommentAdded, onCancel }) =>
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!body.trim()) return;
+    if (!body.trim() || !activeUser) return;
     setIsSubmitting(true);
 
     try {
       const response = await api.addComment({
         recipe_id: recipeId,
         parent_id: parentId,
-        author_name: authorName,
         body,
-        image
+        image,
       });
       if (response.success) {
         setBody('');
         setImage(null);
-        setAuthorName('');
         onCommentAdded();
         if (onCancel) onCancel(); // Close reply form if nested
       }
     } catch (error) {
-      console.error("Failed to post comment:", error);
+      console.error('Failed to post comment:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -47,15 +54,11 @@ const CommentForm = ({ recipeId, parentId = null, onCommentAdded, onCancel }) =>
 
   return (
     <form className="comment-form" onSubmit={handleSubmit}>
-      <input 
-        type="text" 
-        placeholder="Your Name (Optional)" 
-        value={authorName}
-        onChange={(e) => setAuthorName(e.target.value)}
-        className="comment-input"
-      />
-      <textarea 
-        placeholder={parentId ? "Write a reply..." : "Share your thoughts or variations..."}
+      <div className="commenting-as-bar">
+        Commenting as <strong>@{activeUser?.username || 'Member'}</strong>
+      </div>
+      <textarea
+        placeholder={parentId ? 'Write a reply...' : 'Share your thoughts or variations...'}
         value={body}
         onChange={(e) => setBody(e.target.value)}
         className="comment-textarea"
@@ -108,7 +111,7 @@ const CommentThread = ({ comment, recipeId, refreshComments, user }) => {
       <p className="comment-body">{comment.body}</p>
       
       {comment.image_url && (
-        <img src={`http://localhost/pantry-rebuild-api/public${comment.image_url}`} alt="Comment receipt" className="comment-image" />
+        <img src={resolveCommentImageUrl(comment.image_url)} alt="Comment attachment" className="comment-image" />
       )}
 
       <div className="comment-footer">
@@ -161,33 +164,35 @@ export default function CommentSection({ recipeId }) {
   // Pull your logged-in user from context
   const { user } = useAuth();
 
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
       const data = await api.getComments(recipeId);
-      
+
       // Build a nested tree from the flat array
       const tree = [];
       const lookup = {};
-      data.forEach(c => lookup[c.id] = { ...c, children: [] });
-      data.forEach(c => {
+      data.forEach((c) => {
+        lookup[c.id] = { ...c, children: [] };
+      });
+      data.forEach((c) => {
         if (c.parent_id && lookup[c.parent_id]) {
           lookup[c.parent_id].children.push(lookup[c.id]);
         } else {
           tree.push(lookup[c.id]);
         }
       });
-      
+
       setComments(tree);
     } catch (error) {
-      console.error("Failed to fetch comments", error);
+      console.error('Failed to fetch comments', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [recipeId]);
 
   useEffect(() => {
     if (recipeId) fetchComments();
-  }, [recipeId]);
+  }, [recipeId, fetchComments]);
 
   return (
     <div className="comment-section">

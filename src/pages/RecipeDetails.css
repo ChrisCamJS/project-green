@@ -178,7 +178,7 @@
 }
 
 .recipe-header .recipe-title {
-  font-size: 1.875rem;
+  font-size: 2.15rem;
   font-weight: 800;
   letter-spacing: -0.025em;
   margin-bottom: 1rem;
@@ -721,4 +721,232 @@
 .recipe-details-plan-btn:hover {
   background-color: #276749;
   transform: translateY(-1px);
+}
+
+/* --- Ask Emma Dish Chatbox --- */
+.recipe-chat-container {
+  margin: 0 1rem 2rem 1rem;
+  padding: 1.15rem;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow: hidden;
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+@media (min-width: 640px) {
+  .recipe-chat-container {
+    margin: 0 1.5rem 2rem 1.5rem;
+    padding: 1.5rem;
+  }
+}
+
+.recipe-chat-heading {
+  border-bottom: 2px solid #f3f4f6;
+  padding-bottom: 0.75rem;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #1f2937;
+}
+
+.recipe-chat-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.recipe-chat-input {
+  flex: 1 1 0%;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  outline: none;
+  font-size: 0.95rem;
+}
+
+.recipe-chat-input:focus {
+  border-color: #9333ea;
+  box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.15);
+}
+
+.recipe-chat-submit-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 0.75rem 1.25rem;
+  background-color: #9333ea;
+  color: #ffffff;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  transition: background-color 0.2s;
+}
+
+.recipe-chat-submit-btn:hover:not(:disabled) {
+  background-color: #7e22ce;
+}
+
+.recipe-chat-submit-btn:disabled {
+  background-color: #d1d5db;
+  cursor: not-allowed;
+}
+
+/* --- Share & Print Recipe Actions --- */
+.recipe-share-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.recipe-details-action-btn {
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-weight: 700;
+  font-size: 0.86rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: background-color 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+
+.recipe-details-action-btn:hover {
+  transform: translateY(-1px);
+}
+
+.recipe-details-action-btn.share-btn {
+  background-color: #ebf8ff;
+  border: 1.5px solid #90cdf4;
+  color: #2b6cb0;
+}
+
+.recipe-details-action-btn.share-btn:hover {
+  background-color: #bee3f8;
+}
+
+.recipe-details-action-btn.print-btn {
+  background-color: #f8fafc;
+  border: 1.5px solid #cbd5e0;
+  color: #2d3748;
+}
+
+.recipe-details-action-btn.print-btn:hover {
+  background-color: #edf2f7;
+}
+
+.recipe-share-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 30;
+  min-width: 215px;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e0;
+  border-radius: 12px;
+  padding: 0.45rem;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.recipe-share-option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #1e293b;
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.recipe-share-option:hover {
+  background-color: #f1f5f9;
+  color: #2f855a;
+}
+
+/* --- Print-Friendly Recipe View --- */
+@media print {
+  .main-header,
+  .vault-footer,
+  .pwa-install-banner,
+  .recipe-back-wrapper,
+  .author-badge,
+  .draft-workshop-card,
+  .recipe-chat-container,
+  .comment-section,
+  .no-print,
+  .recipe-rating-wrapper,
+  button[title="Listen to Emma's Deep Dive"] {
+    display: none !important;
+  }
+
+  body,
+  .app-container,
+  .recipe-page-container {
+    background: #ffffff !important;
+    color: #111827 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .recipe-card {
+    box-shadow: none !important;
+    border: none !important;
+    margin-top: 0 !important;
+  }
+
+  .recipe-header {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border-bottom: 2px solid #cbd5e1;
+    padding: 1rem 0 !important;
+    text-align: left !important;
+  }
+
+  .recipe-header .recipe-title {
+    color: #111827 !important;
+    font-size: 2rem !important;
+  }
+
+  .recipe-meta-tag {
+    background: #f1f5f9 !important;
+    color: #111827 !important;
+    border: 1px solid #cbd5e1;
+  }
+
+  .recipe-hero-image {
+    max-height: 260px !important;
+    object-fit: contain !important;
+    margin-bottom: 0.75rem;
+  }
+
+  .recipe-content-grid {
+    padding: 1rem 0 !important;
+    gap: 1.5rem !important;
+  }
+
+  .recipe-instruction-item,
+  .recipe-ingredient-item,
+  .recipe-deep-dive-container {
+    break-inside: avoid;
+  }
 }

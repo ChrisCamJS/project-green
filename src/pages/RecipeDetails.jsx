@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../services/api';
 import {
@@ -9,6 +9,8 @@ import {
 import { getMicroCalculationInstructions, parseMicrosFromDeepDive } from '../utils/promptBuilder';
 import { useEmmaVoice } from '../hooks/useEmmaVoice';
 import { useAuth } from '../context/AuthContext';
+import SEOHead from '../components/SEOHead';
+import { SITE_URL, DEFAULT_OG_IMAGE, cleanSeoText, toIsoDuration } from '../utils/seoUtils';
 import LiveChat from '../components/LiveChat';
 import ImageStyleOptions from '../components/RecipeDashboard/ImageStyleOptions';
 import ReactMarkdown from 'react-markdown';
@@ -35,6 +37,8 @@ const RecipeDetails = () => {
   const [isUpgradingNutrition, setIsUpgradingNutrition] = useState(false);
   const [followBusy, setFollowBusy] = useState(false);
   const [upgradeFeedback, setUpgradeFeedback] = useState(null);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const [imageStyleOptions, setImageStyleOptions] = useState({ ...DEFAULT_IMAGE_STYLE_OPTIONS });
   const currentUserName = user?.username || 'Love';
   
@@ -49,32 +53,14 @@ const RecipeDetails = () => {
   const [isChatting, setIsChatting] = useState(false);
   const [showLiveChat, setShowLiveChat] = useState(false);
 
-  useEffect(() => {
-    if (!recipe) return;
+  // Dynamic SEO, Open Graph, Twitter Card & Schema.org Recipe JSON-LD
+  const recipeSeo = useMemo(() => {
+    if (!recipe) return null;
 
-    // Update browser document title
-    document.title = `${recipe.title} | The Veggie Vault`;
-
-    // Helper to dynamically set or replace meta tag content
-    const setMetaTag = (attr, key, content) => {
-      let element = document.querySelector(`meta[${attr}="${key}"]`);
-      if (!element) {
-        element = document.createElement('meta');
-        element.setAttribute(attr, key);
-        document.head.appendChild(element);
-      }
-      element.setAttribute('content', content || '');
-    };
-
-    const currentUrl = window.location.href;
-    const rawDesc = (recipe.description || '').split(/###\s*Emma'?s Deep Dive/i)[0];
-    const cleanDesc = rawDesc
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      .replace(/^#{1,6}\s*/gm, '')
-      .replace(/[*_`~]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    const recipeDesc = cleanDesc || `Explore this WFPB recipe for ${recipe.title} on The Veggie Vault.`;
+    const recipeDesc = cleanSeoText(
+      recipe.description || `Explore this WFPB recipe for ${recipe.title} on The Veggie Vault.`,
+      160
+    );
 
     const rawImg = (recipe.imageUrl || recipe.image_url || '').trim();
     const imgSource = recipe.imageSource || recipe.image_source || 'none';
@@ -87,7 +73,7 @@ const RecipeDetails = () => {
     const apiOrigin = (API_URL || '').replace(/\/+$/, '');
     const resolvedApiBase = apiOrigin.startsWith('http')
       ? apiOrigin
-      : `${window.location.origin}${apiOrigin ? (apiOrigin.startsWith('/') ? '' : '/') + apiOrigin : ''}`;
+      : `${SITE_URL}${apiOrigin ? (apiOrigin.startsWith('/') ? '' : '/') + apiOrigin : ''}`;
 
     const recipeImg = hasValidDishImg
       ? (
@@ -95,29 +81,125 @@ const RecipeDetails = () => {
             ? rawImg
             : encodeURI(`${resolvedApiBase}${rawImg.startsWith('/') ? '' : '/'}${rawImg}`)
         )
-      : `${window.location.origin}/og-vault-preview.jpeg`;
+      : DEFAULT_OG_IMAGE;
 
-    // Open Graph
-    setMetaTag('property', 'og:type', 'article');
-    setMetaTag('property', 'og:title', recipe.title);
-    setMetaTag('property', 'og:description', recipeDesc);
-    setMetaTag('property', 'og:image', recipeImg);
-    setMetaTag('property', 'og:image:secure_url', recipeImg);
-    setMetaTag('property', 'og:image:alt', recipe.title);
-    setMetaTag('property', 'og:url', currentUrl);
+    const isDraft = !Number(recipe.is_public ?? (recipe.isPublic ? 1 : 0));
+    const canonicalPath = `/recipe/${recipe.id}`;
+    const prepMins = Number(recipe.prep_time_mins ?? recipe.prepTime ?? 0);
+    const cookMins = Number(recipe.cook_time_mins ?? recipe.cookTime ?? 0);
+    const totalMins = prepMins + cookMins;
 
-    // Twitter
-    setMetaTag('name', 'twitter:card', 'summary_large_image');
-    setMetaTag('name', 'twitter:title', recipe.title);
-    setMetaTag('name', 'twitter:description', recipeDesc);
-    setMetaTag('name', 'twitter:image', recipeImg);
-    setMetaTag('name', 'twitter:image:alt', recipe.title);
+    const suitableForDiet = ['https://schema.org/VeganDiet', 'https://schema.org/VegetarianDiet'];
+    if (Number(recipe.is_gluten_free ?? recipe.isGlutenFree ?? 0)) {
+      suitableForDiet.push('https://schema.org/GlutenFreeDiet');
+    }
+
+    const recipeIngredients = Array.isArray(recipe.ingredients)
+      ? recipe.ingredients
+          .map((ing) => {
+            if (typeof ing === 'string') return ing.trim();
+            const hasQty = Number(ing.quantity) !== 0 && Number(ing.quantity) !== 1;
+            const hasUnit = ing.unit && ing.unit !== 'serving';
+            return [hasQty ? Number(ing.quantity) : '', hasUnit ? ing.unit : '', ing.ingredient_name || '']
+              .filter(Boolean)
+              .join(' ')
+              .trim();
+          })
+          .filter(Boolean)
+      : [];
+
+    const recipeInstructions = Array.isArray(recipe.instructions)
+      ? [...recipe.instructions]
+          .sort((a, b) => Number(a?.step_number ?? 0) - Number(b?.step_number ?? 0))
+          .map((step, idx) => {
+            const text = typeof step === 'string' ? step.trim() : String(step?.instruction_text || '').trim();
+            return text
+              ? {
+                  '@type': 'HowToStep',
+                  position: step?.step_number ? Number(step.step_number) : idx + 1,
+                  text,
+                }
+              : null;
+          })
+          .filter(Boolean)
+      : [];
+
+    const macrosObj = recipe.macros;
+    const nutrition = macrosObj
+      ? {
+          '@type': 'NutritionInformation',
+          ...(macrosObj.calories !== undefined && macrosObj.calories !== null
+            ? { calories: `${Number(macrosObj.calories)} calories` }
+            : {}),
+          ...(macrosObj.protein_g !== undefined && macrosObj.protein_g !== null
+            ? { proteinContent: `${Number(macrosObj.protein_g)} g` }
+            : {}),
+          ...(macrosObj.carbs_g !== undefined && macrosObj.carbs_g !== null
+            ? { carbohydrateContent: `${Number(macrosObj.carbs_g)} g` }
+            : {}),
+          ...(macrosObj.fat_g !== undefined && macrosObj.fat_g !== null
+            ? { fatContent: `${Number(macrosObj.fat_g)} g` }
+            : {}),
+          ...(macrosObj.fiber_g !== undefined && macrosObj.fiber_g !== null
+            ? { fiberContent: `${Number(macrosObj.fiber_g)} g` }
+            : {}),
+        }
+      : undefined;
+
+    const ratingCount = Number(recipe.rating_count ?? recipe.ratingCount ?? 0);
+    const avgRating = Number(recipe.average_rating ?? recipe.averageRating ?? 0);
+
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Recipe',
+      name: recipe.title,
+      description: recipeDesc,
+      url: `${SITE_URL}${canonicalPath}`,
+      image: [recipeImg],
+      author: {
+        '@type': 'Person',
+        name: recipe.authorName || 'Emma (AI)',
+      },
+      recipeCategory: 'Plant-Based',
+      suitableForDiet,
+      ...(recipe.created_at ? { datePublished: recipe.created_at } : {}),
+      ...(recipe.yields ? { recipeYield: recipe.yields } : {}),
+      ...(toIsoDuration(prepMins) ? { prepTime: toIsoDuration(prepMins) } : {}),
+      ...(toIsoDuration(cookMins) ? { cookTime: toIsoDuration(cookMins) } : {}),
+      ...(toIsoDuration(totalMins) ? { totalTime: toIsoDuration(totalMins) } : {}),
+      ...(recipeIngredients.length > 0 ? { recipeIngredient: recipeIngredients } : {}),
+      ...(recipeInstructions.length > 0 ? { recipeInstructions } : {}),
+      ...(nutrition ? { nutrition } : {}),
+      ...(ratingCount > 0 && avgRating > 0
+        ? {
+            aggregateRating: {
+              '@type': 'AggregateRating',
+              ratingValue: Number(avgRating.toFixed(2)),
+              ratingCount,
+              bestRating: 5,
+              worstRating: 1,
+            },
+          }
+        : {}),
+    };
+
+    return {
+      title: recipe.title,
+      description: recipeDesc,
+      canonicalPath,
+      ogType: 'article',
+      image: recipeImg,
+      noindex: isDraft,
+      jsonLd,
+    };
   }, [recipe]);
 
   // --- DATA FETCHING (useEffect) ---
   useEffect(() => {
     setAiImagePaid(false);
     setUpgradeFeedback(null);
+    setShareCopied(false);
+    setShowShareMenu(false);
     const fetchRecipe = async () => {
       try {
         setLoading(true);
@@ -457,9 +539,74 @@ const RecipeDetails = () => {
     setShowLiveChat(true);
   };
 
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+
+  const handleCopyShareLink = async () => {
+    if (!shareUrl) return false;
+    let copied = false;
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        copied = true;
+      } catch {
+        copied = false;
+      }
+    }
+    if (!copied && typeof document !== 'undefined') {
+      const tempInput = document.createElement('textarea');
+      tempInput.value = shareUrl;
+      tempInput.setAttribute('readonly', '');
+      tempInput.style.position = 'fixed';
+      tempInput.style.opacity = '0';
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      try {
+        copied = document.execCommand('copy');
+      } catch {
+        copied = false;
+      } finally {
+        document.body.removeChild(tempInput);
+      }
+    }
+    if (copied) {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    }
+    return copied;
+  };
+
+  const handleShareRecipe = async () => {
+    const nextOpen = !showShareMenu;
+    setShowShareMenu(nextOpen);
+    if (nextOpen) {
+      await handleCopyShareLink();
+    }
+  };
+
+  const handleNativeShare = async () => {
+    if (!canNativeShare) return;
+    try {
+      await navigator.share({
+        title: `${recipe.title} | The Veggie Vault`,
+        text: `Check out "${recipe.title}" on The Veggie Vault!`,
+        url: shareUrl,
+      });
+      setShowShareMenu(false);
+    } catch {
+      // User cancelled native share sheet
+    }
+  };
+
+  const handlePrintRecipe = () => {
+    setShowShareMenu(false);
+    window.print();
+  };
+
   // --- THE UI RENDER ---
   return (
     <div className="recipe-page-container">
+      {recipeSeo && <SEOHead {...recipeSeo} />}
       
       <div className="recipe-back-wrapper">
         <Link to="/" className="recipe-back-button">&larr; Back to Recipe Grid</Link>
@@ -528,6 +675,87 @@ const RecipeDetails = () => {
             }
           >
             📅 Add to Meal Plan
+          </button>
+
+          <div className="recipe-share-wrapper">
+            <button
+              type="button"
+              className="recipe-details-action-btn share-btn"
+              onClick={handleShareRecipe}
+              aria-expanded={showShareMenu}
+              aria-haspopup="true"
+            >
+              {shareCopied ? '✓ Link Copied!' : '🔗 Share Recipe'}
+            </button>
+
+            {showShareMenu && (
+              <div className="recipe-share-popover" role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="recipe-share-option"
+                  onClick={handleCopyShareLink}
+                >
+                  {shareCopied ? '✓ Copied to Clipboard' : '📋 Copy Recipe Link'}
+                </button>
+                <a
+                  role="menuitem"
+                  className="recipe-share-option"
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setShowShareMenu(false)}
+                >
+                  📘 Facebook
+                </a>
+                <a
+                  role="menuitem"
+                  className="recipe-share-option"
+                  href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(`Check out "${recipe.title}" on The Veggie Vault!`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setShowShareMenu(false)}
+                >
+                  𝕏 Share on X
+                </a>
+                <a
+                  role="menuitem"
+                  className="recipe-share-option"
+                  href={`https://wa.me/?text=${encodeURIComponent(`${recipe.title} - ${shareUrl}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setShowShareMenu(false)}
+                >
+                  💬 WhatsApp
+                </a>
+                <a
+                  role="menuitem"
+                  className="recipe-share-option"
+                  href={`mailto:?subject=${encodeURIComponent(`${recipe.title} — The Veggie Vault`)}&body=${encodeURIComponent(`Check out this whole-food plant-based recipe:\n\n${recipe.title}\n${shareUrl}`)}`}
+                  onClick={() => setShowShareMenu(false)}
+                >
+                  ✉️ Email Recipe
+                </a>
+                {canNativeShare && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="recipe-share-option"
+                    onClick={handleNativeShare}
+                  >
+                    📱 Device Share...
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="recipe-details-action-btn print-btn"
+            onClick={handlePrintRecipe}
+          >
+            🖨️ Print Recipe
           </button>
         </div>
 
@@ -722,7 +950,7 @@ const RecipeDetails = () => {
         {user ? (
             <>
                 {/* --- LIVE AUDIO CHAT TOGGLE --- */}
-                <div style={{ margin: '0 1.5rem 1rem 1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+                <div className="no-print" style={{ margin: '0 1.5rem 1rem 1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
                     <button
                         type="button"
                         onClick={handleToggleDetailsLiveChat}
@@ -743,7 +971,7 @@ const RecipeDetails = () => {
 
                 {/* --- THE LIVE CHAT COMPONENT --- */}
                 {showLiveChat && (
-                    <div style={{ margin: '0 1.5rem 2rem 1.5rem' }}>
+                    <div className="no-print" style={{ margin: '0 1.5rem 2rem 1.5rem' }}>
                         <LiveChat
                             recipeContext={`The user is currently viewing the recipe: "${recipe.title}". Ingredients: ${recipe.ingredients?.map(i => i.ingredient_name).join(', ')}`}
                             chatContext={
@@ -759,8 +987,8 @@ const RecipeDetails = () => {
                     </div>
                 )}
                 {/* --- ASK EMMA CHATBOX --- */}
-                <div className="recipe-chat-container" style={{ margin: '0 1.5rem 2rem 1.5rem', padding: '1.5rem', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-                    <h3 style={{ borderBottom: '2px solid #f3f4f6', paddingBottom: '0.75rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1f2937' }}>
+                <div className="recipe-chat-container">
+                    <h3 className="recipe-chat-heading">
                         💬 Ask Emma About This Dish
                     </h3>
 
@@ -786,19 +1014,19 @@ const RecipeDetails = () => {
                         </div>
                     )}
 
-                    <form onSubmit={handleChatSubmit} style={{ display: 'flex', gap: '0.5rem' }}>
+                    <form onSubmit={handleChatSubmit} className="recipe-chat-form">
                         <input
                             type="text"
                             value={chatMessage}
                             onChange={(e) => setChatMessage(e.target.value)}
                             placeholder="E.g., How much Vitamin C is in this? Can I substitute the mushrooms?"
-                            style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none' }}
+                            className="recipe-chat-input"
                             disabled={isChatting}
                         />
                         <button
                             type="submit"
                             disabled={isChatting || !chatMessage.trim()}
-                            style={{ padding: '0.75rem 1.5rem', backgroundColor: isChatting ? '#d1d5db' : '#9333ea', color: '#ffffff', borderRadius: '8px', border: 'none', cursor: isChatting ? 'not-allowed' : 'pointer', fontWeight: 'bold', transition: 'background-color 0.2s' }}
+                            className="recipe-chat-submit-btn"
                         >
                             {isChatting ? 'Thinking...' : 'Ask'}
                         </button>
@@ -806,14 +1034,14 @@ const RecipeDetails = () => {
                 </div>
             </>
         ) : (
-            <div style={{ margin: '0 1.5rem 2rem 1.5rem', padding: '1.5rem', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', textAlign: 'center' }}>
+            <div className="no-print" style={{ margin: '0 1.5rem 2rem 1.5rem', padding: '1.5rem', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', textAlign: 'center' }}>
                 <p style={{ color: '#374151', fontSize: '1.1rem', margin: 0 }}>
                     Want to ask Emma a question or chat live? <Link to='/login' style={{ color: '#9333ea', fontWeight: 'bold', textDecoration: 'none' }}>Log in</Link> to access these features!
                 </p>
             </div>
         )}
 
-        <CommentSection recipeId="{recipe.id}"/>
+        <CommentSection recipeId={recipe.id} />
       </div>
     </div>
   );
