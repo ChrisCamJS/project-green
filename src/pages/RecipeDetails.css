@@ -364,3 +364,172 @@
   position: sticky;
   top: 1.5rem;
 }
+
+/* --- Markdown Spacing in Deep Dive & Recipe Chat --- */
+.recipe-deep-dive-container p,
+.chat-history-window p {
+  margin: 0 0 0.85rem 0;
+  line-height: 1.65;
+}
+
+.recipe-deep-dive-container p:last-child,
+.chat-history-window p:last-child {
+  margin-bottom: 0;
+}
+
+.recipe-deep-dive-container ul,
+.recipe-deep-dive-container ol,
+.chat-history-window ul,
+.chat-history-window ol {
+  margin: 0.5rem 0 0.85rem 0;
+  padding-left: 1.4rem;
+  line-height: 1.65;
+}
+
+.recipe-deep-dive-container li,
+.chat-history-window li {
+  margin-bottom: 0.4rem;
+}
+
+/* --- Draft-to-Masterpiece Workshop --- */
+.draft-workshop-card {
+  margin: 1rem 0 1.5rem;
+  padding: 1.25rem 1.4rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f0fff4 0%, #ebf8ff 100%);
+  border: 1px solid #9ae6b4;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.08);
+}
+
+.draft-workshop-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.9rem;
+}
+
+.draft-workshop-header h3 {
+  margin: 0 0 0.25rem 0;
+  color: #1f2937;
+  font-size: 1.15rem;
+}
+
+.draft-workshop-header p {
+  margin: 0;
+  color: #4a5568;
+  font-size: 0.92rem;
+}
+
+.workshop-status-pill {
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.workshop-status-pill.draft {
+  background-color: #fefcbf;
+  color: #975a16;
+  border: 1px solid #f6e05e;
+}
+
+.workshop-status-pill.published {
+  background-color: #c6f6d5;
+  color: #22543d;
+  border: 1px solid #68d391;
+}
+
+.workshop-checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.workshop-check {
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  border: 1px solid #cbd5e0;
+  background-color: #ffffff;
+  color: #4a5568;
+}
+
+.workshop-check.done {
+  background-color: #f0fff4;
+  border-color: #68d391;
+  color: #22543d;
+}
+
+.workshop-feedback {
+  margin-bottom: 0.9rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+  background-color: #dcfce7;
+  border: 1px solid #86efac;
+  color: #166534;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.workshop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.workshop-btn {
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  border: none;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #ffffff;
+}
+
+.workshop-btn:disabled,
+.workshop-btn.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.workshop-btn.ai-image-btn {
+  background-color: #805ad5;
+}
+
+.workshop-btn.ai-image-btn:hover:not(:disabled) {
+  background-color: #6b46c1;
+}
+
+.workshop-btn.upload-photo-btn {
+  background-color: #3182ce;
+}
+
+.workshop-btn.upload-photo-btn:hover:not(.disabled) {
+  background-color: #2b6cb0;
+}
+
+.workshop-btn.nutrition-btn {
+  background-color: #0d9488;
+}
+
+.workshop-btn.nutrition-btn:hover:not(:disabled) {
+  background-color: #0f766e;
+}
+
+.workshop-btn.publish-btn {
+  background-color: #2e7d32;
+}
+
+.workshop-btn.publish-btn:hover:not(:disabled) {
+  background-color: #1b5e20;
+}

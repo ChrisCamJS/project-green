@@ -38,7 +38,7 @@ const Header = () => {
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="token-icon">
                             <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22ZM12 15.5C13.933 15.5 15.5 13.933 15.5 12C15.5 10.067 13.933 8.5 12 8.5C10.067 8.5 8.5 10.067 8.5 12C8.5 13.933 10.067 15.5 12 15.5Z"></path>
                         </svg>
-                        {Math.floor(Number(user.generation_tokens ?? 0))}
+                        {Number(Number(user.generation_tokens ?? 0).toFixed(1))}
                     </span>
                 )}
                 
@@ -83,7 +83,7 @@ const Header = () => {
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="token-icon">
                                             <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22ZM12 15.5C13.933 15.5 15.5 13.933 15.5 12C15.5 10.067 13.933 8.5 12 8.5C10.067 8.5 8.5 10.067 8.5 12C8.5 13.933 10.067 15.5 12 15.5Z"></path>
                                         </svg>
-                                        {Math.floor(Number(user.generation_tokens ?? 0))}
+                                        {Number(Number(user.generation_tokens ?? 0).toFixed(1))}
                                     </span>
                                 )}
                             </li>
@@ -99,7 +99,10 @@ const Header = () => {
                             </li>
                         </>
                     ) : (
-                        <li><Link to="/login" onClick={closeMenu}>Login</Link></li>
+                        <>
+                            <li><Link to="/login" onClick={closeMenu}>Login</Link></li>
+                            <li><Link to="/register" onClick={closeMenu}>Register</Link></li>
+                        </>
                     )}
                 </ul>
             </nav>

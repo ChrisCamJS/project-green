@@ -27,7 +27,7 @@ async function fetchWrapper(endpoint, options = {}) {
 
         if (!response.ok) {
             // If PHP says our session died (401), clear out the ghost login!
-            if (response.status === 401 && endpoint !== '/login') {
+            if (response.status === 401 && endpoint !== '/login' && endpoint !== '/register') {
                 localStorage.removeItem('vault_user');
                 window.location.href = '/login'; // Or reload so AuthContext resets
             }
@@ -126,6 +126,13 @@ export const api = {
     },
 
     // AUTHENTICATION & USERS
+    register: (userData) => {
+        return fetchWrapper('/register', {
+            method: 'POST',
+            body: JSON.stringify(userData),
+        });
+    },
+
     login: (credentials) => {
         return fetchWrapper('/login', {
             method: 'POST',
@@ -158,10 +165,24 @@ export const api = {
         });
     },
 
-    publishWithPhoto: (recipeId, base64Image) => {
+    publishWithPhoto: (recipeId, base64Image, source = 'user', publish = null) => {
         return fetchWrapper('/recipes/attach-photo', {
             method: 'POST',
-            body: JSON.stringify({ recipe_id: recipeId, image: base64Image }),
+            body: JSON.stringify({ recipe_id: recipeId, image: base64Image, source, publish }),
+        });
+    },
+
+    upgradeRecipeNutrition: (recipeId, deepDive, micros, publish = null) => {
+        return fetchWrapper('/recipes/upgrade-nutrition', {
+            method: 'POST',
+            body: JSON.stringify({ recipe_id: recipeId, deep_dive: deepDive, micros, publish }),
+        });
+    },
+
+    publishDraft: (recipeId) => {
+        return fetchWrapper('/recipes/publish-draft', {
+            method: 'POST',
+            body: JSON.stringify({ recipe_id: recipeId }),
         });
     }
 };

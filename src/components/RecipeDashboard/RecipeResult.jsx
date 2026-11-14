@@ -1,19 +1,39 @@
 // src/components/RecipeDashboard/RecipeResult.jsx
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { sendChatMessage } from '../../services/geminiApi';
-import { getMicroCalculationInstructions } from '../../utils/promptBuilder';
+import { sendChatMessage, generateRecipeImage } from '../../services/geminiApi';
+import { getMicroCalculationInstructions, parseMicrosFromDeepDive } from '../../utils/promptBuilder';
 import { useEmmaVoice } from '../../hooks/useEmmaVoice';
 import LiveChat from '../LiveChat'; // Bringing in Live Mode
 import './RecipeResult.css';
 
-const RecipeResult = ({ recipeMarkdown, imageUrl, isDraft, isChat }) => {
-  const { user } = useAuth(); 
+const RecipeResult = ({
+  recipeMarkdown,
+  imageUrl,
+  isDraft,
+  isChat,
+  isGeneratingImage = false,
+  imageGenFailed = false,
+  onRetryImage = null
+}) => {
+  const navigate = useNavigate();
+  const { user, spendToken } = useAuth(); 
   const currentUserName = user?.username || 'Love';
 
   const [isSaving, setIsSaving] = useState(false);
+  const [savedRecipeId, setSavedRecipeId] = useState(null);
+  const [localImageUrl, setLocalImageUrl] = useState(null);
+  const [imageSource, setImageSource] = useState(null);
+  const [isGeneratingAiImage, setIsGeneratingAiImage] = useState(false);
+  const [draftAiImagePaid, setDraftAiImagePaid] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isPublishingDraft, setIsPublishingDraft] = useState(false);
+  const [isPublishedMasterpiece, setIsPublishedMasterpiece] = useState(false);
+  const [upgradeStatusMsg, setUpgradeStatusMsg] = useState(null);
+
   const [advancedMicros, setAdvancedMicros] = useState(null);
   const [isCalculatingMicros, setIsCalculatingMicros] = useState(false);
   
@@ -21,6 +41,8 @@ const RecipeResult = ({ recipeMarkdown, imageUrl, isDraft, isChat }) => {
   const [showLiveChat, setShowLiveChat] = useState(false); // Live chat state
 
   const { speechState, handleSpeak } = useEmmaVoice();
+
+  const displayImageUrl = localImageUrl || imageUrl;
 
   useEffect(() => {
     if (recipeMarkdown && !isChat && !isDraft && !advancedMicros && !isCalculatingMicros) {
@@ -112,25 +134,13 @@ const RecipeResult = ({ recipeMarkdown, imageUrl, isDraft, isChat }) => {
       const fiberMatch = recipeMarkdown.match(/Fiber:\s*(\d+)/i);
       if (fiberMatch) fiber_g = parseInt(fiberMatch[1], 10);
 
-      const parsedMicros = [];
-      if (advancedMicros) {
-          const microRegex = /\*\s+\*?\*?([a-zA-Z\s\-]+)\*?\*?:\s*([\d.]+)\s*([a-zA-Z]+)[^\d]+([\d.]+)%/g;
-          let match;
-          while ((match = microRegex.exec(advancedMicros)) !== null) {
-              parsedMicros.push({
-                  name: match[1].trim(),
-                  amount: parseFloat(match[2]),
-                  unit: match[3].trim(),
-                  dv: parseFloat(match[4])
-              });
-          }
-      }
+      const parsedMicros = parseMicrosFromDeepDive(advancedMicros || '');
 
       try {
-          await api.saveGeneratedRecipe({
+          const res = await api.saveGeneratedRecipe({
           title: recipeTitle, 
           description, 
-          imageUrl: imageUrl || '', 
+          imageUrl: displayImageUrl || '', 
           prepTime, 
           cookTime, 
           yields, 
@@ -144,7 +154,17 @@ const RecipeResult = ({ recipeMarkdown, imageUrl, isDraft, isChat }) => {
           fiber_g,
           micros: parsedMicros
         });
-        const successMsg = isDraft ? 'Smashing! Your recipe draft has been locked in the Veggie Vault.' : 'Brilliant! The full recipe and image have been safely vaulted.';
+        if (res?.recipeId) {
+          setSavedRecipeId(res.recipeId);
+        }
+        if (!isDraft && displayImageUrl) {
+          setIsPublishedMasterpiece(true);
+        }
+        const successMsg = isDraft
+          ? 'Smashing! Your recipe draft has been locked in the Veggie Vault.'
+          : (displayImageUrl
+              ? 'Brilliant! The full recipe and image have been safely vaulted.'
+              : 'Your Masterpiece text has been saved to drafts while the image is pending—retry generating the photo below at no cost to publish!');
         alert(successMsg);
       } catch (error) {
         console.error('Failed to save to the vault:', error);
@@ -152,6 +172,157 @@ const RecipeResult = ({ recipeMarkdown, imageUrl, isDraft, isChat }) => {
       } finally {
         setIsSaving(false);
       }
+  };
+
+  const extractRecipeTitle = () => {
+    const titleMatch = recipeMarkdown?.match(/^#\s+(.+)$/m);
+    return titleMatch && titleMatch[1] ? titleMatch[1].trim() : 'Whole Food Plant-Based Dish';
+  };
+
+  const handleGenerateDraftAiImage = async () => {
+    if (!savedRecipeId) return;
+    if (!draftAiImagePaid && Number(user?.generation_tokens ?? 0) < 0.5) {
+      alert('Oh dear! You need at least 0.5 tokens to generate an AI image.');
+      return;
+    }
+
+    setIsGeneratingAiImage(true);
+    setUpgradeStatusMsg(null);
+    try {
+      if (!draftAiImagePaid) {
+        const tokenRes = await spendToken(0.5);
+        if (!tokenRes?.success) {
+          alert(tokenRes?.message || 'Unable to deduct 0.5 tokens.');
+          return;
+        }
+        setDraftAiImagePaid(true);
+      }
+
+      const dishTitle = extractRecipeTitle();
+      const base64Data = await generateRecipeImage(dishTitle);
+      if (!base64Data) {
+        const retryMsg = "Emma's camera jammed while painting your dish! You can retry generating the AI image for free (0 tokens).";
+        setUpgradeStatusMsg(retryMsg);
+        alert(retryMsg);
+        return;
+      }
+
+      const dataUrl = `data:image/jpeg;base64,${base64Data}`;
+      const res = await api.publishWithPhoto(savedRecipeId, dataUrl, 'ai');
+      setLocalImageUrl(dataUrl);
+      setImageSource('ai');
+      setDraftAiImagePaid(false);
+      if (res?.isPublic) {
+        setIsPublishedMasterpiece(true);
+      }
+      setUpgradeStatusMsg(res?.message || 'AI image saved to your recipe!');
+    } catch (err) {
+      console.error('Failed to generate draft AI image:', err);
+      alert(err.message || 'Could not generate AI image.');
+    } finally {
+      setIsGeneratingAiImage(false);
+    }
+  };
+
+  const handleMasterpieceImageRetry = async () => {
+    if (!onRetryImage || isGeneratingImage) return;
+    setUpgradeStatusMsg(null);
+    const generatedDataUrl = await onRetryImage(extractRecipeTitle());
+    if (generatedDataUrl && savedRecipeId) {
+      try {
+        const res = await api.publishWithPhoto(savedRecipeId, generatedDataUrl, 'ai');
+        setLocalImageUrl(generatedDataUrl);
+        setImageSource('ai');
+        if (res?.isPublic) {
+          setIsPublishedMasterpiece(true);
+        }
+        setUpgradeStatusMsg(res?.message || 'Masterpiece photo attached!');
+      } catch (err) {
+        console.error('Failed to attach retried image to saved recipe:', err);
+      }
+    }
+  };
+
+  const handleUploadDraftPhoto = (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !savedRecipeId) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      setIsUploadingImage(true);
+      setUpgradeStatusMsg(null);
+      try {
+        const res = await api.publishWithPhoto(savedRecipeId, reader.result, 'user');
+        setLocalImageUrl(reader.result);
+        setImageSource('user');
+        if (res?.isPublic) {
+          setIsPublishedMasterpiece(true);
+        }
+        setUpgradeStatusMsg(res?.message || 'Dish photo uploaded!');
+      } catch (err) {
+        console.error('Failed to upload draft photo:', err);
+        alert(err.message || 'Could not upload dish photo.');
+      } finally {
+        setIsUploadingImage(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUpgradeDraftNutrition = async () => {
+    if (!savedRecipeId) return;
+    if (Number(user?.generation_tokens ?? 0) < 0.5) {
+      alert('Oh dear! You need at least 0.5 tokens to generate Masterpiece nutrition.');
+      return;
+    }
+
+    setIsCalculatingMicros(true);
+    setUpgradeStatusMsg(null);
+    try {
+      const tokenRes = await spendToken(0.5);
+      if (!tokenRes?.success) {
+        alert(tokenRes?.message || 'Unable to deduct 0.5 tokens.');
+        return;
+      }
+
+      const instructions = getMicroCalculationInstructions(currentUserName);
+      const chatPayload = [{ role: 'user', parts: [{ text: `Here is the recipe I need you to deeply analyze:\n\n${recipeMarkdown}` }] }];
+      const mathResult = await sendChatMessage(chatPayload, instructions);
+      const parsedMicros = parseMicrosFromDeepDive(mathResult);
+
+      const res = await api.upgradeRecipeNutrition(savedRecipeId, mathResult, parsedMicros);
+      setAdvancedMicros(mathResult);
+      setShowDeepDive(true);
+      if (res?.isPublic) {
+        setIsPublishedMasterpiece(true);
+      }
+      setUpgradeStatusMsg(res?.message || 'Masterpiece nutritional analysis saved!');
+    } catch (err) {
+      console.error('Failed to upgrade draft nutrition:', err);
+      alert(err.message || 'Could not generate Masterpiece nutrition.');
+    } finally {
+      setIsCalculatingMicros(false);
+    }
+  };
+
+  const canPublishMasterpiece = Boolean(localImageUrl) && Boolean(advancedMicros);
+
+  const handlePublishSavedDraft = async () => {
+    if (!savedRecipeId || !canPublishMasterpiece) return;
+    setIsPublishingDraft(true);
+    setUpgradeStatusMsg(null);
+    try {
+      const res = await api.publishDraft(savedRecipeId);
+      if (res?.success) {
+        setIsPublishedMasterpiece(true);
+        setUpgradeStatusMsg(res.message || 'Your recipe is now a published Masterpiece!');
+      }
+    } catch (err) {
+      console.error('Failed to publish draft:', err);
+      alert(err.message || 'Could not publish draft.');
+    } finally {
+      setIsPublishingDraft(false);
+    }
   };
 
   let speakBtnText = "🗣️ Read Aloud";
@@ -166,14 +337,66 @@ const RecipeResult = ({ recipeMarkdown, imageUrl, isDraft, isChat }) => {
 
   if (!recipeMarkdown) return null;
 
+  if (isChat) {
+    return (
+      <div className="emma-chat-card">
+        <div className="emma-chat-header">
+          <div className="emma-chat-persona">
+            <span className="emma-avatar" aria-hidden="true">👩‍🍳</span>
+            <div>
+              <strong className="emma-name">Emma Advanced</strong>
+              <span className="emma-subtitle">Culinary Confidante</span>
+            </div>
+          </div>
+          <button
+            onClick={() => handleSpeak(recipeMarkdown)}
+            className={`emma-chat-speak-btn ${speakBtnClass}`}
+            title="Listen to Emma's reply"
+          >
+            {speakBtnText}
+          </button>
+        </div>
+
+        <div className="recipe-content chat-markdown">
+          <ReactMarkdown>{recipeMarkdown}</ReactMarkdown>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="recipe-result-card">
       
-      {imageUrl && (
+      {displayImageUrl ? (
         <div className="recipe-image-container">
-            <img src={imageUrl} alt="A glorious AI-generated WFPB meal" />
+            <img src={displayImageUrl} alt="A glorious AI-generated WFPB meal" />
         </div>
-      )}
+      ) : (!isDraft && !isChat && (
+        <>
+          {isGeneratingImage && (
+            <div className="masterpiece-image-status generating">
+              <span className="status-icon">🎨</span>
+              <span>Emma is painting your Masterpiece dish photo...</span>
+            </div>
+          )}
+          {imageGenFailed && !isGeneratingImage && (
+            <div className="masterpiece-image-status failed">
+              <div className="status-text">
+                <strong>⚠️ Image Generation Failed</strong>
+                <p>Your Masterpiece recipe is ready, but the AI camera jammed while creating the photo. You won&apos;t be charged again to retry!</p>
+              </div>
+              <button
+                type="button"
+                className="retry-image-btn"
+                onClick={handleMasterpieceImageRetry}
+                disabled={isGeneratingImage}
+              >
+                🔄 Try Generating Image Again (Free)
+              </button>
+            </div>
+          )}
+        </>
+      ))}
 
       {/* Live Chat Toggle Button */}
       {!isChat && (
@@ -209,10 +432,16 @@ const RecipeResult = ({ recipeMarkdown, imageUrl, isDraft, isChat }) => {
             <>
                 <button 
                 onClick={handleSaveToVault}
-                disabled={isSaving || isCalculatingMicros}
-                className={`action-btn vault-btn ${(isSaving || isCalculatingMicros) ? 'saving' : ''}`}
+                disabled={isSaving || isCalculatingMicros || Boolean(savedRecipeId)}
+                className={`action-btn vault-btn ${(isSaving || isCalculatingMicros || savedRecipeId) ? 'saving' : ''}`}
                 >
-                {isCalculatingMicros ? '⏳ Finalizing Nutrition...' : (isSaving ? '🔒 Vaulting...' : (isDraft ? '📝 Save Draft to Vault' : '📸 Save Full Recipe'))}
+                {isCalculatingMicros
+                  ? '⏳ Finalizing Nutrition...'
+                  : (isSaving
+                      ? '🔒 Vaulting...'
+                      : (savedRecipeId
+                          ? (isPublishedMasterpiece ? '🌟 Published Masterpiece' : '✅ Saved to Private Drafts')
+                          : (isDraft ? '📝 Save Draft to Vault' : '📸 Save Full Recipe')))}
                 </button>
 
                 <button onClick={handleDownload} className="action-btn download-btn">
@@ -229,11 +458,97 @@ const RecipeResult = ({ recipeMarkdown, imageUrl, isDraft, isChat }) => {
         </button>
       </div>
 
+      {isDraft && savedRecipeId && (
+        <section className="draft-workshop-card" aria-label="Draft to Masterpiece Workshop">
+          <div className="draft-workshop-header">
+            <div>
+              <h3>✨ Draft-to-Masterpiece Workshop</h3>
+              <p>
+                To publish your private draft as a Masterpiece, include both a dish photo (AI-generated or uploaded) and full Masterpiece nutritional details.
+              </p>
+            </div>
+            <span className={`workshop-status-pill ${isPublishedMasterpiece ? 'published' : 'draft'}`}>
+              {isPublishedMasterpiece ? '🌟 Published Masterpiece' : '🔒 Private Draft'}
+            </span>
+          </div>
+
+          <div className="workshop-checklist">
+            <span className={`workshop-check ${localImageUrl ? 'done' : 'pending'}`}>
+              <strong>Step 1: Dish Image</strong> — {localImageUrl ? `✅ Added (${imageSource === 'ai' ? 'AI Generated' : 'Uploaded'})` : 'Pending'}
+            </span>
+            <span className={`workshop-check ${advancedMicros ? 'done' : 'pending'}`}>
+              <strong>Step 2: Masterpiece Nutrition</strong> — {advancedMicros ? '✅ Unlocked' : 'Pending'}
+            </span>
+          </div>
+
+          {upgradeStatusMsg && (
+            <div className="workshop-feedback">
+              {upgradeStatusMsg}
+            </div>
+          )}
+
+          <div className="workshop-actions">
+            <button
+              type="button"
+              onClick={handleGenerateDraftAiImage}
+              disabled={isGeneratingAiImage || isUploadingImage || isCalculatingMicros}
+              className="workshop-btn ai-image-btn"
+            >
+              {isGeneratingAiImage
+                ? '🎨 Painting AI Dish...'
+                : (draftAiImagePaid ? '🔄 Retry AI Image (Free — 0 Tokens)' : '🎨 Generate AI Image (0.5 Tokens)')}
+            </button>
+
+            <label className={`workshop-btn upload-photo-btn ${isUploadingImage ? 'disabled' : ''}`}>
+              {isUploadingImage ? '📤 Uploading Photo...' : '📸 Upload Own Photo (Free)'}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleUploadDraftPhoto}
+                disabled={isUploadingImage || isGeneratingAiImage}
+                hidden
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={handleUpgradeDraftNutrition}
+              disabled={Boolean(advancedMicros) || isCalculatingMicros || isGeneratingAiImage || isUploadingImage}
+              className="workshop-btn nutrition-btn"
+            >
+              {isCalculatingMicros
+                ? '🧮 Crunching Micros...'
+                : (advancedMicros ? '✅ Nutrition Unlocked' : '🔬 Generate Masterpiece Nutrition (0.5 Tokens)')}
+            </button>
+
+            {!isPublishedMasterpiece && (
+              <button
+                type="button"
+                onClick={handlePublishSavedDraft}
+                disabled={!canPublishMasterpiece || isPublishingDraft || isGeneratingAiImage || isUploadingImage || isCalculatingMicros}
+                className="workshop-btn publish-btn"
+                title={!canPublishMasterpiece ? 'Add a photo and generate Masterpiece nutrition first' : 'Publish to the public Masterpiece feed'}
+              >
+                {isPublishingDraft ? '🚀 Publishing...' : '🚀 Publish as Masterpiece'}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => navigate(`/recipe/${savedRecipeId}`)}
+              className="workshop-btn vault-link-btn"
+            >
+              View in My Vault &rarr;
+            </button>
+          </div>
+        </section>
+      )}
+
       <div className="recipe-content">
         <ReactMarkdown>{recipeMarkdown}</ReactMarkdown>
       </div>
 
-      {!isChat && !isDraft && (
+      {!isChat && (!isDraft || advancedMicros || isCalculatingMicros) && (
           <div className="calc-micros-container">
               <button 
                 onClick={() => setShowDeepDive(!showDeepDive)}

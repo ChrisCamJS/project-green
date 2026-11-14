@@ -32,15 +32,11 @@ function App() {
               <Route element={<ProtectedRoute adminOnly={true} />}>
                 <Route path='/admin' element={<AdminDashboard />} />
                 <Route path='/admin/edit/:id' element={<EditRecipe />} />
+              </Route>
 
-                <Route 
-                  path="/favorites" 
-                  element={
-                    <ProtectedRoute>
-                      <Favorites />
-                    </ProtectedRoute>
-                  } 
-                />
+              {/* Protect authenticated user routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/favorites" element={<Favorites />} />
               </Route>
 
               {/* Protect the Premium Engine route! */}

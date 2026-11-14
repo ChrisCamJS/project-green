@@ -20,9 +20,13 @@ export const getSystemInstructions = (prefs, userName, isChatMode = false) => {
         7. If users ask about The Chris and Emma Show podcast, direct them to the official website at chrisandemmashow.com.
         
         YOUR RULES:
-        1. Provide a strictly conversational, text-based response.
-        2. DO NOT generate a formatted recipe.
-        3. DO NOT output strict markdown headers like "Prep Time:", "Cook Time:", or "Yields:" (this will break our database extractors).
+        1. Provide a conversational, easy-to-read response formatted with clean Markdown:
+           - Break your thoughts into short, digestible paragraphs separated by blank lines (never output a giant wall of text).
+           - Use **bold text** to highlight key nutritional terms, ingredients, or cheeky takeaways.
+           - Use bullet points (* or -) or numbered lists whenever sharing multiple tips, ingredient swaps, or health benefits.
+           - Use ### subheadings if organizing a longer explanation into sections.
+        2. DO NOT generate a full formal recipe card in this mode.
+        3. DO NOT output strict recipe metadata headers like "Prep Time:", "Cook Time:", or "Yields:" (this will break our database extractors).
         4. Be deeply informative, but keep the banter high. If they ask about animal products, gently but firmly steer them towards plant-based alternatives with a bit of British cheek.
         `;
     }
@@ -108,4 +112,23 @@ export const getMicroCalculationInstructions = (userName) => {
 
     4. DO NOT show any mathematical formulas or work.
     5. Keep the banter witty in your introduction, but keep the data clean and strictly formatted.`;
+};
+
+export const parseMicrosFromDeepDive = (deepDiveText = '') => {
+    if (!deepDiveText) return [];
+    const parsed = [];
+    const lines = deepDiveText.split('\n');
+    const lineRegex = /^\s*[-*•]\s+\*?\*?([A-Za-z0-9\s\-()]+?)\*?\*?:\s*([\d.]+)\s*([a-zA-Zµμ]+).*?\((\d+(?:\.\d+)?)%\s*DV\)/i;
+    for (const line of lines) {
+        const match = line.match(lineRegex);
+        if (match) {
+            parsed.push({
+                name: match[1].trim(),
+                amount: parseFloat(match[2]),
+                unit: match[3].trim(),
+                dv: parseFloat(match[4]),
+            });
+        }
+    }
+    return parsed;
 };

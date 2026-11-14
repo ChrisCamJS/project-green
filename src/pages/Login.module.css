@@ -40,6 +40,17 @@
     font-weight: bold;
 }
 
+.successMessage {
+    background-color: #dcfce7;
+    color: #166534;
+    border: 1px solid #86efac;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
 .loginForm {
     display: flex;
     flex-direction: column;
@@ -64,6 +75,7 @@
     border-radius: 4px;
     font-size: 1rem;
     transition: border-color 0.3s;
+    width: 100%;
 }
 
 .formGroup input:focus {
@@ -73,11 +85,118 @@
 }
 
 .inputGroup {
-    padding: .25rem;
+    margin-bottom: 18px;
     display: flex;
-    flex-direction: row;
-    justify-content: space-evenly;
-    margin-bottom: .6rem;
+    flex-direction: column;
+    text-align: left;
+}
+
+.inputGroup label {
+    font-weight: bold;
+    margin-bottom: 6px;
+    color: var(--vault-dark);
+}
+
+.inputGroup input {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+    width: 100%;
+}
+
+.inputGroup input:focus {
+    outline: none;
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+}
+
+.passwordWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.passwordWrapper input {
+    padding-right: 68px;
+}
+
+.passwordToggle {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--primary-green);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.passwordToggle:hover {
+    background-color: rgba(46, 125, 50, 0.1);
+    color: #1b5e20;
+}
+
+.strengthContainer {
+    margin-top: 8px;
+}
+
+.strengthBarTrack {
+    height: 6px;
+    background-color: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.strengthBarFill {
+    height: 100%;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.strengthMeta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #555;
+}
+
+.passwordChecklist {
+    list-style: none;
+    padding: 0;
+    margin: 6px 0 0 0;
+    font-size: 0.8rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 8px;
+}
+
+.checkPassed {
+    color: #166534;
+    font-weight: 600;
+}
+
+.checkPending {
+    color: #777;
+}
+
+.matchFeedback {
+    font-size: 0.8rem;
+    margin-top: 6px;
+    font-weight: 600;
+}
+
+.matchSuccess {
+    color: #166534;
+}
+
+.matchError {
+    color: var(--blazer-red);
 }
 
 .loginBtn {

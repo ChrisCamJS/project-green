@@ -7,6 +7,12 @@ export const sendChatMessage = async (chatHistory, systemInstructionText) => {
   // Updated to the new 3.5 Flash-Lite model (or gemini-3.5-flash if you prefer the full version)
   const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${API_KEY}`;
 
+  // Strip UI-only properties (such as displayParts) so Gemini's strict schema doesn't reject follow-up turns
+  const apiContents = chatHistory.map(({ role, parts }) => ({
+    role,
+    parts,
+  }));
+
   try {
     const response = await fetch(API_URL, {
       method: "POST",
@@ -15,7 +21,7 @@ export const sendChatMessage = async (chatHistory, systemInstructionText) => {
         systemInstruction: {
           parts: [{ text: systemInstructionText }]
         },
-        contents: chatHistory, // Strictly alternating { role: 'user'/'model', parts: [{ text: '...' }] }
+        contents: apiContents, // Strictly alternating { role: 'user'/'model', parts: [{ text: '...' }] }
         // Removed custom temperature/sampling so the new 3.x models don't throw a strop
       }),
     });
