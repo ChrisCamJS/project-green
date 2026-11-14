@@ -40,7 +40,27 @@ const RecipeDetails = () => {
   const [upgradeFeedback, setUpgradeFeedback] = useState(null);
   const [shareCopied, setShareCopied] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imageStyleOptions, setImageStyleOptions] = useState({ ...DEFAULT_IMAGE_STYLE_OPTIONS });
+
+  useEffect(() => {
+    if (!isImageModalOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsImageModalOpen(false);
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isImageModalOpen]);
   const currentUserName = user?.username || 'Love';
   
   const [recipe, setRecipe] = useState(null);
@@ -615,7 +635,17 @@ const RecipeDetails = () => {
       </div>
 
       <div className="recipe-image-wrapper">
-        <img src={fullImageUrl} alt={recipe.title || 'A glorious WFPB meal'} className="recipe-hero-image" />
+        <button
+          type="button"
+          className="recipe-image-trigger"
+          onClick={() => setIsImageModalOpen(true)}
+          aria-label={`View larger image of ${recipe.title || 'this dish'}`}
+        >
+          <img src={fullImageUrl} alt={recipe.title || 'A glorious WFPB meal'} className="recipe-hero-image" />
+          <span className="recipe-image-zoom-hint no-print" aria-hidden="true">
+            🔍 Click to enlarge
+          </span>
+        </button>
       </div>
 
       <div className="recipe-card">
@@ -636,129 +666,125 @@ const RecipeDetails = () => {
           <h1 className="recipe-title">{recipe.title}</h1>
           <FavoriteButton recipeId={recipe.id} initialFavorited={recipe.isFavorited || false} />
         </div>
-        {/* The Creator Tag */}
-        <div className="author-badge" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          <span style={{ background: '#edf2f7', padding: '5px 14px', borderRadius: '16px', fontSize: '0.92rem', color: '#4a5568' }}>
-            Recipe by:{' '}
-            {authorProfileLink ? (
-              <Link to={authorProfileLink} style={{ color: '#2f855a', fontWeight: 700, textDecoration: 'none' }}>
-                {recipe.authorName || 'Emma (AI)'}
-              </Link>
-            ) : (
-              <strong>{recipe.authorName || 'Emma (AI)'}</strong>
+        {/* The Creator Tag & Action Toolbar */}
+        <div className="author-badge">
+          <div className="recipe-creator-row">
+            <span className="recipe-creator-pill">
+              Recipe by:{' '}
+              {authorProfileLink ? (
+                <Link to={authorProfileLink} className="recipe-creator-link">
+                  {recipe.authorName || 'Emma (AI)'}
+                </Link>
+              ) : (
+                <strong>{recipe.authorName || 'Emma (AI)'}</strong>
+              )}
+            </span>
+            {canFollowAuthor && (
+              <button
+                type="button"
+                onClick={handleToggleFollowAuthor}
+                disabled={followBusy}
+                className={`recipe-follow-btn ${recipe.isFollowedAuthor ? 'following' : ''}`}
+              >
+                {followBusy ? 'Updating...' : (recipe.isFollowedAuthor ? '✓ Following Chef' : '➕ Follow Chef')}
+              </button>
             )}
-          </span>
-          {canFollowAuthor && (
+          </div>
+
+          <div className="recipe-action-toolbar">
             <button
               type="button"
-              onClick={handleToggleFollowAuthor}
-              disabled={followBusy}
-              style={{
-                padding: '5px 12px',
-                borderRadius: '16px',
-                border: recipe.isFollowedAuthor ? '1px solid #cbd5e0' : '1px solid #2f855a',
-                background: recipe.isFollowedAuthor ? '#f8fafc' : '#2f855a',
-                color: recipe.isFollowedAuthor ? '#2d3748' : '#ffffff',
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-              }}
+              className="recipe-details-plan-btn"
+              onClick={() =>
+                window.dispatchEvent(
+                  new CustomEvent('veggie-vault:open-meal-plan', { detail: { recipe } })
+                )
+              }
             >
-              {followBusy ? 'Updating...' : (recipe.isFollowedAuthor ? '✓ Following Chef' : '➕ Follow Chef')}
-            </button>
-          )}
-          <button
-            type="button"
-            className="recipe-details-plan-btn"
-            onClick={() =>
-              window.dispatchEvent(
-                new CustomEvent('veggie-vault:open-meal-plan', { detail: { recipe } })
-              )
-            }
-          >
-            📅 Add to Meal Plan
-          </button>
-
-          <div className="recipe-share-wrapper">
-            <button
-              type="button"
-              className="recipe-details-action-btn share-btn"
-              onClick={handleShareRecipe}
-              aria-expanded={showShareMenu}
-              aria-haspopup="true"
-            >
-              {shareCopied ? '✓ Link Copied!' : '🔗 Share Recipe'}
+              📅 Add to Meal Plan
             </button>
 
-            {showShareMenu && (
-              <div className="recipe-share-popover" role="menu">
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="recipe-share-option"
-                  onClick={handleCopyShareLink}
-                >
-                  {shareCopied ? '✓ Copied to Clipboard' : '📋 Copy Recipe Link'}
-                </button>
-                <a
-                  role="menuitem"
-                  className="recipe-share-option"
-                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setShowShareMenu(false)}
-                >
-                  📘 Facebook
-                </a>
-                <a
-                  role="menuitem"
-                  className="recipe-share-option"
-                  href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(`Check out "${recipe.title}" on The Veggie Vault!`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setShowShareMenu(false)}
-                >
-                  𝕏 Share on X
-                </a>
-                <a
-                  role="menuitem"
-                  className="recipe-share-option"
-                  href={`https://wa.me/?text=${encodeURIComponent(`${recipe.title} - ${shareUrl}`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setShowShareMenu(false)}
-                >
-                  💬 WhatsApp
-                </a>
-                <a
-                  role="menuitem"
-                  className="recipe-share-option"
-                  href={`mailto:?subject=${encodeURIComponent(`${recipe.title} — The Veggie Vault`)}&body=${encodeURIComponent(`Check out this whole-food plant-based recipe:\n\n${recipe.title}\n${shareUrl}`)}`}
-                  onClick={() => setShowShareMenu(false)}
-                >
-                  ✉️ Email Recipe
-                </a>
-                {canNativeShare && (
+            <div className="recipe-share-wrapper">
+              <button
+                type="button"
+                className="recipe-details-action-btn share-btn"
+                onClick={handleShareRecipe}
+                aria-expanded={showShareMenu}
+                aria-haspopup="true"
+              >
+                {shareCopied ? '✓ Link Copied!' : '🔗 Share Recipe'}
+              </button>
+
+              {showShareMenu && (
+                <div className="recipe-share-popover" role="menu">
                   <button
                     type="button"
                     role="menuitem"
                     className="recipe-share-option"
-                    onClick={handleNativeShare}
+                    onClick={handleCopyShareLink}
                   >
-                    📱 Device Share...
+                    {shareCopied ? '✓ Copied to Clipboard' : '📋 Copy Recipe Link'}
                   </button>
-                )}
-              </div>
-            )}
-          </div>
+                  <a
+                    role="menuitem"
+                    className="recipe-share-option"
+                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShowShareMenu(false)}
+                  >
+                    📘 Facebook
+                  </a>
+                  <a
+                    role="menuitem"
+                    className="recipe-share-option"
+                    href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(`Check out "${recipe.title}" on The Veggie Vault!`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShowShareMenu(false)}
+                  >
+                    𝕏 Share on X
+                  </a>
+                  <a
+                    role="menuitem"
+                    className="recipe-share-option"
+                    href={`https://wa.me/?text=${encodeURIComponent(`${recipe.title} - ${shareUrl}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShowShareMenu(false)}
+                  >
+                    💬 WhatsApp
+                  </a>
+                  <a
+                    role="menuitem"
+                    className="recipe-share-option"
+                    href={`mailto:?subject=${encodeURIComponent(`${recipe.title} — The Veggie Vault`)}&body=${encodeURIComponent(`Check out this whole-food plant-based recipe:\n\n${recipe.title}\n${shareUrl}`)}`}
+                    onClick={() => setShowShareMenu(false)}
+                  >
+                    ✉️ Email Recipe
+                  </a>
+                  {canNativeShare && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="recipe-share-option"
+                      onClick={handleNativeShare}
+                    >
+                      📱 Device Share...
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
 
-          <button
-            type="button"
-            className="recipe-details-action-btn print-btn"
-            onClick={handlePrintRecipe}
-          >
-            🖨️ Print Recipe
-          </button>
+            <button
+              type="button"
+              className="recipe-details-action-btn print-btn"
+              onClick={handlePrintRecipe}
+            >
+              🖨️ Print Recipe
+            </button>
+          </div>
         </div>
 
         {/* The Masterpiece Graduation Workshop */}
@@ -1045,6 +1071,38 @@ const RecipeDetails = () => {
 
         <CommentSection recipeId={recipe.id} />
       </div>
+
+      {isImageModalOpen && (
+        <div
+          className="recipe-image-modal-backdrop no-print"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Full-size photo of ${recipe.title || 'this dish'}`}
+          onClick={() => setIsImageModalOpen(false)}
+        >
+          <button
+            type="button"
+            className="recipe-image-modal-close"
+            onClick={() => setIsImageModalOpen(false)}
+            aria-label="Close enlarged image"
+          >
+            ✕
+          </button>
+          <div
+            className="recipe-image-modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={fullImageUrl}
+              alt={recipe.title || 'A glorious WFPB meal'}
+              className="recipe-image-modal-img"
+            />
+            {recipe.title && (
+              <p className="recipe-image-modal-caption">{recipe.title}</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
