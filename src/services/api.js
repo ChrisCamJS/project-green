@@ -58,8 +58,7 @@ export const api = {
     },
 
     updateRecipe: (id, recipeData) => {
-        // Our PHP backend looks for the ID in the payload, so we spread it in here to be safe!
-        return fetchWrapper('/recipes', {
+        return fetchWrapper(`/recipes?id=${id}`, {
             method: 'PUT',
             body: JSON.stringify({ ...recipeData, id }), 
         });
