@@ -7,6 +7,8 @@ import SEOHead from '../components/SEOHead';
 import { SITE_URL, cleanSeoText } from '../utils/seoUtils';
 import { isTruthyFlag, getRecipeDietaryFlags } from '../utils/dietaryUtils';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useFollow } from '../context/FollowContext';
 import styles from './Home.module.css';
 
 const DIETARY_FILTER_OPTIONS = [
@@ -26,6 +28,8 @@ const QUERY_TAG_PATTERNS = [
  * Fetches and displays the master list of recipes from the Veggie Vault API.
  */
 const Home = () => {
+    const { user } = useAuth();
+    const { isFollowingUser } = useFollow();
     const [recipes, setRecipes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -36,6 +40,7 @@ const Home = () => {
         sugarFree: false,
     });
     const [minRating, setMinRating] = useState(0);
+    const [followingOnly, setFollowingOnly] = useState(false);
 
     // --- Pagination / Endless Scroll State ---
     const [currentPage, setCurrentPage] = useState(1);
@@ -92,6 +97,7 @@ const Home = () => {
             sugarFree: false,
         });
         setMinRating(0);
+        setFollowingOnly(false);
         setSearchQuery('');
         setCurrentPage(1);
         setEndlessCount(10);
@@ -166,6 +172,16 @@ const Home = () => {
                 if (ratingVal < minRating) return false;
             }
 
+            // 1c. Apply "Following Only" filter
+            if (followingOnly) {
+                const followed =
+                    isFollowingUser({
+                        userId: recipe.authorId || recipe.user_id,
+                        username: recipe.authorName,
+                    }) || Boolean(recipe.isFollowedAuthor);
+                if (!followed) return false;
+            }
+
             // 2. Apply dietary tags parsed from search bar input
             if (queryRequiredFlags.glutenFree && !recipe.isGlutenFree) return false;
             if (queryRequiredFlags.oilFree && !recipe.isOilFree) return false;
@@ -203,14 +219,15 @@ const Home = () => {
                 (normalizedRemaining && normalizedSearchable.includes(normalizedRemaining))
             );
         });
-    }, [normalizedRecipes, searchQuery, activeFilters, minRating]);
+    }, [normalizedRecipes, searchQuery, activeFilters, minRating, followingOnly, isFollowingUser]);
 
     const hasActiveFilters =
         Boolean(searchQuery.trim()) ||
         activeFilters.glutenFree ||
         activeFilters.oilFree ||
         activeFilters.sugarFree ||
-        minRating > 0;
+        minRating > 0 ||
+        followingOnly;
 
     const homeJsonLd = useMemo(() => {
         const publicList = (recipes || []).slice(0, 24);
@@ -297,6 +314,23 @@ const Home = () => {
                         <option value={2}>⭐ 2+ Stars</option>
                         <option value={1}>⭐ 1+ Stars</option>
                     </select>
+                    {user && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setFollowingOnly((prev) => !prev);
+                                setCurrentPage(1);
+                                setEndlessCount(10);
+                            }}
+                            aria-pressed={followingOnly}
+                            className={`${styles.filterPill} ${styles.oilFreePill} ${
+                                followingOnly ? styles.filterPillActive : ''
+                            }`}
+                        >
+                            <span aria-hidden="true">👥</span>
+                            <span>Following Only</span>
+                        </button>
+                    )}
                     {hasActiveFilters && (
                         <button
                             type="button"
