@@ -47,7 +47,15 @@ const EmmasRecipeEngine = () => {
     const [publishedRecipes, setPublishedRecipes] = useState([]);
 
     useEffect(() => {
-        setRecentChats(loadRecentChats(user?.id));
+        let active = true;
+        loadRecentChats(user?.id).then((chats) => {
+            if (active) {
+                setRecentChats(chats);
+            }
+        });
+        return () => {
+            active = false;
+        };
     }, [user?.id]);
 
     useEffect(() => {
@@ -242,7 +250,7 @@ const EmmasRecipeEngine = () => {
             setChatHistory(finalHistory);
             setCurrentSessionId(activeSessionId);
 
-            const { chats } = saveChatSession(user?.id, {
+            const { chats } = await saveChatSession(user?.id, {
                 id: activeSessionId,
                 engineMode,
                 dietaryPrefs: prefs,
@@ -360,7 +368,7 @@ const EmmasRecipeEngine = () => {
             return;
         }
 
-        const confirmed = await confirmTokenUsage(1, 'Entering Live Audio Mode with Emma');
+        const confirmed = await confirmTokenUsage(0.1, 'Live Audio with Emma (0.10 Tokens/min)');
         if (!confirmed) return;
 
         setLivePreConfirmed(true);
@@ -369,7 +377,7 @@ const EmmasRecipeEngine = () => {
 
     const handleModeChange = async (nextMode) => {
         if (nextMode === 'live' && engineMode !== 'live') {
-            const confirmed = await confirmTokenUsage(1, 'Entering Live Audio Mode with Emma');
+            const confirmed = await confirmTokenUsage(0.1, 'Live Audio with Emma (0.10 Tokens/min)');
             if (!confirmed) return;
             setLivePreConfirmed(true);
         } else if (nextMode === 'full' && engineMode !== 'full' && Number(user?.generation_tokens ?? 0) < 1) {
@@ -415,18 +423,18 @@ const EmmasRecipeEngine = () => {
         setShowRecentChats(false);
     };
 
-    const handleDeleteSession = (e, sessionId) => {
+    const handleDeleteSession = async (e, sessionId) => {
         e.stopPropagation();
-        const updated = deleteChatSession(user?.id, sessionId);
+        const updated = await deleteChatSession(user?.id, sessionId);
         setRecentChats(updated);
         if (sessionId === currentSessionId) {
             handleResetEngine();
         }
     };
 
-    const handleClearAllSessions = () => {
-        if (window.confirm('Clear all saved browser chats?')) {
-            const updated = clearAllChatSessions(user?.id);
+    const handleClearAllSessions = async () => {
+        if (window.confirm('Clear all saved chats?')) {
+            const updated = await clearAllChatSessions(user?.id);
             setRecentChats(updated);
             setShowRecentChats(false);
         }
@@ -534,7 +542,7 @@ const EmmasRecipeEngine = () => {
                         </label>
                         <label className={`mode-label ${engineMode === 'live' ? 'active' : ''}`}>
                             <input type="radio" name="engineMode" value="live" checked={engineMode === 'live'} onChange={(e) => handleModeChange(e.target.value)} />
-                            🎙️ Live Audio Session (1 Token)
+                            🎙️ Live Audio Session (0.10 Tokens/min)
                         </label>
                     </div>
 
@@ -572,7 +580,7 @@ const EmmasRecipeEngine = () => {
                         onClick={handleToggleInlineLiveChat}
                         disabled={isLoading}
                         className={`chat-tool-btn live-audio-toggle-btn ${showInlineLiveChat ? 'active' : ''}`}
-                        title="Continue this conversation in Live Audio Mode with Emma (1 Token per session)"
+                        title="Continue this conversation in Live Audio Mode with Emma (0.10 Tokens/min)"
                     >
                         {showInlineLiveChat ? '🛑 Close Live Audio' : '🎙️ Go Live with Emma'}
                     </button>
@@ -599,7 +607,7 @@ const EmmasRecipeEngine = () => {
                         onClick={() => setShowRecentChats((prev) => !prev)}
                         disabled={isLoading}
                         className={`chat-tool-btn recent-chats-btn ${showRecentChats ? 'active' : ''}`}
-                        title="Browse recent chats saved in your browser for 10 days"
+                        title="Browse recent chats saved in your account for 30 days"
                     >
                         🕒 Recent Chats ({recentChats.length})
                     </button>
@@ -617,7 +625,7 @@ const EmmasRecipeEngine = () => {
                 (showRecentChats && chatHistory.length > 0)) && (
                 <section className="recent-chats-panel" aria-label="Recent chat sessions">
                     <div className="recent-chats-header">
-                        <h3>🕒 Recent Chats (Stored in browser for 10 days)</h3>
+                        <h3>🕒 Recent Chats (Saved in your account for 30 days)</h3>
                         <button
                             type="button"
                             onClick={handleClearAllSessions}

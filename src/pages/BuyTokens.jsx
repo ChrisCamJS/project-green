@@ -250,12 +250,13 @@ const BuyTokens = () => {
 
         <div className="buy-tokens-balance-card">
           <span className="balance-card-label">Current Vault Balance</span>
-          <strong className="balance-card-value">{currentBalance.toFixed(1)}</strong>
+          <strong className="balance-card-value">{Number(currentBalance.toFixed(2))}</strong>
           <span className="balance-card-unit">Generation Tokens</span>
           <ul className="balance-card-costs">
             <li>📸 Full Masterpiece + Photo + Micros: <strong>1.0 Token</strong></li>
-            <li>🎙️ Live Audio Session with Emma: <strong>1.0 Token</strong></li>
             <li>🔬 Draft Photo or Deep Dive Upgrade: <strong>0.5 Tokens</strong></li>
+            <li>🎙️ Live Audio Session with Emma: <strong>0.10 Tokens / min</strong></li>
+            <li>📅 Meal Planner AI Chat with Emma: <strong>0.05 Tokens / msg</strong></li>
           </ul>
         </div>
       </section>

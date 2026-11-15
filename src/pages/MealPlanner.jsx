@@ -919,9 +919,9 @@ export default function MealPlanner() {
                 type="button"
                 className={`mp-emma-mode-btn live ${conciergeMode === 'live' ? 'active' : ''}`}
                 onClick={() => handleConciergeModeSwitch('live')}
-                title="Talk live with Emma and let her populate your calendar in real time (1 Token per session)"
+                title="Talk live with Emma and let her populate your calendar in real time (0.10 Tokens/min)"
               >
-                🎙️ Live Audio Mode (1 Token)
+                🎙️ Live Audio Mode (0.10 Tokens/min)
               </button>
             </div>
           </div>

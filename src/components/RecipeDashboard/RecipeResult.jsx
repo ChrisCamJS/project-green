@@ -370,7 +370,7 @@ const RecipeResult = ({
       return;
     }
 
-    const confirmed = await confirmTokenUsage(1, 'Entering Live Audio Mode with Emma');
+    const confirmed = await confirmTokenUsage(0.1, 'Live Audio with Emma (0.10 Tokens/min)');
     if (!confirmed) return;
 
     setShowLiveChat(true);
@@ -395,7 +395,7 @@ const RecipeResult = ({
                 type="button"
                 onClick={onToggleLiveChat}
                 className={`emma-chat-live-btn ${externalShowLiveChat ? 'active' : ''}`}
-                title="Switch into Live Audio Mode with full chat context (1 Token)"
+                title="Switch into Live Audio Mode with full chat context (0.10 Tokens/min)"
               >
                 {externalShowLiveChat ? '🛑 Close Live' : '🎙️ Live Mode'}
               </button>

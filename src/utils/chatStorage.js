@@ -1,15 +1,8 @@
 // src/utils/chatStorage.js
+import { api } from '../services/api';
 
-export const STORAGE_PREFIX = 'veggie_vault_recent_chats';
-export const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000;
-export const MAX_SAVED_CHATS = 25;
-
-/**
- * Build the per-user localStorage key for recent chats.
- */
-function getStorageKey(userId) {
-    return `${STORAGE_PREFIX}_${userId || 'guest'}`;
-}
+export const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+export const MAX_SAVED_CHATS = 50;
 
 /**
  * Derive a human-readable title from a chat session's messages.
@@ -42,68 +35,7 @@ export function deriveChatTitle(chatHistory = [], engineMode = 'chat') {
 }
 
 /**
- * Safely persist a list of chat sessions to localStorage, trimming oldest entries if quota is hit.
- */
-function persistChats(key, chats) {
-    let listToSave = [...chats];
-
-    while (listToSave.length >= 0) {
-        try {
-            localStorage.setItem(key, JSON.stringify(listToSave));
-            return listToSave;
-        } catch (err) {
-            const isQuotaError =
-                err?.name === 'QuotaExceededError' ||
-                err?.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
-                err?.code === 22;
-
-            if (isQuotaError && listToSave.length > 1) {
-                listToSave = listToSave.slice(0, listToSave.length - 1);
-            } else {
-                console.error('Failed to save chat sessions to localStorage:', err);
-                return chats;
-            }
-        }
-    }
-    return listToSave;
-}
-
-/**
- * Load recent chats for a user, automatically pruning sessions older than 10 days.
- */
-export function loadRecentChats(userId) {
-    const key = getStorageKey(userId);
-    try {
-        const raw = localStorage.getItem(key);
-        if (!raw) return [];
-
-        const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed)) return [];
-
-        const now = Date.now();
-        const validChats = parsed.filter((session) => {
-            if (!session || typeof session !== 'object' || !Array.isArray(session.chatHistory)) {
-                return false;
-            }
-            const timestamp = session.updatedAt || session.createdAt || 0;
-            return now - timestamp <= TEN_DAYS_MS;
-        });
-
-        validChats.sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
-
-        if (validChats.length !== parsed.length) {
-            persistChats(key, validChats);
-        }
-
-        return validChats;
-    } catch (err) {
-        console.error('Failed to load recent chats from localStorage:', err);
-        return [];
-    }
-}
-
-/**
- * Removes heavy binary inlineData payloads before persisting chats to browser storage.
+ * Removes heavy binary inlineData payloads before persisting chats.
  */
 function sanitizeChatHistoryForStorage(chatHistory = []) {
     if (!Array.isArray(chatHistory)) return [];
@@ -120,65 +52,87 @@ function sanitizeChatHistoryForStorage(chatHistory = []) {
 }
 
 /**
- * Save or update a chat session in 10-day temporary browser storage.
+ * Load recent chats for the logged-in user from the database (auto-pruned at 30 days).
  */
-export function saveChatSession(userId, sessionData) {
-    const key = getStorageKey(userId);
-    const { id, engineMode = 'chat', dietaryPrefs = {}, chatHistory = [] } = sessionData || {};
-
-    const sanitizedHistory = sanitizeChatHistoryForStorage(chatHistory);
-    const existingChats = loadRecentChats(userId);
-    const existingIndex = existingChats.findIndex((item) => item.id === id);
-    const existingSession = existingIndex >= 0 ? existingChats[existingIndex] : null;
-
-    const now = Date.now();
-    const savedEntry = {
-        id: id || `chat_${now}_${Math.random().toString(36).slice(2, 7)}`,
-        engineMode,
-        dietaryPrefs,
-        chatHistory: sanitizedHistory,
-        title: deriveChatTitle(sanitizedHistory, engineMode),
-        createdAt: existingSession?.createdAt || now,
-        updatedAt: now,
-        expiresAt: now + TEN_DAYS_MS,
-    };
-
-    const remaining = existingChats.filter((item) => item.id !== savedEntry.id);
-    const updatedList = [savedEntry, ...remaining].slice(0, MAX_SAVED_CHATS);
-
-    const persisted = persistChats(key, updatedList);
-    return { session: savedEntry, chats: persisted };
-}
-
-/**
- * Delete a single saved chat session by ID.
- */
-export function deleteChatSession(userId, sessionId) {
-    const key = getStorageKey(userId);
-    const existingChats = loadRecentChats(userId);
-    const updated = existingChats.filter((item) => item.id !== sessionId);
-    return persistChats(key, updated);
-}
-
-/**
- * Clear all saved chat sessions for the user.
- */
-export function clearAllChatSessions(userId) {
-    const key = getStorageKey(userId);
+export async function loadRecentChats(userId) {
+    if (!userId) return [];
     try {
-        localStorage.removeItem(key);
+        const res = await api.getRecentChats();
+        if (res?.success && Array.isArray(res.chats)) {
+            return res.chats;
+        }
+        return [];
     } catch (err) {
-        console.error('Failed to clear chat sessions from localStorage:', err);
+        console.error('Failed to load recent chats from database:', err);
+        return [];
     }
-    return [];
 }
 
 /**
- * Calculate the number of whole days remaining before a session expires.
+ * Save or update a chat session in the database for up to 30 days.
+ */
+export async function saveChatSession(userId, sessionData) {
+    const { id, engineMode = 'chat', dietaryPrefs = {}, chatHistory = [] } = sessionData || {};
+    const sanitizedHistory = sanitizeChatHistoryForStorage(chatHistory);
+    const title = deriveChatTitle(sanitizedHistory, engineMode);
+
+    if (!userId) {
+        return { session: null, chats: [] };
+    }
+
+    try {
+        const res = await api.saveRecentChat({
+            id,
+            engineMode,
+            title,
+            dietaryPrefs,
+            chatHistory: sanitizedHistory,
+        });
+
+        const chats = res?.success && Array.isArray(res.chats) ? res.chats : [];
+        const savedSession = chats.find((c) => c.id === (res?.id || id)) || null;
+        return { session: savedSession, chats };
+    } catch (err) {
+        console.error('Failed to save chat session to database:', err);
+        return { session: null, chats: [] };
+    }
+}
+
+/**
+ * Delete a single saved chat session by ID from the database.
+ */
+export async function deleteChatSession(userId, sessionId) {
+    if (!userId || !sessionId) return [];
+    try {
+        const res = await api.deleteRecentChat(sessionId);
+        return res?.success && Array.isArray(res.chats) ? res.chats : [];
+    } catch (err) {
+        console.error('Failed to delete chat session from database:', err);
+        return [];
+    }
+}
+
+/**
+ * Clear all saved chat sessions for the user from the database.
+ */
+export async function clearAllChatSessions(userId) {
+    if (!userId) return [];
+    try {
+        const res = await api.clearRecentChats();
+        return res?.success && Array.isArray(res.chats) ? res.chats : [];
+    } catch (err) {
+        console.error('Failed to clear chat sessions from database:', err);
+        return [];
+    }
+}
+
+/**
+ * Calculate the number of whole days remaining before a session expires (max 30 days).
  */
 export function getDaysRemaining(session) {
-    if (!session) return 10;
-    const baseTime = session.updatedAt || session.createdAt || Date.now();
-    const expiresAt = baseTime + TEN_DAYS_MS;
-    return Math.max(1, Math.ceil((expiresAt - Date.now()) / (24 * 60 * 60 * 1000)));
+    if (!session) return 30;
+    const expiresAt =
+        session.expiresAt ||
+        (session.updatedAt || session.createdAt || Date.now()) + THIRTY_DAYS_MS;
+    return Math.max(1, Math.min(30, Math.ceil((expiresAt - Date.now()) / (24 * 60 * 60 * 1000))));
 }

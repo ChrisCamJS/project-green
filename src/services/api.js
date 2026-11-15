@@ -295,5 +295,32 @@ export const api = {
         return fetchWrapper(`/meal-plans?id=${encodeURIComponent(id)}`, {
             method: 'DELETE',
         });
+    },
+
+    // RECENT CHATS (30-DAY DB STORAGE)
+    getRecentChats: () => {
+        return fetchWrapper('/chats', {
+            method: 'GET',
+            cache: 'no-store',
+        });
+    },
+
+    saveRecentChat: (payload) => {
+        return fetchWrapper('/chats', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+    },
+
+    deleteRecentChat: (id) => {
+        return fetchWrapper(`/chats?id=${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+        });
+    },
+
+    clearRecentChats: () => {
+        return fetchWrapper('/chats?all=1', {
+            method: 'DELETE',
+        });
     }
 };
