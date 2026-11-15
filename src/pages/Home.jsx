@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import RecipeCard from '../components/RecipeCard';
 import SearchBar from '../components/SearchBar';
 import Paginator from '../components/Paginator';
+import { RecipeViewControls, EndlessScrollSentinel } from '../components/RecipeViewControls';
 import SEOHead from '../components/SEOHead';
 import { SITE_URL, cleanSeoText } from '../utils/seoUtils';
 import { isTruthyFlag, getRecipeDietaryFlags } from '../utils/dietaryUtils';
@@ -34,10 +35,12 @@ const Home = () => {
         oilFree: false,
         sugarFree: false,
     });
+    const [minRating, setMinRating] = useState(0);
 
-    // --- Pagination State ---
+    // --- Pagination / Endless Scroll State ---
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(6); // change this number for different projects or views
+    const [viewMode, setViewMode] = useState('6');
+    const [endlessCount, setEndlessCount] = useState(10);
 
 
     useEffect(() => {
@@ -63,7 +66,24 @@ const Home = () => {
             [filterKey]: !prev[filterKey],
         }));
         setCurrentPage(1);
+        setEndlessCount(10);
     };
+
+    const handleRatingChange = (val) => {
+        setMinRating(Number(val));
+        setCurrentPage(1);
+        setEndlessCount(10);
+    };
+
+    const handleViewModeChange = (nextMode) => {
+        setViewMode(nextMode);
+        setCurrentPage(1);
+        setEndlessCount(10);
+    };
+
+    const handleLoadMoreEndless = useCallback(() => {
+        setEndlessCount((prev) => prev + 10);
+    }, []);
 
     const clearAllFilters = () => {
         setActiveFilters({
@@ -71,8 +91,10 @@ const Home = () => {
             oilFree: false,
             sugarFree: false,
         });
+        setMinRating(0);
         setSearchQuery('');
         setCurrentPage(1);
+        setEndlessCount(10);
     };
 
     const normalizedRecipes = useMemo(() => {
@@ -138,6 +160,12 @@ const Home = () => {
             if (activeFilters.oilFree && !recipe.isOilFree) return false;
             if (activeFilters.sugarFree && !recipe.isSugarFree) return false;
 
+            // 1b. Apply minimum star rating filter
+            if (minRating > 0) {
+                const ratingVal = Number(recipe.averageRating ?? recipe.average_rating ?? 0);
+                if (ratingVal < minRating) return false;
+            }
+
             // 2. Apply dietary tags parsed from search bar input
             if (queryRequiredFlags.glutenFree && !recipe.isGlutenFree) return false;
             if (queryRequiredFlags.oilFree && !recipe.isOilFree) return false;
@@ -175,13 +203,14 @@ const Home = () => {
                 (normalizedRemaining && normalizedSearchable.includes(normalizedRemaining))
             );
         });
-    }, [normalizedRecipes, searchQuery, activeFilters]);
+    }, [normalizedRecipes, searchQuery, activeFilters, minRating]);
 
     const hasActiveFilters =
         Boolean(searchQuery.trim()) ||
         activeFilters.glutenFree ||
         activeFilters.oilFree ||
-        activeFilters.sugarFree;
+        activeFilters.sugarFree ||
+        minRating > 0;
 
     const homeJsonLd = useMemo(() => {
         const publicList = (recipes || []).slice(0, 24);
@@ -207,9 +236,13 @@ const Home = () => {
     if (loading) return <div className={styles.loadingState}>Unlocking the Vault...</div>;
     if (error) return <div className={styles.errorState}>{error}</div>;
 
+    const isEndless = viewMode === 'endless';
+    const itemsPerPage = isEndless ? filteredRecipes.length || 1 : Number(viewMode) || 6;
     const indexOfLastRecipe = currentPage * itemsPerPage;
     const indexOfFirstRecipe = indexOfLastRecipe - itemsPerPage;
-    const currentRecipes = filteredRecipes.slice(indexOfFirstRecipe, indexOfLastRecipe);
+    const currentRecipes = isEndless
+        ? filteredRecipes.slice(0, endlessCount)
+        : filteredRecipes.slice(indexOfFirstRecipe, indexOfLastRecipe);
 
     return (
         <div className={styles.homeContainer}>
@@ -228,6 +261,7 @@ const Home = () => {
                 onSearchChange={(value) => {
                     setSearchQuery(value);
                     setCurrentPage(1);
+                    setEndlessCount(10);
                 }}
             />
             <div className={styles.filterBar} role="group" aria-label="Dietary filters">
@@ -251,6 +285,18 @@ const Home = () => {
                             </button>
                         );
                     })}
+                    <select
+                        className={styles.ratingFilterSelect}
+                        value={minRating}
+                        onChange={(e) => handleRatingChange(e.target.value)}
+                        aria-label="Filter by minimum star rating"
+                    >
+                        <option value={0}>⭐ All Ratings</option>
+                        <option value={4}>⭐ 4+ Stars</option>
+                        <option value={3}>⭐ 3+ Stars</option>
+                        <option value={2}>⭐ 2+ Stars</option>
+                        <option value={1}>⭐ 1+ Stars</option>
+                    </select>
                     {hasActiveFilters && (
                         <button
                             type="button"
@@ -267,8 +313,17 @@ const Home = () => {
                     </p>
                 )}
             </div>
-            <h2 className={styles.title}>Latest Culinary Discoveries</h2>
-            <p className={styles.subTitle}>Hand-crafted, plant-based, and powered by you.</p>
+            <div className={styles.gridHeaderRow}>
+                <div>
+                    <h2 className={styles.title}>Latest Culinary Discoveries</h2>
+                    <p className={styles.subTitle}>Hand-crafted, plant-based, and powered by you.</p>
+                </div>
+                <RecipeViewControls
+                    viewMode={viewMode}
+                    onChange={handleViewModeChange}
+                    totalItems={filteredRecipes.length}
+                />
+            </div>
             <div className={styles.recipeGrid}>
                 {currentRecipes.length > 0 ? (
                     currentRecipes.map(recipe => (
@@ -296,13 +351,22 @@ const Home = () => {
                 )}
             </div>
 
-            {filteredRecipes.length > itemsPerPage && (
-                <Paginator 
-                    totalItems={filteredRecipes.length} 
-                    itemsPerPage={itemsPerPage} 
-                    currentPage={currentPage} 
-                    onPageChange={setCurrentPage} 
+            {isEndless ? (
+                <EndlessScrollSentinel
+                    hasMore={endlessCount < filteredRecipes.length}
+                    onLoadMore={handleLoadMoreEndless}
+                    visibleCount={currentRecipes.length}
+                    totalItems={filteredRecipes.length}
                 />
+            ) : (
+                filteredRecipes.length > itemsPerPage && (
+                    <Paginator 
+                        totalItems={filteredRecipes.length} 
+                        itemsPerPage={itemsPerPage} 
+                        currentPage={currentPage} 
+                        onPageChange={setCurrentPage} 
+                    />
+                )
             )}
         </div>
     );

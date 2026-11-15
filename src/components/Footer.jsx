@@ -7,13 +7,6 @@ const Footer = () => {
   const { user, logout } = useAuth();
   const isAdmin = Boolean(user?.is_admin === 1 || user?.is_admin === true || user?.role === 'admin');
 
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    });
-  };
-
   return (
     <footer className="vault-footer" role="contentinfo">
       <div className="footer-shell">
@@ -30,9 +23,6 @@ const Footer = () => {
               <span className="footer-pill">🌱 100% Oil-Free</span>
               <span className="footer-pill">🥬 Whole-Food Plant-Based</span>
             </div>
-            <button type="button" onClick={scrollToTop} className="footer-top-btn">
-              &uarr; Back to Top
-            </button>
           </div>
 
           {/* Site Map Columns */}
@@ -95,7 +85,15 @@ const Footer = () => {
             &copy; {new Date().getFullYear()} The Veggie Vault. All rights reserved.
           </p>
           <p className="footer-attribution">
-            Powered by <strong>The Chris &amp; Emma Show</strong>
+            Powered by{' '}
+            <a
+              href="https://chrisandemmashow.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer-attribution-link"
+            >
+              <strong>The Chris &amp; Emma Show</strong>
+            </a>
           </p>
           <div className="footer-bottom-links">
             <Link to="/sitemap">Site Map</Link>

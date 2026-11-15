@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
+import { FollowProvider } from './context/FollowContext';
 import Home from './pages/Home';
 import AdminDashboard from './pages/AdminDashboard';
 import RecipeDetails from './pages/RecipeDetails';
@@ -16,6 +17,7 @@ import BuyTokens from './pages/BuyTokens';
 import MealPlanner from './pages/MealPlanner';
 import ResetPassword from './pages/ResetPassword';
 import ForgotPassword from './pages/ForgotPassword';
+import VerifyEmail from './pages/VerifyEmail';
 import Sitemap from './pages/Sitemap';
 import './App.css'
 
@@ -23,6 +25,7 @@ function App() {
   return (
     <>
       <Router>
+        <FollowProvider>
         <Layout>
             <Routes>
               <Route path='/' element={<Home />} />
@@ -31,6 +34,7 @@ function App() {
               <Route path='/sitemap' element={<Sitemap />} />
               <Route path='/profile/:identifier' element={<Profile />} />
               <Route path='/register' element={<Register />} />
+              <Route path='/verify-email' element={<VerifyEmail />} />
               <Route path='/reset-password' element={<ResetPassword />} />
               <Route path='/forgot-password' element={<ForgotPassword />} /> {/* Route added here */}
 
@@ -56,6 +60,7 @@ function App() {
               <Route path='*' element={<h2>404: Oh My Goodness Gracious, Child - Page Not Found</h2>} />
             </Routes>
         </Layout>
+        </FollowProvider>
       </Router>
     </>
   );

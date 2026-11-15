@@ -92,6 +92,32 @@
   transition: all 0.2s ease;
 }
 
+.ratingFilterSelect {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1.5px solid #d5e2d7;
+  background-color: #ffffff;
+  color: #2d3a30;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.ratingFilterSelect:focus {
+  outline: none;
+  border-color: #2e7d32;
+}
+
+.gridHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
 .oilFreePill:hover {
   border-color: var(--primary-green);
 }

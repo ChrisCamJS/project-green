@@ -7,6 +7,7 @@ import { useEmmaVoice } from '../hooks/useEmmaVoice';
 import SEOHead from '../components/SEOHead';
 import EmmaMarkdown from '../components/EmmaMarkdown';
 import VoiceDictationButton from '../components/VoiceDictationButton';
+import FitnessTrackerPanel from '../components/FitnessTrackerPanel';
 import LiveChat from '../components/LiveChat';
 import {
   MEAL_SLOTS,
@@ -150,6 +151,7 @@ export default function MealPlanner() {
   const [emmaError, setEmmaError] = useState(null);
   const [livePreConfirmed, setLivePreConfirmed] = useState(false);
   const [liveActionLog, setLiveActionLog] = useState([]);
+  const [fitnessActivities, setFitnessActivities] = useState([]);
 
   const entriesRef = useRef(entries);
   entriesRef.current = entries;
@@ -233,8 +235,12 @@ export default function MealPlanner() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.getMealPlans(visibleRange.start, visibleRange.end);
+      const [res, fitRes] = await Promise.all([
+        api.getMealPlans(visibleRange.start, visibleRange.end),
+        api.getFitnessActivities(visibleRange.start, visibleRange.end).catch(() => ({ activities: [] })),
+      ]);
       setEntries(Array.isArray(res?.entries) ? res.entries : []);
+      setFitnessActivities(Array.isArray(fitRes?.activities) ? fitRes.activities : []);
     } catch (err) {
       setError(err.message || 'Could not load your meal plan.');
     } finally {
@@ -1473,6 +1479,16 @@ export default function MealPlanner() {
                   </>
                 )}
               </div>
+
+              <FitnessTrackerPanel
+                selectedDate={anchorDate}
+                activities={fitnessActivities}
+                onActivityAdded={(act) => setFitnessActivities((prev) => [...prev, act])}
+                onActivityDeleted={(id) =>
+                  setFitnessActivities((prev) => prev.filter((a) => a.id !== id))
+                }
+                dailyIntakeCalories={dayNutritionTotals.calories}
+              />
 
               <div className="mp-day-slots-grid">
                 {MEAL_SLOTS.map((slot) => {

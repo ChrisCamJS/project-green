@@ -1,0 +1,166 @@
+.mp-fitness-panel {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.mp-fitness-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.mp-fitness-header h3 {
+    margin: 0;
+    font-size: 1.08rem;
+    color: #1e293b;
+}
+
+.mp-fitness-sub {
+    margin: 0.25rem 0 0;
+    font-size: 0.84rem;
+    color: #64748b;
+}
+
+.mp-fitness-totals {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.mp-fitness-badge {
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.mp-fitness-badge.burned {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
+}
+
+.mp-fitness-badge.net {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+}
+
+.mp-fitness-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.mp-fitness-select,
+.mp-fitness-input,
+.mp-fitness-mins-input {
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    font-size: 0.9rem;
+}
+
+.mp-fitness-input {
+    flex: 1;
+    min-width: 170px;
+}
+
+.mp-fitness-mins-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.mp-fitness-mins-input {
+    width: 78px;
+}
+
+.mp-fitness-mins-unit {
+    font-size: 0.85rem;
+    color: #475569;
+    font-weight: 600;
+}
+
+.mp-fitness-add-btn {
+    padding: 0.52rem 1rem;
+    border-radius: 8px;
+    border: none;
+    background: #2e7d32;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.mp-fitness-add-btn:hover:not(:disabled) {
+    background: #1b5e20;
+}
+
+.mp-fitness-add-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.mp-fitness-empty {
+    margin: 0;
+    font-size: 0.88rem;
+    color: #64748b;
+}
+
+.mp-fitness-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.mp-fitness-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.85rem;
+    border-radius: 10px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+}
+
+.mp-fitness-item-info {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+    font-size: 0.92rem;
+    color: #1e293b;
+}
+
+.mp-fitness-item-meta {
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+.mp-fitness-del-btn {
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0.25rem;
+}
+
+.mp-fitness-del-btn:hover {
+    color: #dc2626;
+}

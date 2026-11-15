@@ -164,6 +164,16 @@
   margin: 0;
 }
 
+.footer-attribution-link {
+  color: #475569;
+  text-decoration: none;
+}
+
+.footer-attribution-link:hover {
+  color: var(--primary-green, #2e7d32);
+  text-decoration: underline;
+}
+
 .footer-bottom-links {
   display: inline-flex;
   align-items: center;

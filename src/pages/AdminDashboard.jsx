@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import styles from './AdminDashboard.module.css';
 import { useToast } from '../context/ToastContext';
 import AdminEmmaChat from '../components/AdminEmmaChat';
+import { RecipeViewControls, EndlessScrollSentinel } from '../components/RecipeViewControls';
 
 /**
  * AdminDashboard Component
@@ -20,7 +21,8 @@ const AdminDashboard = () => {
   // --- Manage Recipes State ---
   const [recipes, setRecipes] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 9;
+  const [viewMode, setViewMode] = useState('6');
+  const [endlessCount, setEndlessCount] = useState(10);
 
   // --- Add Recipe State ---
   const [rawPaste, setRawPaste] = useState('');
@@ -174,11 +176,25 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleViewModeChange = (nextMode) => {
+    setViewMode(nextMode);
+    setCurrentPage(1);
+    setEndlessCount(10);
+  };
+
+  const handleLoadMoreEndless = useCallback(() => {
+    setEndlessCount((prev) => prev + 10);
+  }, []);
+
   // Pagination math
+  const isEndless = viewMode === 'endless';
+  const itemsPerPage = isEndless ? recipes.length || 1 : Number(viewMode) || 6;
   const indexOfLastRecipe = currentPage * itemsPerPage;
   const indexOfFirstRecipe = indexOfLastRecipe - itemsPerPage;
   const sortedRecipes = [...recipes].sort((a, b) => b.id - a.id);
-  const currentRecipes = sortedRecipes.slice(indexOfFirstRecipe, indexOfLastRecipe);
+  const currentRecipes = isEndless
+    ? sortedRecipes.slice(0, endlessCount)
+    : sortedRecipes.slice(indexOfFirstRecipe, indexOfLastRecipe);
   const totalPages = Math.ceil(recipes.length / itemsPerPage);
 
 // ----------------------------------------------------
@@ -374,7 +390,14 @@ const AdminDashboard = () => {
         {/* TAB 2: MANAGE RECIPES */}
         {activeTab === 'manage' && (
           <section className={styles.manageRecipes}>
-            <h3>Manage Veggie Vault Inventory</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0 }}>Manage Veggie Vault Inventory</h3>
+              <RecipeViewControls
+                viewMode={viewMode}
+                onChange={handleViewModeChange}
+                totalItems={recipes.length}
+              />
+            </div>
             
             {recipes.length === 0 ? (
                 <p>Loading your culinary masterpieces...</p>
@@ -403,23 +426,32 @@ const AdminDashboard = () => {
                         ))}
                     </div>
                     
-                    <div className={styles.pagination}>
-                        <button 
-                            disabled={currentPage === 1} 
-                            onClick={() => setCurrentPage(prev => prev - 1)}
-                            className={styles.pageBtn}
-                        >
-                            Previous
-                        </button>
-                        <span>Page {currentPage} of {totalPages || 1}</span>
-                        <button 
-                            disabled={currentPage === totalPages || totalPages === 0} 
-                            onClick={() => setCurrentPage(prev => prev + 1)}
-                            className={styles.pageBtn}
-                        >
-                            Next
-                        </button>
-                    </div>
+                    {isEndless ? (
+                        <EndlessScrollSentinel
+                            hasMore={endlessCount < sortedRecipes.length}
+                            onLoadMore={handleLoadMoreEndless}
+                            visibleCount={currentRecipes.length}
+                            totalItems={sortedRecipes.length}
+                        />
+                    ) : (
+                        <div className={styles.pagination}>
+                            <button 
+                                disabled={currentPage === 1} 
+                                onClick={() => setCurrentPage(prev => prev - 1)}
+                                className={styles.pageBtn}
+                            >
+                                Previous
+                            </button>
+                            <span>Page {currentPage} of {totalPages || 1}</span>
+                            <button 
+                                disabled={currentPage === totalPages || totalPages === 0} 
+                                onClick={() => setCurrentPage(prev => prev + 1)}
+                                className={styles.pageBtn}
+                            >
+                                Next
+                            </button>
+                        </div>
+                    )}
                 </>
             )}
           </section>

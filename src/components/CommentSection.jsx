@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
+import UserHoverFollow from './UserHoverFollow';
 import './CommentSection.css';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
@@ -100,9 +101,14 @@ const CommentThread = ({ comment, recipeId, refreshComments, user }) => {
     <div className="comment-item">
       <div className="comment-header">
         {comment.user_id ? (
-          <Link to={`/profile/${comment.user_id}`} className="comment-author comment-author-link">
+          <UserHoverFollow
+            userId={comment.user_id}
+            username={comment.author_name}
+            profileLink={`/profile/${comment.user_id}`}
+            className="comment-author comment-author-link"
+          >
             {comment.author_name || 'Vault Guest'}
-          </Link>
+          </UserHoverFollow>
         ) : (
           <span className="comment-author">{comment.author_name || 'Vault Guest'}</span>
         )}

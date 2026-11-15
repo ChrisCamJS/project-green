@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import './RecipeCard.css';
 import StarRating from './StarRating';
 import FavoriteButton from './FavoriteButton';
+import UserHoverFollow from './UserHoverFollow';
 import { resolveRecipeImageUrl } from '../utils/mealPlanUtils';
 import { getRecipeDietaryFlags } from '../utils/dietaryUtils';
 
@@ -97,9 +98,14 @@ const RecipeCard = ({ recipe }) => {
                     <p className="recipe-author">
                         Created by:{' '}
                         {authorProfileLink ? (
-                            <Link to={authorProfileLink} className="recipe-author-link">
+                            <UserHoverFollow
+                                userId={authorId}
+                                username={authorName}
+                                profileLink={authorProfileLink}
+                                className="recipe-author-link"
+                            >
                                 {authorName}
-                            </Link>
+                            </UserHoverFollow>
                         ) : (
                             <span>{authorName}</span>
                         )}

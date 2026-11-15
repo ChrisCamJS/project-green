@@ -13,6 +13,9 @@ const Login = () => {
     
     // State for catching and displaying validation or server errors
     const [error, setError] = useState('');
+    const [unverifiedEmail, setUnverifiedEmail] = useState('');
+    const [resendBusy, setResendBusy] = useState(false);
+    const [resendMsg, setResendMsg] = useState('');
 
     // Navigation hook to redirect the user after a successful vault unlock
     const navigate = useNavigate();
@@ -27,6 +30,8 @@ const Login = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setUnverifiedEmail('');
+        setResendMsg('');
 
         // Basic front-end validation check
         if (!credentials.email || !credentials.password) {
@@ -55,8 +60,26 @@ const Login = () => {
                 setError(response.message || 'Login failed.');
             }
         } catch (err) {
-            setError('Login failed. Are you entirely sure you belong in the vault?');
+            const msg = err.message || 'Login failed. Are you entirely sure you belong in the vault?';
+            setError(msg);
+            if (msg.toLowerCase().includes('verify your email')) {
+                setUnverifiedEmail(credentials.email.trim());
+            }
             console.error('Login error:', err);
+        }
+    };
+
+    const handleResendVerification = async () => {
+        if (!unverifiedEmail || resendBusy) return;
+        setResendBusy(true);
+        setResendMsg('');
+        try {
+            const res = await api.resendVerification(unverifiedEmail);
+            setResendMsg(res.message || 'Verification email resent!');
+        } catch (err) {
+            setError(err.message || 'Failed to resend verification email.');
+        } finally {
+            setResendBusy(false);
         }
     };
 
@@ -68,6 +91,18 @@ const Login = () => {
                 
                 {/* Conditionally render error messages if they pop up */}
                 {error && <div className={styles.errorMessage}>{error}</div>}
+                {resendMsg && <div className={styles.successMessage}>{resendMsg}</div>}
+                {unverifiedEmail && (
+                    <button
+                        type="button"
+                        onClick={handleResendVerification}
+                        disabled={resendBusy}
+                        className={styles.loginButton}
+                        style={{ marginBottom: '1rem' }}
+                    >
+                        {resendBusy ? 'Sending...' : 'Resend Verification Email'}
+                    </button>
+                )}
 
                 <form onSubmit={handleSubmit} className={styles.loginForm}>
                     <div className={styles.formGroup}>

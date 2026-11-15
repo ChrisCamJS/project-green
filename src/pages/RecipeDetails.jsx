@@ -25,6 +25,7 @@ import NutritionPanel from '../components/NutritionPanel';
 import StarRating from '../components/StarRating';
 import CommentSection from '../components/CommentSection';
 import FavoriteButton from '../components/FavoriteButton';
+import UserHoverFollow from '../components/UserHoverFollow';
 import './RecipeDetails.css';
 
 // ============================================================================
@@ -711,9 +712,14 @@ const RecipeDetails = () => {
             <span className="recipe-creator-pill">
               Recipe by:{' '}
               {authorProfileLink ? (
-                <Link to={authorProfileLink} className="recipe-creator-link">
+                <UserHoverFollow
+                  userId={authorId}
+                  username={recipe.authorName}
+                  profileLink={authorProfileLink}
+                  className="recipe-creator-link"
+                >
                   {recipe.authorName || 'Emma (AI)'}
-                </Link>
+                </UserHoverFollow>
               ) : (
                 <strong>{recipe.authorName || 'Emma (AI)'}</strong>
               )}

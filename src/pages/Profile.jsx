@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import RecipeCard from '../components/RecipeCard';
+import UserHoverFollow from '../components/UserHoverFollow';
+import AchievementsSection from '../components/AchievementsSection';
 import SEOHead from '../components/SEOHead';
 import { SITE_URL, cleanSeoText } from '../utils/seoUtils';
 import './Profile.css';
@@ -373,7 +375,15 @@ export default function Profile() {
 
           <div className="profile-identity">
             <div className="profile-name-row">
-              <h1>{displayTitle}</h1>
+              <h1>
+                <UserHoverFollow
+                  userId={profile.id}
+                  username={profile.username}
+                  displayName={displayTitle}
+                >
+                  {displayTitle}
+                </UserHoverFollow>
+              </h1>
               {profile.account_tier === 'premium' && (
                 <span className="profile-tier-badge">✨ Premium Chef</span>
               )}
@@ -461,6 +471,8 @@ export default function Profile() {
             </div>
           )}
         </div>
+
+        <AchievementsSection achievements={profile.achievements} />
 
         {profile.is_own_profile && (
           <div className="profile-tabs" role="tablist">

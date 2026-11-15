@@ -222,10 +222,13 @@ export const api = {
         });
     },
 
-    toggleFollowUser: (followedId, action = null) => {
+    toggleFollowUser: (followedIdOrPayload, action = null) => {
+        const payload = typeof followedIdOrPayload === 'object' && followedIdOrPayload !== null
+            ? followedIdOrPayload
+            : { followed_id: followedIdOrPayload, action };
         return fetchWrapper('/users/follow', {
             method: 'POST',
-            body: JSON.stringify({ followed_id: followedId, action }),
+            body: JSON.stringify(payload),
         });
     },
 
@@ -363,6 +366,46 @@ export const api = {
 
     deleteNotification: (id) => {
         return fetchWrapper(`/notifications?id=${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+        });
+    },
+
+    // EMAIL VERIFICATION
+    verifyEmail: (token) => {
+        return fetchWrapper('/verify-email', {
+            method: 'POST',
+            body: JSON.stringify({ token }),
+        });
+    },
+
+    resendVerification: (email) => {
+        return fetchWrapper('/resend-verification', {
+            method: 'POST',
+            body: JSON.stringify({ email }),
+        });
+    },
+
+    // FITNESS ACTIVITIES
+    getFitnessActivities: (startDate, endDate) => {
+        const params = new URLSearchParams();
+        if (startDate) params.set('start', startDate);
+        if (endDate) params.set('end', endDate);
+        const query = params.toString();
+        return fetchWrapper(`/fitness-activities${query ? `?${query}` : ''}`, {
+            method: 'GET',
+            cache: 'no-store',
+        });
+    },
+
+    addFitnessActivity: (payload) => {
+        return fetchWrapper('/fitness-activities', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+    },
+
+    deleteFitnessActivity: (id) => {
+        return fetchWrapper(`/fitness-activities?id=${encodeURIComponent(id)}`, {
             method: 'DELETE',
         });
     }

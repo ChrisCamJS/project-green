@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import SEOHead from '../components/SEOHead';
 import { SITE_URL, cleanSeoText } from '../utils/seoUtils';
+import UserHoverFollow from '../components/UserHoverFollow';
 import './Sitemap.css';
 
 export default function Sitemap() {
@@ -219,9 +220,12 @@ export default function Sitemap() {
                         {recipe.authorName === 'Emma (AI)' ? (
                           'Emma (AI)'
                         ) : (
-                          <Link to={`/profile/${encodeURIComponent(recipe.authorName)}`}>
+                          <UserHoverFollow
+                            username={recipe.authorName}
+                            profileLink={`/profile/${encodeURIComponent(recipe.authorName)}`}
+                          >
                             {recipe.authorName}
-                          </Link>
+                          </UserHoverFollow>
                         )}
                       </span>
                     )}

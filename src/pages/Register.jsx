@@ -15,6 +15,8 @@ export default function Register() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
     const [successMsg, setSuccessMsg] = useState(null);
+    const [pendingVerification, setPendingVerification] = useState(null);
+    const [resendBusy, setResendBusy] = useState(false);
 
     const navigate = useNavigate();
 
@@ -66,6 +68,18 @@ export default function Register() {
                 inviteCode: inviteCode.trim(),
             });
 
+            if (data.requiresVerification) {
+                setPendingVerification({
+                    email: data.email || email.trim(),
+                    devVerificationUrl: data.devVerificationUrl || null,
+                });
+                setSuccessMsg(
+                    data.message ||
+                        'Account created! Please check your email and click the verification link to activate your account.'
+                );
+                return;
+            }
+
             setSuccessMsg(data.message || "Brilliant! You're on the list. Rolling out the red carpet...");
             
             // Update the React app's global state so the navbar and protected routes know we are in!
@@ -82,6 +96,61 @@ export default function Register() {
             setIsSubmitting(false);
         }
     };
+
+    const handleResendVerification = async () => {
+        if (!pendingVerification?.email || resendBusy) return;
+        setResendBusy(true);
+        setError(null);
+        try {
+            const res = await api.resendVerification(pendingVerification.email);
+            setSuccessMsg(res.message || 'Verification email resent!');
+            if (res.devVerificationUrl) {
+                setPendingVerification((prev) => ({
+                    ...prev,
+                    devVerificationUrl: res.devVerificationUrl,
+                }));
+            }
+        } catch (err) {
+            setError(err.message || 'Could not resend verification email.');
+        } finally {
+            setResendBusy(false);
+        }
+    };
+
+    if (pendingVerification) {
+        return (
+            <div className={styles.loginContainer}>
+                <div className={styles.loginCard}>
+                    <h2>Verify Your Email</h2>
+                    <p>
+                        We sent a verification link to <strong>{pendingVerification.email}</strong>.
+                    </p>
+                    {error && <div className={styles.errorMessage}>{error}</div>}
+                    {successMsg && <div className={styles.successMessage}>{successMsg}</div>}
+                    {pendingVerification.devVerificationUrl && (
+                        <p style={{ marginTop: '0.75rem', fontSize: '0.9rem' }}>
+                            <strong>Local Dev Verification Link:</strong>{' '}
+                            <a href={pendingVerification.devVerificationUrl}>
+                                Click here to verify
+                            </a>
+                        </p>
+                    )}
+                    <button
+                        type="button"
+                        onClick={handleResendVerification}
+                        disabled={resendBusy}
+                        className={styles.loginButton}
+                        style={{ marginTop: '1rem' }}
+                    >
+                        {resendBusy ? 'Sending...' : 'Resend Verification Email'}
+                    </button>
+                    <p style={{ marginTop: '1rem' }}>
+                        Already verified? <a href="/login">Log in here</a>
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={styles.loginContainer}>
