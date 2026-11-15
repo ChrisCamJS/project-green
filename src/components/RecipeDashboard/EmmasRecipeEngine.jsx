@@ -1,6 +1,6 @@
 // src/components/RecipeDashboard/EmmasRecipeEngine.jsx
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import EmmaMarkdown from '../EmmaMarkdown';
 import VoiceDictationButton from '../VoiceDictationButton';
@@ -114,6 +114,7 @@ const EmmasRecipeEngine = () => {
     const [showBottomBin, setShowBottomBin] = useState(false);
     const [showInlineLiveChat, setShowInlineLiveChat] = useState(false);
     const [livePreConfirmed, setLivePreConfirmed] = useState(false);
+    const inlineLivePanelRef = useRef(null);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -339,7 +340,7 @@ const EmmasRecipeEngine = () => {
             .filter(Boolean)
             .join(', ');
 
-        const recentTurns = chatHistory.slice(-10).map((msg) => {
+        const recentTurns = chatHistory.slice(-6).map((msg) => {
             if (msg.role === 'user') {
                 const userTextParts = (msg.parts || [])
                     .filter((part) => part && typeof part.text === 'string')
@@ -347,16 +348,16 @@ const EmmasRecipeEngine = () => {
                     .filter(Boolean);
                 const fullUserTurn = userTextParts.join('\n') || msg.displayParts?.userText || '';
                 const clipped =
-                    fullUserTurn.length > 2500
-                        ? `${fullUserTurn.slice(0, 2500).trim()}... [truncated]`
+                    fullUserTurn.length > 1200
+                        ? `${fullUserTurn.slice(0, 1200).trim()}... [truncated]`
                         : fullUserTurn;
                 return `${currentUserName}: ${clipped}`;
             }
 
             const emmaText = (msg.parts?.[0]?.text || msg.displayParts?.recipe || '').trim();
             const clipped =
-                emmaText.length > 2500
-                    ? `${emmaText.slice(0, 2500).trim()}... [truncated]`
+                emmaText.length > 1200
+                    ? `${emmaText.slice(0, 1200).trim()}... [truncated]`
                     : emmaText;
             return `Emma: ${clipped}`;
         });
@@ -373,6 +374,9 @@ const EmmasRecipeEngine = () => {
 
         setLivePreConfirmed(false);
         setShowInlineLiveChat(true);
+        setTimeout(() => {
+            inlineLivePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 60);
     };
 
     const handleModeChange = async (nextMode) => {
@@ -819,7 +823,7 @@ const EmmasRecipeEngine = () => {
             </div>
 
             {showInlineLiveChat && chatHistory.length > 0 && engineMode !== 'live' && (
-                <section className="inline-live-chat-panel" aria-label="Live Audio Chat with Emma">
+                <section ref={inlineLivePanelRef} className="inline-live-chat-panel" aria-label="Live Audio Chat with Emma">
                     <div className="inline-live-chat-header">
                         <div>
                             <strong>🎙️ Live Audio Session Active</strong>
@@ -839,7 +843,7 @@ const EmmasRecipeEngine = () => {
                     <LiveChat
                         chatContext={buildChatContextForLive()}
                         publishedRecipesContext={publishedCatalogVocal}
-                        preConfirmed={livePreConfirmed}
+                        autoStart={true}
                     />
                 </section>
             )}

@@ -24,6 +24,7 @@ const LiveChat = ({
   mealPlanContext = null,
   tools = null,
   onToolCall = null,
+  autoStart = false,
 }) => {
   // 1. ALL HOOKS MUST LIVE AT THE VERY TOP!
   const [isLive, setIsLive] = useState(false);
@@ -301,6 +302,16 @@ const LiveChat = ({
       cleanupSession(true);
     }
   };
+
+  const autoStartedRef = useRef(false);
+
+  useEffect(() => {
+    if (autoStart && !autoStartedRef.current) {
+      autoStartedRef.current = true;
+      startLiveSession();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
 
   // CLEANUP LOGIC
   const cleanupSession = (preserveErrorStatus = false) => {
