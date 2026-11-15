@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext'; 
+import NotificationBell from './NotificationBell';
 import './Header.css';
 
 const checkStandaloneMode = () => {
@@ -104,6 +105,12 @@ const Header = () => {
                     </button>
                 )}
 
+                {user && (
+                    <div className="mobile-notif">
+                        <NotificationBell onNavigate={closeMenu} />
+                    </div>
+                )}
+
                 {user?.account_tier === 'premium' && (
                     <Link
                         to="/buy-tokens"
@@ -172,6 +179,10 @@ const Header = () => {
                                         {Number(Number(user.generation_tokens ?? 0).toFixed(1))}
                                     </Link>
                                 )}
+
+                                <div className="desktop-notif">
+                                    <NotificationBell onNavigate={closeMenu} />
+                                </div>
                             </li>
                             {user && (
                                 <>

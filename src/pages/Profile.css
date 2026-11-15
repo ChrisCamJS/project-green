@@ -639,3 +639,67 @@
   margin-bottom: 1.25rem;
   font-size: 0.95rem;
 }
+
+/* Allergies & Food Sensitivities */
+.profile-interest-tag.allergy-tag {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.profile-allergies-box {
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.profile-allergies-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.85rem;
+}
+
+.profile-allergies-header span {
+  font-weight: 800;
+  font-size: 0.98rem;
+  color: #9b2c2c;
+}
+
+.profile-allergies-header small {
+  font-size: 0.84rem;
+  color: #742a2a;
+  line-height: 1.4;
+}
+
+.profile-allergen-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.allergen-chip-btn {
+  padding: 0.38rem 0.78rem;
+  border-radius: 9999px;
+  border: 1px solid #feb2b2;
+  background: #ffffff;
+  color: #742a2a;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.allergen-chip-btn:hover {
+  background: #fed7d7;
+}
+
+.allergen-chip-btn.selected {
+  background: #c53030;
+  border-color: #9b2c2c;
+  color: #ffffff;
+  font-weight: 700;
+}

@@ -175,6 +175,9 @@ const LiveChat = ({
 
         playerRef.current = new AudioPlayer();
         let finalInstructions = EMMA_SYSTEM_INSTRUCTIONS;
+        if (user?.allergies) {
+          finalInstructions += `\n\nCRITICAL ALLERGY & SAFETY RESTRICTION (MANDATORY): The user has the following food allergies or sensitivities saved in their profile: ${user.allergies}. NEVER suggest or include any of these allergens or hidden derivatives in any recipe idea, substitution, or meal recommendation.`;
+        }
         if (mealPlanContext) {
           finalInstructions += `\n\n${mealPlanContext}`;
         } else if (resolvedPublishedText) {

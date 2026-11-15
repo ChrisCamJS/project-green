@@ -9,6 +9,19 @@ import './Profile.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+const COMMON_ALLERGENS = [
+  'Peanuts',
+  'Tree Nuts',
+  'Soy',
+  'Gluten / Wheat',
+  'Sesame',
+  'Coconut',
+  'Corn',
+  'Mustard',
+  'Nightshades',
+  'Legumes',
+];
+
 const resolveAssetUrl = (path) => {
   if (!path) return null;
   if (path.startsWith('http') || path.startsWith('data:')) return path;
@@ -38,6 +51,7 @@ export default function Profile() {
     pronouns: '',
     favorite_cuisine: '',
     dietary_focus: '',
+    allergies: '',
     website_url: '',
     bio: '',
   });
@@ -86,6 +100,7 @@ export default function Profile() {
         pronouns: p.pronouns || '',
         favorite_cuisine: p.favorite_cuisine || '',
         dietary_focus: p.dietary_focus || '',
+        allergies: p.allergies || '',
         website_url: p.website_url || '',
         bio: p.bio || '',
       });
@@ -157,6 +172,27 @@ export default function Profile() {
     setPendingAvatarBase64('');
     setAvatarPreview(null);
     setRemoveAvatar(true);
+  };
+
+  const activeAllergensList = useMemo(() => {
+    return String(profileForm.allergies || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }, [profileForm.allergies]);
+
+  const handleToggleAllergen = (allergen) => {
+    setProfileForm((prev) => {
+      const currentList = String(prev.allergies || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+      const exists = currentList.some((item) => item.toLowerCase() === allergen.toLowerCase());
+      const nextList = exists
+        ? currentList.filter((item) => item.toLowerCase() !== allergen.toLowerCase())
+        : [...currentList, allergen];
+      return { ...prev, allergies: nextList.join(', ') };
+    });
   };
 
   const handleSaveProfile = async (e) => {
@@ -370,13 +406,16 @@ export default function Profile() {
                 : 'Whole-food plant-based explorer in The Veggie Vault.')}
             </p>
 
-            {(profile.favorite_cuisine || profile.dietary_focus) && (
+            {(profile.favorite_cuisine || profile.dietary_focus || (profile.is_own_profile && profile.allergies)) && (
               <div className="profile-tags-row">
                 {profile.favorite_cuisine && (
                   <span className="profile-interest-tag">🥘 Favorite Cuisine: {profile.favorite_cuisine}</span>
                 )}
                 {profile.dietary_focus && (
                   <span className="profile-interest-tag">🌱 Dietary Focus: {profile.dietary_focus}</span>
+                )}
+                {profile.is_own_profile && profile.allergies && (
+                  <span className="profile-interest-tag allergy-tag">🛡️ Allergies (Emma Auto-Avoids): {profile.allergies}</span>
                 )}
               </div>
             )}
@@ -594,6 +633,40 @@ export default function Profile() {
                   value={profileForm.dietary_focus}
                   onChange={(e) => setProfileForm((prev) => ({ ...prev, dietary_focus: e.target.value }))}
                   maxLength={120}
+                />
+              </label>
+            </div>
+
+            <div className="profile-allergies-box">
+              <div className="profile-allergies-header">
+                <span>🛡️ Allergies &amp; Food Sensitivities</span>
+                <small>Emma will automatically exclude these ingredients and hidden derivatives whenever generating recipes or planning meals for you.</small>
+              </div>
+              <div className="profile-allergen-chips">
+                {COMMON_ALLERGENS.map((allergen) => {
+                  const isSelected = activeAllergensList.some(
+                    (item) => item.toLowerCase() === allergen.toLowerCase()
+                  );
+                  return (
+                    <button
+                      key={allergen}
+                      type="button"
+                      className={`allergen-chip-btn ${isSelected ? 'selected' : ''}`}
+                      onClick={() => handleToggleAllergen(allergen)}
+                    >
+                      {isSelected ? '✕ ' : '+ '}
+                      {allergen}
+                    </button>
+                  );
+                })}
+              </div>
+              <label className="profile-field full-width" style={{ marginBottom: 0 }}>
+                <span>Saved Allergies (comma-separated, add any custom ones)</span>
+                <input
+                  type="text"
+                  placeholder="e.g., Peanuts, Soy, Sesame, Kiwi, Cinnamon"
+                  value={profileForm.allergies}
+                  onChange={(e) => setProfileForm((prev) => ({ ...prev, allergies: e.target.value }))}
                 />
               </label>
             </div>

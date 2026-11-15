@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useEmmaVoice } from '../hooks/useEmmaVoice';
 import SEOHead from '../components/SEOHead';
 import EmmaMarkdown from '../components/EmmaMarkdown';
+import VoiceDictationButton from '../components/VoiceDictationButton';
 import LiveChat from '../components/LiveChat';
 import {
   MEAL_SLOTS,
@@ -1017,6 +1018,11 @@ export default function MealPlanner() {
                   onChange={(e) => setEmmaInput(e.target.value)}
                   placeholder="E.g., Fill in Mon–Fri dinners with Gluten-Free meals, or show me iron-rich recipe links..."
                   className="mp-emma-chat-input"
+                  disabled={emmaBusy}
+                />
+                <VoiceDictationButton
+                  value={emmaInput}
+                  onChange={setEmmaInput}
                   disabled={emmaBusy}
                 />
                 <button

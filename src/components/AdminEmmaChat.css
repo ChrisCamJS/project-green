@@ -1,0 +1,196 @@
+.admin-emma-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+}
+
+.admin-emma-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.admin-emma-header h3 {
+    margin: 0;
+    color: #1f2937;
+}
+
+.admin-emma-subtitle {
+    margin: 0.25rem 0 0;
+    font-size: 0.875rem;
+    color: #15803d;
+    font-weight: 500;
+}
+
+.admin-emma-header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.admin-emma-secondary-btn {
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    background: #f9fafb;
+    color: #374151;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.admin-emma-secondary-btn:hover:not(:disabled) {
+    background: #f3f4f6;
+}
+
+.admin-emma-secondary-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.admin-emma-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.admin-emma-chip {
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid #bbf7d0;
+    background: #f0fdf4;
+    color: #166534;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.admin-emma-chip:hover:not(:disabled) {
+    background: #dcfce7;
+}
+
+.admin-emma-chip:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.admin-emma-messages {
+    min-height: 280px;
+    max-height: 480px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 1rem;
+    background: #f9fafb;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.admin-emma-empty {
+    margin: auto;
+    text-align: center;
+    color: #4b5563;
+    max-width: 540px;
+}
+
+.admin-emma-examples {
+    font-size: 0.88rem;
+    color: #6b7280;
+}
+
+.admin-emma-msg {
+    display: flex;
+    flex-direction: column;
+    max-width: 85%;
+}
+
+.admin-emma-msg.user {
+    align-self: flex-end;
+    align-items: flex-end;
+}
+
+.admin-emma-msg.model {
+    align-self: flex-start;
+    align-items: flex-start;
+}
+
+.admin-emma-msg-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-bottom: 0.2rem;
+}
+
+.admin-emma-msg-bubble {
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    line-height: 1.5;
+    font-size: 0.94rem;
+}
+
+.admin-emma-msg.user .admin-emma-msg-bubble {
+    background: #2f5233;
+    color: #ffffff;
+    border-bottom-right-radius: 3px;
+}
+
+.admin-emma-msg.model .admin-emma-msg-bubble {
+    background: #ffffff;
+    color: #1f2937;
+    border: 1px solid #e5e7eb;
+    border-bottom-left-radius: 3px;
+}
+
+.admin-emma-updates-box {
+    margin-top: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 8px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    font-size: 0.85rem;
+    color: #14532d;
+}
+
+.admin-emma-updates-box ul {
+    margin: 0.35rem 0 0;
+    padding-left: 1.2rem;
+}
+
+.admin-emma-form {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.admin-emma-input {
+    flex: 1;
+    padding: 0.7rem 0.95rem;
+    border-radius: 10px;
+    border: 1px solid #d1d5db;
+    font-size: 0.95rem;
+}
+
+.admin-emma-input:focus {
+    outline: none;
+    border-color: #2f5233;
+}
+
+.admin-emma-send-btn {
+    padding: 0.7rem 1.25rem;
+    border-radius: 10px;
+    border: none;
+    background: #2f5233;
+    color: #ffffff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.admin-emma-send-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}

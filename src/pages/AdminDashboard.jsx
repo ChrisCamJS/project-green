@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import styles from './AdminDashboard.module.css';
 import { useToast } from '../context/ToastContext';
+import AdminEmmaChat from '../components/AdminEmmaChat';
 
 /**
  * AdminDashboard Component
@@ -263,6 +264,12 @@ const AdminDashboard = () => {
           >
             Manage Invites
           </button>
+          <button 
+            className={activeTab === 'emma' ? styles.active : ''} 
+            onClick={() => setActiveTab('emma')}
+          >
+            🤖 Emma DB Assistant
+          </button>
         </div>
       </header>
 
@@ -465,6 +472,10 @@ const AdminDashboard = () => {
                 </div>
             )}
           </section>
+        )}
+        {/* TAB 4: EMMA DB ASSISTANT (FREE ADMIN ACCESS) */}
+        {activeTab === 'emma' && (
+          <AdminEmmaChat onRecipesUpdated={loadRecipes} />
         )}
       </main>
     </div>

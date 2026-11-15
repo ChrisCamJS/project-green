@@ -471,6 +471,7 @@ export const buildMealPlannerEmmaSystemPrompt = ({
   const userHeightFt = wellnessProfile?.height_ft;
   const userHeightIn = wellnessProfile?.height_in;
   const userWeight = wellnessProfile?.weight_lbs;
+  const userAllergies = String(wellnessProfile?.allergies || '').trim();
 
   let wellnessSection = '';
   if (userCalTarget > 0 || userBmi || userTdee > 0 || userProteinTarget > 0) {
@@ -491,6 +492,12 @@ NUTRITION & MACRO GUIDELINES FOR EMMA:
   } else {
     wellnessSection = `\n\nUSER NUTRITION PROFILE:
 ${userName} has not set custom wellness targets in their profile yet (using standard baseline: 2,000 kcal/day, 50g protein, 275g carbs, 78g fat, 28g fiber). If appropriate, you can warmly remind them that they can calculate and save their personal BMI, TDEE, and macro targets anytime in the Wellness Tools page (/wellness) to give you their exact targets!`;
+  }
+
+  if (userAllergies) {
+    wellnessSection += `\n\nCRITICAL ALLERGY & SAFETY RESTRICTION (MANDATORY):
+${userName} has the following food allergies/sensitivities saved in their profile: ${userAllergies}.
+NEVER recommend or schedule any recipe whose title or ingredients contain ${userAllergies} (or hidden derivatives). Always prioritize safe recipes and warn them if a recipe they ask about contains one of their allergens.`;
   }
 
   const scheduleLines =

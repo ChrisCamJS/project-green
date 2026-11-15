@@ -322,5 +322,48 @@ export const api = {
         return fetchWrapper('/chats?all=1', {
             method: 'DELETE',
         });
+    },
+
+    // ADMIN RECIPES (FREE EMMA DB ASSISTANT)
+    adminGetRecipes: () => {
+        return fetchWrapper('/admin/recipes', {
+            method: 'GET',
+            cache: 'no-store',
+        });
+    },
+
+    adminUpdateRecipes: (actions) => {
+        return fetchWrapper('/admin/recipes', {
+            method: 'PUT',
+            body: JSON.stringify({ actions }),
+        });
+    },
+
+    // NOTIFICATIONS
+    getNotifications: () => {
+        return fetchWrapper('/notifications', {
+            method: 'GET',
+            cache: 'no-store',
+        });
+    },
+
+    markNotificationRead: (id) => {
+        return fetchWrapper('/notifications/read', {
+            method: 'PUT',
+            body: JSON.stringify({ id }),
+        });
+    },
+
+    markAllNotificationsRead: () => {
+        return fetchWrapper('/notifications/read', {
+            method: 'PUT',
+            body: JSON.stringify({ all: true }),
+        });
+    },
+
+    deleteNotification: (id) => {
+        return fetchWrapper(`/notifications?id=${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+        });
     }
 };

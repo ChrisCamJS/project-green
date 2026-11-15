@@ -1,7 +1,9 @@
 // src/components/RecipeDashboard/EmmasRecipeEngine.jsx
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import EmmaMarkdown from '../EmmaMarkdown';
+import VoiceDictationButton from '../VoiceDictationButton';
 import { getSystemInstructions } from '../../utils/promptBuilder';
 import {
     fetchPublishedRecipesCatalog,
@@ -216,7 +218,8 @@ const EmmasRecipeEngine = () => {
                 prefs,
                 currentUserName,
                 isChatActive,
-                publishedCatalogSection
+                publishedCatalogSection,
+                user?.allergies || ''
             );
             
             if (engineMode === 'full' && baseHistory.length === 0) {
@@ -523,6 +526,29 @@ const EmmasRecipeEngine = () => {
             <header className="dashboard-header">
                 <h2>Emma's Flavor Forge</h2>
                 <p>Plant-based masterpieces, custom-forged for your exact cravings and dietary quirks.</p>
+                {user?.allergies && (
+                    <div
+                        style={{
+                            marginTop: '0.75rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            flexWrap: 'wrap',
+                            padding: '0.4rem 0.9rem',
+                            borderRadius: '9999px',
+                            backgroundColor: '#fef2f2',
+                            border: '1px solid #fecaca',
+                            color: '#991b1b',
+                            fontSize: '0.84rem',
+                            fontWeight: 600,
+                        }}
+                    >
+                        <span>🛡️ Allergy Protection Active — Auto-avoiding: <strong>{user.allergies}</strong></span>
+                        <Link to="/profile" style={{ color: '#991b1b', textDecoration: 'underline', fontWeight: 700 }}>
+                            Edit
+                        </Link>
+                    </div>
+                )}
             </header>
 
             {chatHistory.length === 0 && (
@@ -836,6 +862,11 @@ const EmmasRecipeEngine = () => {
                                 : "E.g., Let's natter about plant protein, or adapt an attached recipe..."}
                             disabled={isLoading || (isBroke && engineMode === 'full')}
                             className={`follow-up-input ${(isBroke && engineMode === 'full') ? 'broke-input' : ''}`}
+                        />
+                        <VoiceDictationButton
+                            value={followUpText}
+                            onChange={setFollowUpText}
+                            disabled={isLoading || (isBroke && engineMode === 'full')}
                         />
                         <button
                             type="button"

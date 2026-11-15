@@ -16,6 +16,7 @@ import LiveChat from '../components/LiveChat';
 import ImageStyleOptions from '../components/RecipeDashboard/ImageStyleOptions';
 import ReactMarkdown from 'react-markdown';
 import EmmaMarkdown from '../components/EmmaMarkdown';
+import VoiceDictationButton from '../components/VoiceDictationButton';
 import {
   fetchPublishedRecipesCatalog,
   buildPublishedRecipesPromptSection,
@@ -1088,6 +1089,11 @@ const RecipeDetails = () => {
                             onChange={(e) => setChatMessage(e.target.value)}
                             placeholder="E.g., How much Vitamin C is in this? Can I substitute the mushrooms?"
                             className="recipe-chat-input"
+                            disabled={isChatting}
+                        />
+                        <VoiceDictationButton
+                            value={chatMessage}
+                            onChange={setChatMessage}
                             disabled={isChatting}
                         />
                         <button
