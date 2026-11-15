@@ -236,6 +236,11 @@ const RecipeDetails = () => {
 
   // --- DATA FETCHING (useEffect) ---
   useEffect(() => {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    } catch {
+      window.scrollTo(0, 0);
+    }
     setAiImagePaid(false);
     setUpgradeFeedback(null);
     setShareCopied(false);
@@ -254,6 +259,17 @@ const RecipeDetails = () => {
     };
     fetchRecipe();
   }, [id]);
+
+  // Ensure view resets to the top when the recipe finishes rendering
+  useEffect(() => {
+    if (!loading && recipe) {
+      try {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      } catch {
+        window.scrollTo(0, 0);
+      }
+    }
+  }, [loading, recipe]);
 
   // --- LOCALIZED CHAT HANDLER ---
   const handleChatSubmit = async (e) => {
