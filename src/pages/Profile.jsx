@@ -446,6 +446,15 @@ export default function Profile() {
             <button
               type="button"
               role="tab"
+              aria-selected={activeTab === 'wellness'}
+              className={`profile-tab-btn ${activeTab === 'wellness' ? 'active' : ''}`}
+              onClick={() => setActiveTab('wellness')}
+            >
+              🥗 Wellness &amp; Targets
+            </button>
+            <button
+              type="button"
+              role="tab"
               aria-selected={activeTab === 'security'}
               className={`profile-tab-btn ${activeTab === 'security' ? 'active' : ''}`}
               onClick={() => setActiveTab('security')}
@@ -721,6 +730,99 @@ export default function Profile() {
               </button>
             </form>
           </section>
+        </div>
+      )}
+
+      {/* TAB 4: WELLNESS & NUTRITION TARGETS */}
+      {profile.is_own_profile && activeTab === 'wellness' && (
+        <div className="profile-wellness-card animate-fade-in">
+          <div className="profile-wellness-header">
+            <div>
+              <h2>🥗 My Wellness &amp; Nutrition Targets</h2>
+              <p style={{ margin: '0.25rem 0 0', color: '#64748b', fontSize: '0.9rem' }}>
+                These targets calibrate your daily intake progress in the Meal Planner and guide Emma when planning meals.
+              </p>
+            </div>
+            <div className="profile-wellness-actions">
+              <Link to="/wellness" className="profile-wellness-btn primary">
+                ✏️ Open Wellness Calculators
+              </Link>
+              <Link to="/meal-planner" className="profile-wellness-btn secondary">
+                📅 Open Meal Planner
+              </Link>
+            </div>
+          </div>
+
+          {(profile.calorie_target || profile.protein_target_g || profile.bmi || profile.tdee) ? (
+            <>
+              <div className="profile-wellness-grid">
+                <div className="profile-wellness-chip">
+                  <span className="chip-label">Daily Calorie Target</span>
+                  <span className="chip-val">
+                    {profile.calorie_target ? `${Number(profile.calorie_target).toLocaleString()} kcal` : 'Standard 2,000 kcal'}
+                  </span>
+                  <span className="chip-sub">Active daily calorie goal</span>
+                </div>
+
+                <div className="profile-wellness-chip">
+                  <span className="chip-label">Target Protein</span>
+                  <span className="chip-val">
+                    {profile.protein_target_g ? `${profile.protein_target_g}g` : '50g'}
+                  </span>
+                  <span className="chip-sub">
+                    {profile.macro_plan ? `Plan: ${profile.macro_plan}` : 'Standard baseline'}
+                  </span>
+                </div>
+
+                <div className="profile-wellness-chip">
+                  <span className="chip-label">Target Carbs</span>
+                  <span className="chip-val">
+                    {profile.carbs_target_g ? `${profile.carbs_target_g}g` : '275g'}
+                  </span>
+                  <span className="chip-sub">Clean plant-based fuel</span>
+                </div>
+
+                <div className="profile-wellness-chip">
+                  <span className="chip-label">Target Fat</span>
+                  <span className="chip-val">
+                    {profile.fat_target_g ? `${profile.fat_target_g}g` : '78g'}
+                  </span>
+                  <span className="chip-sub">Nuts, seeds, avocado baseline</span>
+                </div>
+
+                <div className="profile-wellness-chip">
+                  <span className="chip-label">Body Mass Index (BMI)</span>
+                  <span className="chip-val">{profile.bmi || 'Not set'}</span>
+                  <span className="chip-sub">
+                    {profile.height_ft ? `${profile.height_ft}'${profile.height_in || 0}" | ${profile.weight_lbs || 0} lbs` : 'Body composition'}
+                  </span>
+                </div>
+
+                <div className="profile-wellness-chip">
+                  <span className="chip-label">Maintenance TDEE</span>
+                  <span className="chip-val">
+                    {profile.tdee ? `${Number(profile.tdee).toLocaleString()} kcal` : 'Not set'}
+                  </span>
+                  <span className="chip-sub">
+                    {profile.bmr ? `BMR: ${Number(profile.bmr).toLocaleString()} kcal` : 'Daily expenditure'}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '1rem 1.25rem', color: '#166534', fontSize: '0.9rem' }}>
+                ✨ <strong>Emma Synced:</strong> When chatting or using Live Audio on the Meal Planner, Emma directly references these exact caloric and macronutrient targets when recommending recipes or populating your week.
+              </div>
+            </>
+          ) : (
+            <div className="profile-wellness-empty">
+              <p>
+                You haven&apos;t saved your wellness calculations yet. Use our precision BMI, TDEE, and Macronutrient calculators to set personal targets for yourself and Emma!
+              </p>
+              <Link to="/wellness" className="profile-wellness-btn primary">
+                🚀 Calculate &amp; Save My Targets Now
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </div>

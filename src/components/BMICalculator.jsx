@@ -1,48 +1,63 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { api } from '../services/api';
 import './BMICalculator.css';
+
 // ============================================================================
 // COMPONENT: BMICalculator
 // PURPOSE: A dynamic, real-time Body Mass Index calculator.
-// We are using React State to calculate the BMI instantly as the user types,
-// removing the need for clunky form submissions or page reloads.
+// Allows saving height, weight, and BMI into user profile for meal planning.
 // ============================================================================
-const BMICalculator = () => {
-  // --- STATE MANAGEMENT ---
-  // We need to store three pieces of input from the user: Height (feet and inches) and Weight.
-  const [heightFt, setHeightFt] = useState('');
-  const [heightIn, setHeightIn] = useState('');
-  const [weightLbs, setWeightLbs] = useState('');
+const BMICalculator = ({
+  heightFt: propHeightFt,
+  setHeightFt: propSetHeightFt,
+  heightIn: propHeightIn,
+  setHeightIn: propSetHeightIn,
+  weightLbs: propWeightLbs,
+  setWeightLbs: propSetWeightLbs,
+}) => {
+  const { user, updateUser } = useAuth();
 
-  // We also need state to hold our output: the final BMI number and the category it falls into.
+  // Local state fallbacks if not controlled by parent
+  const [localHeightFt, setLocalHeightFt] = useState(() => (user?.height_ft ? String(user.height_ft) : ''));
+  const [localHeightIn, setLocalHeightIn] = useState(() => (user?.height_in !== null && user?.height_in !== undefined ? String(user.height_in) : ''));
+  const [localWeightLbs, setLocalWeightLbs] = useState(() => (user?.weight_lbs ? String(user.weight_lbs) : ''));
+
+  const heightFt = propHeightFt !== undefined ? propHeightFt : localHeightFt;
+  const setHeightFt = propSetHeightFt || setLocalHeightFt;
+  const heightIn = propHeightIn !== undefined ? propHeightIn : localHeightIn;
+  const setHeightIn = propSetHeightIn || setLocalHeightIn;
+  const weightLbs = propWeightLbs !== undefined ? propWeightLbs : localWeightLbs;
+  const setWeightLbs = propSetWeightLbs || setLocalWeightLbs;
+
   const [bmi, setBmi] = useState(null);
   const [category, setCategory] = useState('');
-
-  // State to toggle the educational breakdown
   const [showDetails, setShowDetails] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveFeedback, setSaveFeedback] = useState(null);
 
-  // --- THE MATH ENGINE (useEffect) ---
-  // We use the useEffect hook here because we want the math to run automatically 
-  // every single time heightFt, heightIn, or weightLbs changes. 
+  // Sync inputs from user profile on initial load if inputs are blank
   useEffect(() => {
-    // First, we convert our string inputs into usable numbers.
+    if (user) {
+      if (!heightFt && user.height_ft) setHeightFt(String(user.height_ft));
+      if (!heightIn && user.height_in !== null && user.height_in !== undefined) setHeightIn(String(user.height_in));
+      if (!weightLbs && user.weight_lbs) setWeightLbs(String(user.weight_lbs));
+    }
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // --- THE MATH ENGINE ---
+  useEffect(() => {
     const ft = parseFloat(heightFt);
-    const inc = parseFloat(heightIn) || 0; // Default to 0 if they leave inches blank
+    const inc = parseFloat(heightIn) || 0;
     const lbs = parseFloat(weightLbs);
 
-    // We only want to run the calculation if we have valid numbers for both feet and weight.
     if (ft > 0 && lbs > 0) {
-      // Step 1: Convert the total height into pure inches
       const totalInches = (ft * 12) + inc;
-      
-      // Step 2: The classic BMI Formula 
-      // Weight divided by height squared, all multiplied by the 703 conversion factor.
       const calculatedBmi = (lbs / (totalInches * totalInches)) * 703;
-      
-      // Step 3: Round it to one decimal place so it looks clean on the UI
       const finalBmi = calculatedBmi.toFixed(1);
       setBmi(finalBmi);
 
-      // Step 4: Determine the category based on standard health brackets
       if (finalBmi < 18.5) {
         setCategory('Underweight');
       } else if (finalBmi >= 18.5 && finalBmi <= 24.9) {
@@ -53,16 +68,51 @@ const BMICalculator = () => {
         setCategory('Obesity');
       }
     } else {
-      // If the inputs are cleared out or invalid, reset the results to hide the output box
       setBmi(null);
       setCategory('');
     }
-  }, [heightFt, heightIn, weightLbs]); // Dependency array: watch these variables!
+  }, [heightFt, heightIn, weightLbs]);
 
-  // --- THE UI (Render) ---
-return (
+  const handleSaveToProfile = async () => {
+    if (!user || !bmi) return;
+    const ft = parseInt(heightFt, 10);
+    const inc = parseFloat(heightIn) || 0;
+    const lbs = parseFloat(weightLbs);
+    const calculatedBmi = parseFloat(bmi);
+
+    setSaving(true);
+    setSaveFeedback(null);
+    try {
+      const res = await api.updateUserWellness({
+        height_ft: ft,
+        height_in: inc,
+        weight_lbs: lbs,
+        bmi: calculatedBmi,
+      });
+
+      if (res?.success) {
+        if (res.user) {
+          updateUser(res.user);
+        }
+        setSaveFeedback({ type: 'success', text: '✓ BMI & body measurements saved to your profile!' });
+      } else {
+        setSaveFeedback({ type: 'error', text: res?.message || 'Failed to save BMI.' });
+      }
+    } catch (err) {
+      setSaveFeedback({ type: 'error', text: err.message || 'Error saving to profile.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const isCurrentSaved =
+    Boolean(user?.bmi) &&
+    Number(user?.bmi) === Number(bmi) &&
+    Number(user?.height_ft) === Number(heightFt) &&
+    Number(user?.weight_lbs) === Number(weightLbs);
+
+  return (
     <div className="calculator-wrapper">
-      
       {/* Header Section */}
       <div className="calc-header">
         <div className="calc-title-group">
@@ -71,9 +121,10 @@ return (
             Enter your height and weight to calculate your Body Mass Index.
           </p>
         </div>
-        <button 
+        <button
           onClick={() => setShowDetails(!showDetails)}
           className="details-toggle-btn"
+          type="button"
         >
           {showDetails ? 'Hide Details ▲' : 'How it Works ▼'}
         </button>
@@ -102,8 +153,8 @@ return (
       <div className="input-grid">
         <div className="input-group">
           <label className="input-label">Height (ft)</label>
-          <input 
-            type="number" 
+          <input
+            type="number"
             className="styled-input"
             placeholder="5"
             value={heightFt}
@@ -112,19 +163,20 @@ return (
         </div>
         <div className="input-group">
           <label className="input-label">Height (in)</label>
-          <input 
-            type="number" 
+          <input
+            type="number"
             className="styled-input"
             placeholder="10"
-            min="0" max="11"
+            min="0"
+            max="11"
             value={heightIn}
             onChange={(e) => setHeightIn(e.target.value)}
           />
         </div>
         <div className="input-group">
           <label className="input-label">Weight (lbs)</label>
-          <input 
-            type="number" 
+          <input
+            type="number"
             className="styled-input"
             placeholder="150"
             value={weightLbs}
@@ -142,6 +194,35 @@ return (
           <p className="results-disclaimer">
             A healthy BMI range is typically 18.5 to 24.9. Remember, this formula doesn't account for muscle mass, so it's best used as a general baseline rather than a strict rule.
           </p>
+
+          <div className="calc-save-action-bar">
+            {user ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleSaveToProfile}
+                  disabled={saving}
+                  className="calc-save-btn btn-bmi"
+                >
+                  {saving ? 'Saving...' : isCurrentSaved ? '✓ Saved to Profile' : '💾 Save BMI to Profile'}
+                </button>
+                {saveFeedback && (
+                  <span className={`calc-save-msg ${saveFeedback.type}`}>
+                    {saveFeedback.text}
+                  </span>
+                )}
+                {!saveFeedback && isCurrentSaved && (
+                  <span className="calc-save-msg synced">
+                    ✓ Synced with your Profile &amp; Emma
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="calc-guest-prompt">
+                💡 <Link to="/login">Log in</Link> to save this BMI to your profile so Emma can reference it in Meal Planning!
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>

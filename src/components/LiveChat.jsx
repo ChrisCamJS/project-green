@@ -9,6 +9,14 @@ import {
   buildPublishedRecipesPromptSection,
 } from '../utils/emmaRecipeContext';
 
+const LIVE_AUDIO_TOKENS_PER_MIN = 0.1;
+
+const formatElapsedTime = (totalSeconds) => {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+};
+
 const LiveChat = ({
   recipeContext = null,
   chatContext = null,
@@ -21,6 +29,8 @@ const LiveChat = ({
   // 1. ALL HOOKS MUST LIVE AT THE VERY TOP!
   const [isLive, setIsLive] = useState(false);
   const [status, setStatus] = useState('Disconnected');
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [sessionTokensSpent, setSessionTokensSpent] = useState(0);
   const [autoPublishedCatalogText, setAutoPublishedCatalogText] = useState('');
   const { user, spendToken, promptPurchaseTokens } = useAuth();
   const { startRecording, stopRecording, audioError } = useAudioStream();
@@ -29,10 +39,20 @@ const LiveChat = ({
   const playerRef = useRef(null);
   const consumedPreConfirmRef = useRef(false);
   const onToolCallRef = useRef(onToolCall);
+  const spendTokenRef = useRef(spendToken);
+  const stopRecordingRef = useRef(stopRecording);
 
   useEffect(() => {
     onToolCallRef.current = onToolCall;
   }, [onToolCall]);
+
+  useEffect(() => {
+    spendTokenRef.current = spendToken;
+  }, [spendToken]);
+
+  useEffect(() => {
+    stopRecordingRef.current = stopRecording;
+  }, [stopRecording]);
 
   useEffect(() => {
     if (publishedRecipesContext !== null || mealPlanContext !== null) {
@@ -68,21 +88,59 @@ const LiveChat = ({
     };
   }, [stopRecording]);
 
+  // Metered per-minute billing & live elapsed timer while audio session is active
+  useEffect(() => {
+    if (!isLive) return undefined;
+
+    const timerInterval = setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+
+    const billingInterval = setInterval(async () => {
+      const res = await spendTokenRef.current(LIVE_AUDIO_TOKENS_PER_MIN, {
+        actionLabel: 'Live Audio Minute with Emma',
+        skipConfirm: true,
+      });
+
+      if (res?.success) {
+        setSessionTokensSpent((prev) => Number((prev + LIVE_AUDIO_TOKENS_PER_MIN).toFixed(2)));
+      } else {
+        // Out of tokens mid-session: cleanly shut down the live audio connection
+        stopRecordingRef.current();
+        if (
+          wsRef.current &&
+          (wsRef.current.readyState === WebSocket.OPEN ||
+            wsRef.current.readyState === WebSocket.CONNECTING)
+        ) {
+          wsRef.current.close();
+        }
+        playerRef.current?.stop();
+        setIsLive(false);
+        setStatus('Session paused — out of tokens! Top up to keep chatting.');
+      }
+    }, 60000);
+
+    return () => {
+      clearInterval(timerInterval);
+      clearInterval(billingInterval);
+    };
+  }, [isLive]);
+
   // 2. ONE BEAUTIFUL, UNIFIED FUNCTION
   const startLiveSession = async () => {
-    // THE BOUNCER
-    if (Number(user?.generation_tokens ?? 0) < 1) {
-      setStatus('Skint! You are out of tokens, love.');
-      await promptPurchaseTokens(1, 'Live Audio Session with Emma');
+    // THE BOUNCER: check for at least 1 minute (0.10 tokens)
+    if (Number(user?.generation_tokens ?? 0) < LIVE_AUDIO_TOKENS_PER_MIN) {
+      setStatus('Skint! You need at least 0.10 tokens to start Live Audio.');
+      await promptPurchaseTokens(LIVE_AUDIO_TOKENS_PER_MIN, 'Live Audio Session with Emma (0.10 Tokens/min)');
       return;
     }
 
     setStatus('Consulting the ledger...');
 
-    // THE TOLLBOOTH
+    // THE TOLLBOOTH: deduct first minute (0.10 tokens)
     const shouldSkipConfirm = preConfirmed && !consumedPreConfirmRef.current;
-    const tokenResult = await spendToken(1, {
-      actionLabel: 'Live Audio Session with Emma',
+    const tokenResult = await spendToken(LIVE_AUDIO_TOKENS_PER_MIN, {
+      actionLabel: 'Live Audio with Emma (0.10 Tokens/min)',
       skipConfirm: shouldSkipConfirm,
     });
 
@@ -97,6 +155,8 @@ const LiveChat = ({
     }
 
     consumedPreConfirmRef.current = true;
+    setElapsedSeconds(0);
+    setSessionTokensSpent(LIVE_AUDIO_TOKENS_PER_MIN);
     setStatus('Connecting to Emma...');
 
     try {
@@ -295,27 +355,54 @@ const LiveChat = ({
         </div>
       )}
 
-      <p style={{ color: audioError ? '#d9534f' : '#333', margin: '0.5rem 0 1rem' }}>
+      <p style={{ color: audioError ? '#d9534f' : '#333', margin: '0.5rem 0 0.75rem' }}>
         Status: <strong>{audioError || status}</strong>
       </p>
 
-      <button
-        type="button"
-        onClick={isLive ? () => cleanupSession() : startLiveSession}
-        style={{
-          padding: '12px 24px',
-          fontSize: '16px',
-          fontWeight: 'bold',
-          backgroundColor: isLive ? '#d9534f' : '#5cb85c',
-          color: 'white',
-          border: 'none',
-          borderRadius: '8px',
-          cursor: 'pointer',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-        }}
-      >
-        {isLive ? 'End Live Audio Chat' : '🎙️ Chat Live with Emma (Costs 1 Token per session)'}
-      </button>
+      {(isLive || sessionTokensSpent > 0) && (
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            marginBottom: '1rem',
+            padding: '0.4rem 0.9rem',
+            borderRadius: '9999px',
+            backgroundColor: isLive ? '#fff5f5' : '#f7fafc',
+            border: `1px solid ${isLive ? '#feb2b2' : '#e2e8f0'}`,
+            color: isLive ? '#c53030' : '#4a5568',
+            fontSize: '0.84rem',
+            fontWeight: 700,
+          }}
+        >
+          <span>{isLive ? '🔴 LIVE' : 'Session Ended'}</span>
+          <span>⏱️ {formatElapsedTime(elapsedSeconds)}</span>
+          <span>🪙 {sessionTokensSpent.toFixed(2)} tokens used</span>
+        </div>
+      )}
+
+      <div>
+        <button
+          type="button"
+          onClick={isLive ? () => cleanupSession() : startLiveSession}
+          style={{
+            padding: '12px 24px',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            backgroundColor: isLive ? '#d9534f' : '#5cb85c',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+          }}
+        >
+          {isLive ? 'End Live Audio Chat' : '🎙️ Chat Live with Emma (0.10 Tokens / min)'}
+        </button>
+      </div>
+      <p style={{ fontSize: '0.78rem', color: '#718096', marginTop: '0.6rem', marginBottom: 0 }}>
+        Billed by usage at 0.10 tokens per minute (1 token = 10 mins).
+      </p>
     </div>
   );
 };

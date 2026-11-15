@@ -97,11 +97,15 @@ const QUICK_CONCIERGE_PROMPTS = [
   'Which vitamins or minerals am I low on today?',
 ];
 
+const MEAL_PLAN_CHAT_COST = 0.05;
+
 export default function MealPlanner() {
   const todayYmd = formatDateYMD(new Date());
-  const { user, confirmTokenUsage } = useAuth();
+  const { user, spendToken, confirmTokenUsage, promptPurchaseTokens } = useAuth();
   const { speechState, handleSpeak } = useEmmaVoice();
   const currentUserName = user?.username || 'Love';
+  const mealChatConfirmedRef = useRef(false);
+  const [mealChatTokensSpent, setMealChatTokensSpent] = useState(0);
 
   const [viewMode, setViewMode] = useState('month'); // 'month' | 'week' | 'day'
   const [anchorDate, setAnchorDate] = useState(todayYmd);
@@ -449,6 +453,24 @@ export default function MealPlanner() {
     [dayEntries, resolvedDetailsMap]
   );
 
+  const activeNutrientTargets = useMemo(() => {
+    const calTarget = Number(user?.calorie_target) > 0 ? Number(user.calorie_target) : 2000;
+    const pTarget = Number(user?.protein_target_g) > 0 ? Number(user.protein_target_g) : 50;
+    const cTarget = Number(user?.carbs_target_g) > 0 ? Number(user.carbs_target_g) : 275;
+    const fTarget = Number(user?.fat_target_g) > 0 ? Number(user.fat_target_g) : 78;
+    return {
+      calories: { ...COMMON_NUTRIENT_TARGETS.calories, target: calTarget },
+      protein: { ...COMMON_NUTRIENT_TARGETS.protein, target: pTarget },
+      carbs: { ...COMMON_NUTRIENT_TARGETS.carbs, target: cTarget },
+      fat: { ...COMMON_NUTRIENT_TARGETS.fat, target: fTarget },
+      fiber: { ...COMMON_NUTRIENT_TARGETS.fiber, target: 28 },
+    };
+  }, [user?.calorie_target, user?.protein_target_g, user?.carbs_target_g, user?.fat_target_g]);
+
+  const hasCustomWellnessTargets = Boolean(
+    Number(user?.calorie_target) > 0 || Number(user?.protein_target_g) > 0
+  );
+
   const nutrientsByDate = useMemo(() => {
     const map = {};
     for (const ymd of visibleRange.days) {
@@ -703,8 +725,8 @@ export default function MealPlanner() {
     if (nextMode === conciergeMode) return;
     if (nextMode === 'live') {
       const confirmed = await confirmTokenUsage(
-        1,
-        'Entering Live Audio Mode on your Meal Planner'
+        0.1,
+        'Entering Live Audio Mode on your Meal Planner (0.10 Tokens/min)'
       );
       if (!confirmed) return;
       setLivePreConfirmed(true);
@@ -723,6 +745,7 @@ export default function MealPlanner() {
         plannableRecipes,
         dailyNutrientSummary: dayNutritionTotals,
         focusedDateYmd: anchorDate,
+        wellnessProfile: user,
         vocalMode: true,
       }),
     [
@@ -734,12 +757,30 @@ export default function MealPlanner() {
       plannableRecipes,
       dayNutritionTotals,
       anchorDate,
+      user,
     ]
   );
 
   const sendConciergeMessage = async (promptText) => {
     const trimmed = String(promptText || '').trim();
     if (!trimmed || emmaBusy) return;
+
+    if (Number(user?.generation_tokens ?? 0) < MEAL_PLAN_CHAT_COST) {
+      await promptPurchaseTokens(
+        MEAL_PLAN_CHAT_COST,
+        'Chatting with Emma on Meal Planner (0.05 Tokens/message)'
+      );
+      return;
+    }
+
+    if (!mealChatConfirmedRef.current) {
+      const confirmed = await confirmTokenUsage(
+        MEAL_PLAN_CHAT_COST,
+        'Chatting with Emma on Meal Planner (0.05 Tokens/message)'
+      );
+      if (!confirmed) return;
+      mealChatConfirmedRef.current = true;
+    }
 
     setEmmaInput('');
     setEmmaError(null);
@@ -762,6 +803,7 @@ export default function MealPlanner() {
         plannableRecipes: activeRecipes,
         dailyNutrientSummary: dayNutritionTotals,
         focusedDateYmd: anchorDate,
+        wellnessProfile: user,
         vocalMode: false,
       });
 
@@ -772,6 +814,15 @@ export default function MealPlanner() {
       let executionResult = { appliedCount: 0, summaries: [], errors: [] };
       if (actions.length > 0) {
         executionResult = await executeMealPlanActions(actions);
+      }
+
+      // Deduct usage-based token cost only after AI call succeeds
+      const tokenRes = await spendToken(MEAL_PLAN_CHAT_COST, {
+        actionLabel: 'Emma Meal Planner Chat',
+        skipConfirm: true,
+      });
+      if (tokenRes?.success) {
+        setMealChatTokensSpent((prev) => Number((prev + MEAL_PLAN_CHAT_COST).toFixed(2)));
       }
 
       setEmmaChatHistory([
@@ -976,6 +1027,14 @@ export default function MealPlanner() {
                   {emmaBusy ? 'Planning...' : 'Ask Emma'}
                 </button>
               </form>
+              <div className="mp-emma-usage-note" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: '#64748b', marginTop: '0.45rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                <span>🪙 Usage-based: <strong>0.05 Tokens</strong> per message (20 messages = 1 Token)</span>
+                {mealChatTokensSpent > 0 && (
+                  <span style={{ fontWeight: 700, color: '#047857' }}>
+                    Session used: {mealChatTokensSpent.toFixed(2)} tokens
+                  </span>
+                )}
+              </div>
             </>
           ) : (
             <div className="mp-emma-live-container">
@@ -1309,8 +1368,20 @@ export default function MealPlanner() {
 
                 {dayEntries.length > 0 && (
                   <>
+                    <div className="mp-macro-targets-meta">
+                      {hasCustomWellnessTargets ? (
+                        <span className="mp-targets-badge custom">
+                          🎯 Using your personalized targets from your <Link to="/wellness">Wellness Profile</Link>
+                        </span>
+                      ) : (
+                        <span className="mp-targets-badge default">
+                          ℹ️ Standard 2,000 kcal targets. <Link to="/wellness">Set custom targets in Wellness Tools</Link> to tailor daily goals &amp; Emma.
+                        </span>
+                      )}
+                    </div>
+
                     <div className="mp-macro-cards-grid">
-                      {Object.values(COMMON_NUTRIENT_TARGETS).map((spec) => {
+                      {Object.values(activeNutrientTargets).map((spec) => {
                         const val = Number(dayNutritionTotals[spec.key] || 0);
                         const pct = spec.target > 0 ? Math.round((val / spec.target) * 100) : 0;
                         const fillWidth = Math.min(100, pct);

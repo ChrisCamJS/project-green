@@ -132,5 +132,27 @@
   font-size: 0.875rem;
 }
 
+.goal-card.selectable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.goal-card.selectable:hover {
+  border-color: #c084fc;
+  background-color: #faf5ff;
+}
+
+.goal-card.selected {
+  border-color: #9333ea;
+  background: #f3e8ff;
+  box-shadow: 0 0 0 2px rgba(147, 51, 234, 0.25);
+}
+
+.goal-card-radio {
+  margin-right: 0.5rem;
+  accent-color: #9333ea;
+}
+
 .goal-label { color: #4b5563; }
 .goal-value { font-weight: 800; color: #4c1d95; }

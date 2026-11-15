@@ -594,7 +594,7 @@ const RecipeDetails = () => {
       setShowLiveChat(false);
       return;
     }
-    const confirmed = await confirmTokenUsage(1, 'Entering Live Audio Mode with Emma');
+    const confirmed = await confirmTokenUsage(0.1, 'Live Audio with Emma (0.10 Tokens/min)');
     if (!confirmed) return;
     setShowLiveChat(true);
   };

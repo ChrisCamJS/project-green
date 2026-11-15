@@ -153,9 +153,12 @@ export const AuthProvider = ({ children }) => {
             const response = await api.deductToken(cost);
 
             if (response?.success) {
-                const updatedUser = { ...user, generation_tokens: response.tokensRemaining };
-                setUser(updatedUser);
-                localStorage.setItem('vault_user', JSON.stringify(updatedUser));
+                setUser((prev) => {
+                    if (!prev) return prev;
+                    const updatedUser = { ...prev, generation_tokens: response.tokensRemaining };
+                    localStorage.setItem('vault_user', JSON.stringify(updatedUser));
+                    return updatedUser;
+                });
                 return { success: true, tokensRemaining: response.tokensRemaining };
             }
 
@@ -271,15 +274,15 @@ export const AuthProvider = ({ children }) => {
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span>Current Balance:</span>
-                                <strong>{currentBalance.toFixed(1)} tokens</strong>
+                                <strong>{Number(currentBalance.toFixed(2))} tokens</strong>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span>Cost if You Continue:</span>
-                                <strong style={{ color: '#c05621' }}>-{promptCost.toFixed(1)} {tokenUnit.toLowerCase()}</strong>
+                                <strong style={{ color: '#c05621' }}>-{Number(promptCost.toFixed(2))} {tokenUnit.toLowerCase()}</strong>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: '0.35rem', marginTop: '0.15rem' }}>
                                 <span>Remaining Balance:</span>
-                                <strong style={{ color: '#276749' }}>{projectedBalance.toFixed(1)} tokens</strong>
+                                <strong style={{ color: '#276749' }}>{Number(projectedBalance.toFixed(2))} tokens</strong>
                             </div>
                         </div>
 

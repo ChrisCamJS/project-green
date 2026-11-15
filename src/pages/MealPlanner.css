@@ -895,6 +895,50 @@
   font-size: 0.92rem;
 }
 
+.mp-macro-targets-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.mp-targets-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.mp-targets-badge.custom {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.mp-targets-badge.custom a {
+  color: #047857;
+  text-decoration: underline;
+  font-weight: 700;
+}
+
+.mp-targets-badge.default {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.mp-targets-badge.default a {
+  color: #2563eb;
+  text-decoration: underline;
+  font-weight: 700;
+}
+
 .mp-macro-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));

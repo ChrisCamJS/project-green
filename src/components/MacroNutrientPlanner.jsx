@@ -1,107 +1,174 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { api } from '../services/api';
 import './MacroNutrientPlanner.css';
+
 // ============================================================================
 // COMPONENT: MacroNutrientPlanner
 // PURPOSE: Breaks down a daily calorie goal into specific grams of 
 // Protein, Carbohydrates, and Fats based on selected dietary ratios.
+// Saves target grams and selected plan into user profile.
 // ============================================================================
+const MacroNutrientPlanner = ({
+  calorieGoal: propCalorieGoal,
+  setCalorieGoal: propSetCalorieGoal,
+}) => {
+  const { user, updateUser } = useAuth();
 
-const MacroNutrientPlanner = () => {
-    // state management
-    const [calories, setCalories] = useState('');
-    const [plan, setPlan] = useState('');
+  const [localCalories, setLocalCalories] = useState(() => (user?.calorie_target ? String(user.calorie_target) : ''));
+  const calories = propCalorieGoal !== undefined ? propCalorieGoal : localCalories;
+  const setCalories = propSetCalorieGoal || setLocalCalories;
 
-    // custom percentage states
-    const [customProtein, setCustomProtein] = useState('');
-    const [customCarbs, setCustomCarbs] = useState('');
-    const[customFat, setCustomFat] = useState('');
+  const [plan, setPlan] = useState(() => user?.macro_plan || 'balanced');
 
-    // error handling and final results\
-    const [error, setError] = useState('');
-    const [results, setResults] = useState(null);
+  // Custom percentage states
+  const [customProtein, setCustomProtein] = useState(() => (user?.custom_protein_pct ? String(user.custom_protein_pct) : ''));
+  const [customCarbs, setCustomCarbs] = useState(() => (user?.custom_carbs_pct ? String(user.custom_carbs_pct) : ''));
+  const [customFat, setCustomFat] = useState(() => (user?.custom_fat_pct ? String(user.custom_fat_pct) : ''));
 
-    // State for the educational dropdown
-    const [showDetails, setShowDetails] = useState(false);
- 
-    // --- THE MACRO ENGINE (useEffect) ---
-    useEffect(() => {
-        // clear errors by default
-        setError('');
+  const [error, setError] = useState('');
+  const [results, setResults] = useState(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveFeedback, setSaveFeedback] = useState(null);
 
-        const totalCals = parseFloat(calories);
+  // Sync from user profile on initial load if inputs are empty
+  useEffect(() => {
+    if (user) {
+      if (!calories && user.calorie_target) setCalories(String(user.calorie_target));
+      if (!plan && user.macro_plan) setPlan(user.macro_plan);
+      if (!customProtein && user.custom_protein_pct) setCustomProtein(String(user.custom_protein_pct));
+      if (!customCarbs && user.custom_carbs_pct) setCustomCarbs(String(user.custom_carbs_pct));
+      if (!customFat && user.custom_fat_pct) setCustomFat(String(user.custom_fat_pct));
+    }
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-        // if novalid Calorie count or plan, we stop here.
-        if (!totalCals || totalCals <= 0 || !plan) {
-            setResults(null);
-            return;
+  // --- THE MACRO ENGINE ---
+  useEffect(() => {
+    setError('');
+
+    const totalCals = parseFloat(calories);
+    if (!totalCals || totalCals <= 0 || !plan) {
+      setResults(null);
+      return;
+    }
+
+    let proteinRatio = 0;
+    let carbRatio = 0;
+    let fatRatio = 0;
+
+    switch (plan) {
+      case 'balanced':
+        carbRatio = 0.40;
+        proteinRatio = 0.30;
+        fatRatio = 0.30;
+        break;
+      case 'low-carb':
+        carbRatio = 0.20;
+        proteinRatio = 0.40;
+        fatRatio = 0.40;
+        break;
+      case 'high-protein':
+        carbRatio = 0.30;
+        proteinRatio = 0.40;
+        fatRatio = 0.30;
+        break;
+      case 'high-carb':
+        carbRatio = 0.60;
+        proteinRatio = 0.20;
+        fatRatio = 0.20;
+        break;
+      case 'custom': {
+        const p = parseFloat(customProtein) || 0;
+        const c = parseFloat(customCarbs) || 0;
+        const f = parseFloat(customFat) || 0;
+
+        const totalPercent = p + c + f;
+        if (totalPercent !== 100) {
+          setError(`Percentages must add up to exactly 100%. Current total: ${totalPercent}%`);
+          setResults(null);
+          return;
         }
 
-        let proteinRatio = 0;
-        let carbRatio = 0;
-        let fatRatio = 0;
-
-        switch (plan) {
-            case 'balanced':
-                carbRatio = 0.40;
-                proteinRatio = 0.30;
-                fatRatio = 0.30;
-                break;
-            case 'high-protein':
-                carbRatio = 0.20;
-                proteinRatio = 0.40;
-                fatRatio = 0.30;
-                break;
-            case 'high-carb':
-                carbRatio = 0.60;
-                proteinRatio = 0.20;
-                fatRatio = 0.20;
-                break;
-            case 'custom':
-                const p = parseFloat(customProtein) || 0;
-                const c = parseFloat(customCarbs) || 0;
-                const f = parseFloat(customFat) || 0;
-
-                const totalPercent = p + c + f;
-                if (totalPercent !== 100) {
-                    setError(`Percentages must add up to exactly 100. Current total: ${totalPercent}%`);
-                    setResults(null);
-                    return;
-                }
-
-                //convert percentages to decimals
-                proteinRatio = p /100;
-                carbRatio = c / 100;
-                fatRatio = f / 100;
-                break;
-            default:
-                return;
-        }
-
-        // the math part
-        const proteinCals = totalCals * proteinRatio;
-        const carbCals = totalCals * carbRatio;
-        const fatCals = totalCals * fatRatio;
-
-        setResults({
-    protein: {
-        grams: Math.round(proteinCals / 4),
-        calories: Math.round(proteinCals)
-      },
-    carbs: {
-        grams: Math.round(carbCals / 4),
-        calories: Math.round(carbCals)
-      },
-    fat: {
-        grams: Math.round(fatCals / 9),
-        calories: Math.round(fatCals)
+        proteinRatio = p / 100;
+        carbRatio = c / 100;
+        fatRatio = f / 100;
+        break;
       }
-    });
+      default:
+        return;
+    }
 
-    }, [calories, plan, customProtein, customCarbs, customFat]);
+    const proteinCals = totalCals * proteinRatio;
+    const carbCals = totalCals * carbRatio;
+    const fatCals = totalCals * fatRatio;
+
+    setResults({
+      protein: {
+        grams: Math.round(proteinCals / 4),
+        calories: Math.round(proteinCals),
+      },
+      carbs: {
+        grams: Math.round(carbCals / 4),
+        calories: Math.round(carbCals),
+      },
+      fat: {
+        grams: Math.round(fatCals / 9),
+        calories: Math.round(fatCals),
+      },
+    });
+  }, [calories, plan, customProtein, customCarbs, customFat]);
+
+  const handleSaveToProfile = async () => {
+    if (!user || !results) return;
+
+    setSaving(true);
+    setSaveFeedback(null);
+
+    const totalCals = parseInt(calories, 10);
+    const p = plan === 'custom' ? parseInt(customProtein, 10) : null;
+    const c = plan === 'custom' ? parseInt(customCarbs, 10) : null;
+    const f = plan === 'custom' ? parseInt(customFat, 10) : null;
+
+    try {
+      const res = await api.updateUserWellness({
+        calorie_target: totalCals,
+        macro_plan: plan,
+        custom_protein_pct: p,
+        custom_carbs_pct: c,
+        custom_fat_pct: f,
+        protein_target_g: results.protein.grams,
+        carbs_target_g: results.carbs.grams,
+        fat_target_g: results.fat.grams,
+      });
+
+      if (res?.success) {
+        if (res.user) {
+          updateUser(res.user);
+        }
+        setSaveFeedback({
+          type: 'success',
+          text: `✓ Targets saved: ${results.protein.grams}g Protein, ${results.carbs.grams}g Carbs, ${results.fat.grams}g Fat!`,
+        });
+      } else {
+        setSaveFeedback({ type: 'error', text: res?.message || 'Failed to save macro targets.' });
+      }
+    } catch (err) {
+      setSaveFeedback({ type: 'error', text: err.message || 'Error saving macro targets.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const currentSavedMatches =
+    Boolean(user?.protein_target_g) &&
+    Number(user?.protein_target_g) === results?.protein?.grams &&
+    Number(user?.carbs_target_g) === results?.carbs?.grams &&
+    Number(user?.fat_target_g) === results?.fat?.grams;
 
   return (
-    <div className="calculator-wrapper">
-      
+    <div className="calculator-wrapper" id="macro-planner-section">
       {/* Header Section */}
       <div className="calc-header header-pink">
         <div className="calc-title-group">
@@ -110,9 +177,10 @@ const MacroNutrientPlanner = () => {
             Determine your optimal daily breakdown of protein, carbs, and fats.
           </p>
         </div>
-        <button 
+        <button
           onClick={() => setShowDetails(!showDetails)}
           className="details-toggle-btn btn-pink"
+          type="button"
         >
           {showDetails ? 'Hide Details ▲' : 'How it Works ▼'}
         </button>
@@ -139,12 +207,22 @@ const MacroNutrientPlanner = () => {
       {/* Input Form */}
       <div className="input-grid">
         <div className="input-group">
-          <label className="input-label">Calorie Goal</label>
-          <input type="number" className="styled-input" placeholder="2000" value={calories} onChange={(e) => setCalories(e.target.value)} />
+          <label className="input-label">Calorie Goal (kcal/day)</label>
+          <input
+            type="number"
+            className="styled-input"
+            placeholder="2000"
+            value={calories}
+            onChange={(e) => setCalories(e.target.value)}
+          />
         </div>
         <div className="input-group">
           <label className="input-label">Select Plan</label>
-          <select className="styled-select select-pink" value={plan} onChange={(e) => setPlan(e.target.value)}>
+          <select
+            className="styled-select select-pink"
+            value={plan}
+            onChange={(e) => setPlan(e.target.value)}
+          >
             <option value="">-- Select a Plan --</option>
             <option value="balanced">Balanced Diet (40c/30p/30f)</option>
             <option value="low-carb">Low-Carb (20c/40p/40f)</option>
@@ -161,15 +239,33 @@ const MacroNutrientPlanner = () => {
           <div className="custom-input-row">
             <div className="custom-group">
               <label className="custom-label">Protein (%)</label>
-              <input type="number" className="styled-input mini" placeholder="20" value={customProtein} onChange={(e) => setCustomProtein(e.target.value)} />
+              <input
+                type="number"
+                className="styled-input mini"
+                placeholder="20"
+                value={customProtein}
+                onChange={(e) => setCustomProtein(e.target.value)}
+              />
             </div>
             <div className="custom-group">
               <label className="custom-label">Carbs (%)</label>
-              <input type="number" className="styled-input mini" placeholder="50" value={customCarbs} onChange={(e) => setCustomCarbs(e.target.value)} />
+              <input
+                type="number"
+                className="styled-input mini"
+                placeholder="50"
+                value={customCarbs}
+                onChange={(e) => setCustomCarbs(e.target.value)}
+              />
             </div>
             <div className="custom-group">
               <label className="custom-label">Fat (%)</label>
-              <input type="number" className="styled-input mini" placeholder="30" value={customFat} onChange={(e) => setCustomFat(e.target.value)} />
+              <input
+                type="number"
+                className="styled-input mini"
+                placeholder="30"
+                value={customFat}
+                onChange={(e) => setCustomFat(e.target.value)}
+              />
             </div>
           </div>
           {error && <div className="error-message">{error}</div>}
@@ -178,30 +274,63 @@ const MacroNutrientPlanner = () => {
 
       {/* Auto-Render Results */}
       {results && !error && (
-        <div className="macro-results-grid">
-          
-          <div className="macro-card card-protein">
-            <div className="macro-name">Protein</div>
-            <div className="macro-grams">{results.protein.grams}g</div>
-            <div className="macro-cals">{results.protein.calories} cal</div>
+        <>
+          <div className="macro-results-grid">
+            <div className="macro-card card-protein">
+              <div className="macro-name">Protein</div>
+              <div className="macro-grams">{results.protein.grams}g</div>
+              <div className="macro-cals">{results.protein.calories} cal</div>
+            </div>
+
+            <div className="macro-card card-carbs">
+              <div className="macro-name">Carbs</div>
+              <div className="macro-grams">{results.carbs.grams}g</div>
+              <div className="macro-cals">{results.carbs.calories} cal</div>
+            </div>
+
+            <div className="macro-card card-fat">
+              <div className="macro-name">Fat</div>
+              <div className="macro-grams">{results.fat.grams}g</div>
+              <div className="macro-cals">{results.fat.calories} cal</div>
+            </div>
           </div>
 
-          <div className="macro-card card-carbs">
-            <div className="macro-name">Carbs</div>
-            <div className="macro-grams">{results.carbs.grams}g</div>
-            <div className="macro-cals">{results.carbs.calories} cal</div>
+          <div className="calc-save-action-bar">
+            {user ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleSaveToProfile}
+                  disabled={saving}
+                  className="calc-save-btn btn-macro"
+                >
+                  {saving
+                    ? 'Saving...'
+                    : currentSavedMatches
+                      ? '✓ Targets Saved in Profile'
+                      : '💾 Save Macro Targets to Profile'}
+                </button>
+                {saveFeedback && (
+                  <span className={`calc-save-msg ${saveFeedback.type}`}>
+                    {saveFeedback.text}
+                  </span>
+                )}
+                {!saveFeedback && currentSavedMatches && (
+                  <span className="calc-save-msg synced">
+                    ✓ Synced with your Meal Planner &amp; Emma
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="calc-guest-prompt">
+                💡 <Link to="/login">Log in</Link> to save these macro targets to your profile for automatic Meal Planning tracking!
+              </span>
+            )}
           </div>
-
-          <div className="macro-card card-fat">
-            <div className="macro-name">Fat</div>
-            <div className="macro-grams">{results.fat.grams}g</div>
-            <div className="macro-cals">{results.fat.calories} cal</div>
-          </div>
-
-        </div>
+        </>
       )}
     </div>
   );
-}
+};
 
 export default MacroNutrientPlanner;

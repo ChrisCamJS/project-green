@@ -201,6 +201,13 @@ export const api = {
         });
     },
 
+    updateUserWellness: (wellnessData) => {
+        return fetchWrapper('/users/wellness', {
+            method: 'PUT',
+            body: JSON.stringify(wellnessData),
+        });
+    },
+
     updateUserEmail: (emailData) => {
         return fetchWrapper('/users/email', {
             method: 'PUT',

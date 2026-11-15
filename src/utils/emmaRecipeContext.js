@@ -454,9 +454,44 @@ export const buildMealPlannerEmmaSystemPrompt = ({
   plannableRecipes = [],
   dailyNutrientSummary = null,
   focusedDateYmd = todayYmd,
+  wellnessProfile = null,
   vocalMode = false,
 }) => {
   const dateMapText = buildCalendarDateMapText(visibleRange, todayYmd);
+
+  const userCalTarget = Number(wellnessProfile?.calorie_target) || 0;
+  const userProteinTarget = Number(wellnessProfile?.protein_target_g) || 0;
+  const userCarbsTarget = Number(wellnessProfile?.carbs_target_g) || 0;
+  const userFatTarget = Number(wellnessProfile?.fat_target_g) || 0;
+  const userBmi = wellnessProfile?.bmi ? Number(wellnessProfile.bmi) : null;
+  const userTdee = Number(wellnessProfile?.tdee) || 0;
+  const userBmr = Number(wellnessProfile?.bmr) || 0;
+  const userMacroPlan = wellnessProfile?.macro_plan || '';
+  const userActivity = wellnessProfile?.activity_level || '';
+  const userHeightFt = wellnessProfile?.height_ft;
+  const userHeightIn = wellnessProfile?.height_in;
+  const userWeight = wellnessProfile?.weight_lbs;
+
+  let wellnessSection = '';
+  if (userCalTarget > 0 || userBmi || userTdee > 0 || userProteinTarget > 0) {
+    const heightStr = userHeightFt ? `${userHeightFt}ft ${userHeightIn || 0}in` : '';
+    const weightStr = userWeight ? `${userWeight} lbs` : '';
+    const bodyStr = [userBmi ? `BMI: ${userBmi}` : '', heightStr, weightStr, userActivity ? `Activity: ${userActivity}` : ''].filter(Boolean).join(' | ');
+
+    wellnessSection = `\n\nUSER PERSONAL WELLNESS & NUTRITION TARGETS:
+${userName}'s personal profile has the following saved calculations from the Wellness Tools:
+- Daily Calorie Target: ${userCalTarget > 0 ? `${userCalTarget} kcal/day` : '2000 kcal/day'}${userTdee > 0 ? ` (Maintenance TDEE: ${userTdee} kcal, BMR: ${userBmr || 'N/A'} kcal)` : ''}
+- Daily Macro Targets: ${userProteinTarget > 0 ? `${userProteinTarget}g Protein` : '50g Protein'}, ${userCarbsTarget > 0 ? `${userCarbsTarget}g Carbs` : '275g Carbs'}, ${userFatTarget > 0 ? `${userFatTarget}g Fat` : '78g Fat'} (Dietary Plan: ${userMacroPlan || 'Balanced'})
+${bodyStr ? `- Physical Baseline: ${bodyStr}` : ''}
+
+NUTRITION & MACRO GUIDELINES FOR EMMA:
+1. When recommending meals, populating calendar days, or reviewing daily totals, directly evaluate choices against ${userName}'s personal target of ${userCalTarget > 0 ? `${userCalTarget} kcal` : '2,000 kcal'}, ${userProteinTarget > 0 ? `${userProteinTarget}g Protein` : '50g Protein'}, ${userCarbsTarget > 0 ? `${userCarbsTarget}g Carbs` : '275g Carbs'}, and ${userFatTarget > 0 ? `${userFatTarget}g Fat` : '78g Fat'}!
+2. If ${userName} asks you to plan a day of meals or fill their week, aim to get reasonably close to their daily calorie and protein/carb/fat targets with wholesome plant-based recipes. Celebrate when the totals hit the mark!
+3. If they ask about their BMI or caloric needs, you have full context of their saved calculations right here.`;
+  } else {
+    wellnessSection = `\n\nUSER NUTRITION PROFILE:
+${userName} has not set custom wellness targets in their profile yet (using standard baseline: 2,000 kcal/day, 50g protein, 275g carbs, 78g fat, 28g fiber). If appropriate, you can warmly remind them that they can calculate and save their personal BMI, TDEE, and macro targets anytime in the Wellness Tools page (/wellness) to give you their exact targets!`;
+  }
 
   const scheduleLines =
     entries.length === 0
@@ -545,6 +580,7 @@ ${focusedMicroSummary}
 
 PLANNABLE RECIPE CATALOG (${plannableRecipes.length} total recipes available — Published + ${userName}'s Private Drafts):
 ${recipeLines.join('\n') || 'No recipes loaded yet.'}
+${wellnessSection}
 
 ${actionProtocol}`;
 };

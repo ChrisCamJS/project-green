@@ -85,3 +85,232 @@
         padding: 2rem;
     }
 }
+
+/* User Wellness Sync Banner */
+.wellness-user-banner {
+    background: linear-gradient(135deg, #ecfdf5, #eff6ff);
+    border: 1px solid #a7f3d0;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.wellness-banner-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.wellness-banner-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #065f46;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.wellness-banner-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #059669;
+    color: white;
+    font-weight: 700;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.wellness-banner-link:hover {
+    background: #047857;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(5, 150, 105, 0.25);
+}
+
+.wellness-banner-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.75rem;
+}
+
+.wellness-banner-stat-chip {
+    background: white;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e0f2fe;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.wellness-banner-stat-chip .stat-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.wellness-banner-stat-chip .stat-val {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.wellness-banner-guest {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.wellness-banner-guest p {
+    color: #475569;
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+.wellness-banner-guest a {
+    color: #059669;
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+/* Calculator Save Actions & Feedback */
+.calc-save-action-bar {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px dashed #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+    .calc-save-action-bar {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+}
+
+.calc-save-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.25rem;
+    border-radius: 0.5rem;
+    font-weight: 700;
+    font-size: 0.875rem;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.calc-save-btn.btn-bmi {
+    background: #059669;
+    color: white;
+}
+
+.calc-save-btn.btn-bmi:hover:not(:disabled) {
+    background: #047857;
+    box-shadow: 0 4px 10px rgba(5, 150, 105, 0.25);
+}
+
+.calc-save-btn.btn-tdee {
+    background: #7e22ce;
+    color: white;
+}
+
+.calc-save-btn.btn-tdee:hover:not(:disabled) {
+    background: #6b21a8;
+    box-shadow: 0 4px 10px rgba(126, 34, 206, 0.25);
+}
+
+.calc-save-btn.btn-macro {
+    background: #db2777;
+    color: white;
+}
+
+.calc-save-btn.btn-macro:hover:not(:disabled) {
+    background: #be185d;
+    box-shadow: 0 4px 10px rgba(219, 39, 119, 0.25);
+}
+
+.calc-save-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.calc-save-msg {
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.calc-save-msg.success {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.calc-save-msg.synced {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.calc-save-msg.error {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.calc-guest-prompt {
+    font-size: 0.82rem;
+    color: #64748b;
+}
+
+.calc-guest-prompt a {
+    color: #059669;
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+.calc-secondary-action-btn {
+    background: white;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.calc-secondary-action-btn:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    color: #0f172a;
+}
