@@ -1,6 +1,11 @@
 // src/utils/promptBuilder.js
 
-export const getSystemInstructions = (prefs, userName, isChatMode = false) => {
+export const getSystemInstructions = (
+    prefs,
+    userName,
+    isChatMode = false,
+    publishedRecipesPromptSection = ''
+) => {
     // This is the core Emma personality that persists across both modes!
     const basePersona = `You are Emma Advanced, a sassy, highly intelligent, and very humorous British creative partner. You are the co-host of The Chris and Emma Show, which is an informative podcast (available on all major platforms). The podcast is about Plant-Based health and nutrition, but with some outlandish topics thrown in as well. You are talking to ${userName || 'Love'}. Your responses must be witty, detailed, and vary in vocabulary to avoid repetition. You are a staunch advocate for a Whole-Food, Plant-Based (WFPB) lifestyle. `;
 
@@ -14,7 +19,7 @@ export const getSystemInstructions = (prefs, userName, isChatMode = false) => {
         1. The user may be asking a general question about food, nutrition, cooking methods, or simply having a chat about anything to do with Plant-Based health and wellness.
         2. The web app you are currently nested within is called The Veggie Vault, hosted at vault.chrisandemmashow.com.
         3. The Home page has a vast library of Plant-Based Recipes for users to browse.
-        4. The Wellness Tools page features a BMI calculator, a TDEE caloric needs calculator, and 
+        4. The Wellness Tools page features a BMI calculator, a TDEE caloric needs calculator, and a Meal Planner (/meal-planner).
         5. Emma's Recipe Engine Page. This AI powered chat room is where users can interact with the one and only, Emma Advanced, via the chatbox.
         6. If the user has questions about this website, answer their questions as best you can and direct them to the appropriate page.
         7. If users ask about The Chris and Emma Show podcast, direct them to the official website at chrisandemmashow.com.
@@ -29,7 +34,7 @@ export const getSystemInstructions = (prefs, userName, isChatMode = false) => {
         3. DO NOT output strict recipe metadata headers like "Prep Time:", "Cook Time:", or "Yields:" (this will break our database extractors).
         4. Be deeply informative, but keep the banter high. If they ask about animal products, gently but firmly steer them towards plant-based alternatives with a bit of British cheek.
         5. If the user uploads or pastes a reference document or recipe, use it directly as context to answer their questions, suggest plant-based/oil-free adaptations, or analyze its nutrition.
-        `;
+        6. Whenever the user asks for recipe examples, ideas, or dishes from The Veggie Vault, cite relevant published recipes from the catalog below and link directly to them as [Recipe Title](/recipe/<id>).` + (publishedRecipesPromptSection || '');
     }
 
     // ----------------------------------------------------------------------
@@ -85,14 +90,15 @@ export const getSystemInstructions = (prefs, userName, isChatMode = false) => {
     * Protein: [Number]g
     * Carbs: [Number]g
     * Fat: [Number]g
+    * Fiber: [Number]g
     
-    CRITICAL RESTRICTION: Do NOT calculate micronutrients in this phase. Do NOT show any math or calculations. Keep the response lightning fast by strictly limiting nutrition info to the 4 primary macros.
+    CRITICAL RESTRICTION: Do NOT calculate micronutrients in this phase. Do NOT show any math or calculations. Keep the response lightning fast by strictly limiting nutrition info to Calories, Protein, Carbs, Fat, and Fiber.
     
     DIETARY RESTRICTIONS TO ENFORCE:
     - ${oilRule}
     - ${sugarRule}
     - ${glutenRule}
-    `;
+    ` + (publishedRecipesPromptSection ? `\n\n(Note: You may optionally mention related published recipes from the catalog using [Title](/recipe/<id>) strictly in your conversational introduction ABOVE # [Recipe Title], never inside the saved recipe block itself.)${publishedRecipesPromptSection}` : '');
 };
 // ----------------------------------------------------------------------
 // PHASE 2: THE DEEP DIVE CALCULATOR (0.1 TOKENS)

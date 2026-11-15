@@ -15,6 +15,11 @@ import { getRecipeDietaryFlags } from '../utils/dietaryUtils';
 import LiveChat from '../components/LiveChat';
 import ImageStyleOptions from '../components/RecipeDashboard/ImageStyleOptions';
 import ReactMarkdown from 'react-markdown';
+import EmmaMarkdown from '../components/EmmaMarkdown';
+import {
+  fetchPublishedRecipesCatalog,
+  buildPublishedRecipesPromptSection,
+} from '../utils/emmaRecipeContext';
 import NutritionPanel from '../components/NutritionPanel';
 import StarRating from '../components/StarRating';
 import CommentSection from '../components/CommentSection';
@@ -73,6 +78,19 @@ const RecipeDetails = () => {
   const [chatHistory, setChatHistory] = useState([]);
   const [isChatting, setIsChatting] = useState(false);
   const [showLiveChat, setShowLiveChat] = useState(false);
+  const [publishedCatalog, setPublishedCatalog] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+    fetchPublishedRecipesCatalog().then((catalog) => {
+      if (active && Array.isArray(catalog)) {
+        setPublishedCatalog(catalog);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Dynamic SEO, Open Graph, Twitter Card & Schema.org Recipe JSON-LD
   const recipeSeo = useMemo(() => {
@@ -250,12 +268,15 @@ const RecipeDetails = () => {
       setChatHistory(updatedHistory);
 
       try {
-          // We feed Emma the exact context of THIS recipe so she knows what she's talking about!
+          // We feed Emma the exact context of THIS recipe AND the published Vault catalog so she can link related dishes!
           const ingredientsList = recipe.ingredients?.map(i => i.ingredient_name).join(', ') || 'Unknown ingredients';
-          
+          const catalogToUse =
+            publishedCatalog.length > 0 ? publishedCatalog : await fetchPublishedRecipesCatalog();
+          const publishedSection = buildPublishedRecipesPromptSection(catalogToUse, 60);
+
           const systemPrompt = `You are Emma Advanced, a sassy British culinary expert and co-host of The Chris and Emma Show. 
           You are talking to ${currentUserName}.
-          The user is currently viewing the recipe: "${recipe.title}".
+          The user is currently viewing the recipe: "${recipe.title}" (ID ${recipe.id}).
           
           Recipe Context:
           Description: ${recipe.description || 'N/A'}
@@ -266,7 +287,8 @@ const RecipeDetails = () => {
           1. Answer their question about THIS specific recipe accurately, keeping your signature wit and charm. 
           2. CRITICAL: Be concise (1-3 sentences maximum), but NEVER sacrifice accuracy for brevity.
           3. Do not write introductory greetings. Just give the answer with a dash of sass.
-          4. If the user asks for the amount of a specific nutrient (e.g., Sodium, Vitamin C, Iron), you MUST perform the mathematical calculation based on the ingredients provided and give a precise numerical estimate (e.g., "roughly 45mg" or "about 12g"). Do NOT give vague answers like "a modest amount" or "a touch". Put your calculator to work!`;
+          4. If the user asks for the amount of a specific nutrient (e.g., Sodium, Vitamin C, Iron), you MUST perform the mathematical calculation based on the ingredients provided and give a precise numerical estimate (e.g., "roughly 45mg" or "about 12g"). Do NOT give vague answers like "a modest amount" or "a touch". Put your calculator to work!
+          5. If they ask for other recipe examples, side dishes, or variations from The Veggie Vault, recommend real published recipes from the catalog below and link to them using [Recipe Title](/recipe/<id>).${publishedSection}`;
 
           const reply = await sendChatMessage(updatedHistory, systemPrompt);
           setChatHistory([...updatedHistory, { role: 'model', parts: [{ text: reply }] }]);
@@ -1002,6 +1024,7 @@ const RecipeDetails = () => {
                     <div className="no-print" style={{ margin: '0 1.5rem 2rem 1.5rem' }}>
                         <LiveChat
                             recipeContext={`The user is currently viewing the recipe: "${recipe.title}". Ingredients: ${recipe.ingredients?.map(i => i.ingredient_name).join(', ')}`}
+                            publishedRecipesContext={buildPublishedRecipesPromptSection(publishedCatalog, 60, { vocalMode: true })}
                             chatContext={
                                 chatHistory.length > 0
                                     ? chatHistory
@@ -1035,7 +1058,7 @@ const RecipeDetails = () => {
                                         borderBottomRightRadius: msg.role === 'user' ? '2px' : '12px',
                                         borderBottomLeftRadius: msg.role === 'model' ? '2px' : '12px'
                                     }}>
-                                        <ReactMarkdown>{msg.parts[0].text}</ReactMarkdown>
+                                        <EmmaMarkdown>{msg.parts[0].text}</EmmaMarkdown>
                                     </div>
                                 </div>
                             ))}

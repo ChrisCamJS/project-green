@@ -1,7 +1,7 @@
 // src/components/RecipeDashboard/RecipeResult.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
+import EmmaMarkdown from '../EmmaMarkdown';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -135,20 +135,20 @@ const RecipeResult = ({
       }
 
       let calories = 0, protein_g = 0, carbs_g = 0, fat_g = 0, fiber_g = 0;
-      const calMatch = recipeMarkdown.match(/Calories:\s*(\d+)/i);
-      if (calMatch) calories = parseInt(calMatch[1], 10);
+      const calMatch = recipeMarkdown.match(/(?:\*\*|__)?Calories(?:\*\*|__)?:\s*(\d+(?:\.\d+)?)/i);
+      if (calMatch) calories = Math.round(parseFloat(calMatch[1]));
       
-      const proMatch = recipeMarkdown.match(/Protein:\s*(\d+)/i);
-      if (proMatch) protein_g = parseInt(proMatch[1], 10);
+      const proMatch = recipeMarkdown.match(/(?:\*\*|__)?Protein(?:\*\*|__)?:\s*(\d+(?:\.\d+)?)/i);
+      if (proMatch) protein_g = Math.round(parseFloat(proMatch[1]));
       
-      const carbMatch = recipeMarkdown.match(/Carbs:\s*(\d+)/i);
-      if (carbMatch) carbs_g = parseInt(carbMatch[1], 10);
+      const carbMatch = recipeMarkdown.match(/(?:\*\*|__)?Carbs?(?:\*\*|__)?:\s*(\d+(?:\.\d+)?)/i);
+      if (carbMatch) carbs_g = Math.round(parseFloat(carbMatch[1]));
       
-      const fatMatch = recipeMarkdown.match(/Fat:\s*(\d+)/i);
-      if (fatMatch) fat_g = parseInt(fatMatch[1], 10);
+      const fatMatch = recipeMarkdown.match(/(?:\*\*|__)?Fat(?:\*\*|__)?:\s*(\d+(?:\.\d+)?)/i);
+      if (fatMatch) fat_g = Math.round(parseFloat(fatMatch[1]));
 
-      const fiberMatch = recipeMarkdown.match(/Fiber:\s*(\d+)/i);
-      if (fiberMatch) fiber_g = parseInt(fiberMatch[1], 10);
+      const fiberMatch = recipeMarkdown.match(/(?:\*\*|__)?(?:Dietary\s+)?Fiber(?:\*\*|__)?:\s*(\d+(?:\.\d+)?)/i);
+      if (fiberMatch) fiber_g = Math.round(parseFloat(fiberMatch[1]) * 10) / 10;
 
       const parsedMicros = parseMicrosFromDeepDive(advancedMicros || '');
 
@@ -412,7 +412,7 @@ const RecipeResult = ({
         </div>
 
         <div className="recipe-content chat-markdown">
-          <ReactMarkdown>{recipeMarkdown}</ReactMarkdown>
+          <EmmaMarkdown>{recipeMarkdown}</EmmaMarkdown>
         </div>
       </div>
     );
@@ -630,7 +630,7 @@ const RecipeResult = ({
       )}
 
       <div className="recipe-content">
-        <ReactMarkdown>{recipeMarkdown}</ReactMarkdown>
+        <EmmaMarkdown>{recipeMarkdown}</EmmaMarkdown>
       </div>
 
       {!isChat && (!isDraft || advancedMicros || isCalculatingMicros) && (
@@ -648,7 +648,7 @@ const RecipeResult = ({
       {showDeepDive && advancedMicros && (
           <div className="advanced-micros-content">
               <h3>🔬 Emma's Deep Dive Analysis</h3>
-              <ReactMarkdown>{advancedMicros}</ReactMarkdown>
+              <EmmaMarkdown>{advancedMicros}</EmmaMarkdown>
           </div>
       )}
       

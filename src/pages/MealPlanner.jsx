@@ -1,7 +1,12 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
+import { sendChatMessage } from '../services/geminiApi';
+import { useAuth } from '../context/AuthContext';
+import { useEmmaVoice } from '../hooks/useEmmaVoice';
 import SEOHead from '../components/SEOHead';
+import EmmaMarkdown from '../components/EmmaMarkdown';
+import LiveChat from '../components/LiveChat';
 import {
   MEAL_SLOTS,
   getMealSlotMeta,
@@ -10,6 +15,16 @@ import {
   addDaysYMD,
   resolveRecipeImageUrl,
 } from '../utils/mealPlanUtils';
+import { getRecipeDietaryFlags } from '../utils/dietaryUtils';
+import {
+  COMMON_NUTRIENT_TARGETS,
+  MEAL_PLANNER_LIVE_TOOLS,
+  aggregateDailyNutrients,
+  buildMealPlannerEmmaSystemPrompt,
+  extractMealPlanActions,
+  fetchPublishedRecipesCatalog,
+  resolveRecipeFiberGrams,
+} from '../utils/emmaRecipeContext';
 import './MealPlanner.css';
 
 const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -75,14 +90,29 @@ const getVisibleRange = (viewMode, anchorDateYmd) => {
   };
 };
 
+const QUICK_CONCIERGE_PROMPTS = [
+  'Suggest 4 delicious recipes from the Vault with links',
+  'Fill in Gluten-Free dinners for this week',
+  'Plan a high-protein full day of meals for today',
+  'Which vitamins or minerals am I low on today?',
+];
+
 export default function MealPlanner() {
   const todayYmd = formatDateYMD(new Date());
+  const { user, confirmTokenUsage } = useAuth();
+  const { speechState, handleSpeak } = useEmmaVoice();
+  const currentUserName = user?.username || 'Love';
 
   const [viewMode, setViewMode] = useState('month'); // 'month' | 'week' | 'day'
   const [anchorDate, setAnchorDate] = useState(todayYmd);
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Per-recipe detailed nutrition cache (hydrates micros/fiber even before backend upgrade)
+  const [recipeDetailsMap, setRecipeDetailsMap] = useState({});
+  const requestedRecipeDetailsRef = useRef(new Set());
+  const [showAllDailyMicros, setShowAllDailyMicros] = useState(false);
 
   // Add Recipe Picker modal state
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -106,10 +136,93 @@ export default function MealPlanner() {
   const [editNotes, setEditNotes] = useState('');
   const [editSaving, setEditSaving] = useState(false);
 
+  // Emma Meal Planning Concierge state (Text Chat + Live Audio Mode)
+  const [conciergeOpen, setConciergeOpen] = useState(true);
+  const [conciergeMode, setConciergeMode] = useState('chat'); // 'chat' | 'live'
+  const [emmaChatHistory, setEmmaChatHistory] = useState([]);
+  const [emmaInput, setEmmaInput] = useState('');
+  const [emmaBusy, setEmmaBusy] = useState(false);
+  const [emmaError, setEmmaError] = useState(null);
+  const [livePreConfirmed, setLivePreConfirmed] = useState(false);
+  const [liveActionLog, setLiveActionLog] = useState([]);
+
+  const entriesRef = useRef(entries);
+  entriesRef.current = entries;
+  const plannableRecipesRef = useRef(plannableRecipes);
+  plannableRecipesRef.current = plannableRecipes;
+  const chatScrollRef = useRef(null);
+
   const visibleRange = useMemo(
     () => getVisibleRange(viewMode, anchorDate),
     [viewMode, anchorDate]
   );
+
+  const ensurePlannableRecipes = useCallback(async (force = false) => {
+    if (!force && plannableRecipesRef.current.length > 0) {
+      return plannableRecipesRef.current;
+    }
+    setRecipesLoading(true);
+    try {
+      const [plannableRes, publicCatalog] = await Promise.allSettled([
+        api.getPlannableRecipes(),
+        fetchPublishedRecipesCatalog(force),
+      ]);
+
+      const rawPlannable =
+        plannableRes.status === 'fulfilled' && Array.isArray(plannableRes.value?.recipes)
+          ? plannableRes.value.recipes
+          : [];
+      const rawPublic =
+        publicCatalog.status === 'fulfilled' && Array.isArray(publicCatalog.value)
+          ? publicCatalog.value
+          : [];
+
+      const publicById = new Map(rawPublic.map((r) => [Number(r.id), r]));
+
+      let merged = [];
+      if (rawPlannable.length > 0) {
+        merged = rawPlannable.map((r) => {
+          const pub = publicById.get(Number(r.id));
+          const combined = {
+            ...pub,
+            ...r,
+            ingredients:
+              Array.isArray(r.ingredients) && r.ingredients.length > 0
+                ? r.ingredients
+                : pub?.ingredients || [],
+          };
+          const flags = getRecipeDietaryFlags(combined, { useGlutenHeuristicFallback: true });
+          return {
+            ...combined,
+            isOilFree: flags.oilFree,
+            isGlutenFree: flags.glutenFree,
+            isSugarFree: flags.sugarFree,
+            dietary: flags,
+          };
+        });
+      } else {
+        merged = rawPublic.map((pub) => ({
+          ...pub,
+          id: Number(pub.id),
+          isPublic: true,
+          isDraft: false,
+          isOwn: false,
+        }));
+      }
+
+      setPlannableRecipes(merged);
+      return merged;
+    } catch (err) {
+      setPickerError(err.message || 'Could not load recipes.');
+      return plannableRecipesRef.current;
+    } finally {
+      setRecipesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    ensurePlannableRecipes();
+  }, [ensurePlannableRecipes]);
 
   const loadMealPlans = useCallback(async () => {
     setLoading(true);
@@ -128,6 +241,45 @@ export default function MealPlanner() {
     loadMealPlans();
   }, [loadMealPlans]);
 
+  // Hydrate missing micros/notes/fiber for planned recipes via single-recipe endpoint
+  useEffect(() => {
+    const missingIds = Array.from(
+      new Set(
+        entries
+          .filter(
+            (e) =>
+              e.recipeId &&
+              (!Array.isArray(e.micros) || e.micros.length === 0) &&
+              !recipeDetailsMap[e.recipeId] &&
+              !requestedRecipeDetailsRef.current.has(e.recipeId)
+          )
+          .map((e) => Number(e.recipeId))
+      )
+    );
+
+    if (missingIds.length === 0) return undefined;
+
+    missingIds.forEach((id) => requestedRecipeDetailsRef.current.add(id));
+    let cancelled = false;
+
+    Promise.allSettled(missingIds.map((id) => api.getRecipesById(id))).then((results) => {
+      if (cancelled) return;
+      const additions = {};
+      results.forEach((res, idx) => {
+        if (res.status === 'fulfilled' && res.value && !res.value.error) {
+          additions[missingIds[idx]] = res.value;
+        }
+      });
+      if (Object.keys(additions).length > 0) {
+        setRecipeDetailsMap((prev) => ({ ...prev, ...additions }));
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [entries, recipeDetailsMap]);
+
   useEffect(() => {
     const onMealPlanUpdated = () => {
       loadMealPlans();
@@ -135,6 +287,12 @@ export default function MealPlanner() {
     window.addEventListener('veggie-vault:meal-plan-updated', onMealPlanUpdated);
     return () => window.removeEventListener('veggie-vault:meal-plan-updated', onMealPlanUpdated);
   }, [loadMealPlans]);
+
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [emmaChatHistory, emmaBusy]);
 
   const entriesByDate = useMemo(() => {
     const grouped = {};
@@ -171,15 +329,7 @@ export default function MealPlanner() {
     setPickerError(null);
     setPickerOpen(true);
 
-    setRecipesLoading(true);
-    try {
-      const res = await api.getPlannableRecipes();
-      setPlannableRecipes(Array.isArray(res?.recipes) ? res.recipes : []);
-    } catch (err) {
-      setPickerError(err.message || 'Could not load recipes.');
-    } finally {
-      setRecipesLoading(false);
-    }
+    await ensurePlannableRecipes(plannableRecipes.length === 0);
   };
 
   const handleAddFromPicker = async (e) => {
@@ -275,24 +425,389 @@ export default function MealPlanner() {
     [plannableRecipes]
   );
 
-  // Day view summary stats
+  const resolvedDetailsMap = useMemo(() => {
+    const merged = {};
+    plannableRecipes.forEach((r) => {
+      if (r?.id) {
+        merged[r.id] = r;
+      }
+    });
+    Object.entries(recipeDetailsMap).forEach(([id, detail]) => {
+      merged[id] = { ...(merged[id] || {}), ...detail };
+    });
+    return merged;
+  }, [plannableRecipes, recipeDetailsMap]);
+
+  // Day view & visible range nutrient intake stats
   const dayEntries = useMemo(
     () => entriesByDate[anchorDate] || [],
     [entriesByDate, anchorDate]
   );
-  const dayNutritionTotals = useMemo(() => {
-    return dayEntries.reduce(
-      (acc, item) => {
-        const mult = Number(item.servings || 1);
-        acc.calories += Math.round((Number(item.calories) || 0) * mult);
-        acc.protein += Math.round((Number(item.protein_g) || 0) * mult);
-        acc.carbs += Math.round((Number(item.carbs_g) || 0) * mult);
-        acc.fat += Math.round((Number(item.fat_g) || 0) * mult);
-        return acc;
-      },
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    );
-  }, [dayEntries]);
+
+  const dayNutritionTotals = useMemo(
+    () => aggregateDailyNutrients(dayEntries, resolvedDetailsMap),
+    [dayEntries, resolvedDetailsMap]
+  );
+
+  const nutrientsByDate = useMemo(() => {
+    const map = {};
+    for (const ymd of visibleRange.days) {
+      const list = entriesByDate[ymd] || [];
+      if (list.length > 0) {
+        map[ymd] = aggregateDailyNutrients(list, resolvedDetailsMap);
+      }
+    }
+    return map;
+  }, [visibleRange.days, entriesByDate, resolvedDetailsMap]);
+
+  // Execute meal plan calendar actions requested by Emma (Text Chat OR Live Audio)
+  const executeMealPlanActions = useCallback(
+    async (actions = []) => {
+      if (!Array.isArray(actions) || actions.length === 0) {
+        return { appliedCount: 0, summaries: [], errors: [] };
+      }
+
+      const catalog =
+        plannableRecipesRef.current.length > 0
+          ? plannableRecipesRef.current
+          : await ensurePlannableRecipes();
+      const recipeById = new Map(catalog.map((r) => [Number(r.id), r]));
+
+      const normalizeSlot = (slot) => {
+        const s = String(slot || 'dinner').toLowerCase().trim();
+        return ['breakfast', 'lunch', 'dinner', 'snack'].includes(s) ? s : 'dinner';
+      };
+
+      const isValidYmd = (val) => /^\d{4}-\d{2}-\d{2}$/.test(String(val || '').trim());
+
+      const resolveRecipe = (act) => {
+        const numericId = Number(act?.recipe_id);
+        if (numericId > 0 && recipeById.has(numericId)) {
+          return recipeById.get(numericId);
+        }
+        const rawTitle = String(act?.recipe_title || act?.title || '').trim().toLowerCase();
+        if (rawTitle) {
+          return catalog.find((r) => (r.title || '').toLowerCase() === rawTitle) || null;
+        }
+        return null;
+      };
+
+      const summaries = [];
+      const errors = [];
+      let appliedCount = 0;
+
+      for (const act of actions) {
+        const actionType = String(act?.action || '').toLowerCase().trim();
+
+        if (actionType === 'add') {
+          const matchedRecipe = resolveRecipe(act);
+          const planDate = String(act?.plan_date || '').trim();
+          const mealSlot = normalizeSlot(act?.meal_slot);
+          const servings = Math.max(0.5, Math.min(20, Number(act?.servings) || 1));
+          const notes = String(act?.notes || '').trim().slice(0, 200);
+
+          if (!matchedRecipe || !isValidYmd(planDate)) {
+            errors.push(`Skipped invalid add request (recipe_id=${act?.recipe_id}, date=${planDate})`);
+            continue;
+          }
+
+          try {
+            const res = await api.addMealPlanEntry({
+              recipe_id: Number(matchedRecipe.id),
+              plan_date: planDate,
+              meal_slot: mealSlot,
+              servings,
+              notes,
+            });
+            if (res?.success) {
+              appliedCount += 1;
+              const slotMeta = getMealSlotMeta(mealSlot);
+              summaries.push(`Added "${matchedRecipe.title}" to ${slotMeta.label} on ${planDate}`);
+            } else {
+              errors.push(res?.message || `Could not add "${matchedRecipe.title}" on ${planDate}`);
+            }
+          } catch (err) {
+            errors.push(err?.message || `Failed to add "${matchedRecipe.title}"`);
+          }
+          continue;
+        }
+
+        if (actionType === 'update') {
+          const entryId = Number(act?.entry_id);
+          if (!entryId) {
+            errors.push('Skipped update without valid entry_id');
+            continue;
+          }
+          const existing = entriesRef.current.find((e) => Number(e.id) === entryId);
+          const payload = {
+            id: entryId,
+            plan_date: isValidYmd(act?.plan_date) ? act.plan_date.trim() : existing?.planDate,
+            meal_slot: act?.meal_slot ? normalizeSlot(act.meal_slot) : existing?.mealSlot || 'dinner',
+            servings:
+              act?.servings !== undefined
+                ? Math.max(0.5, Math.min(20, Number(act.servings) || 1))
+                : Number(existing?.servings || 1),
+            notes: act?.notes !== undefined ? String(act.notes || '').trim().slice(0, 200) : existing?.notes || '',
+          };
+          if (act?.recipe_id) {
+            const matched = resolveRecipe(act);
+            if (matched) payload.recipe_id = Number(matched.id);
+          }
+
+          try {
+            const res = await api.updateMealPlanEntry(payload);
+            if (res?.success) {
+              appliedCount += 1;
+              summaries.push(`Updated meal #${entryId} (${payload.meal_slot} on ${payload.plan_date})`);
+            } else {
+              errors.push(res?.message || `Could not update entry #${entryId}`);
+            }
+          } catch (err) {
+            errors.push(err?.message || `Failed to update entry #${entryId}`);
+          }
+          continue;
+        }
+
+        if (actionType === 'remove') {
+          const entryId = Number(act?.entry_id);
+          if (!entryId) continue;
+          const existing = entriesRef.current.find((e) => Number(e.id) === entryId);
+          try {
+            const res = await api.deleteMealPlanEntry(entryId);
+            if (res?.success) {
+              appliedCount += 1;
+              summaries.push(
+                existing
+                  ? `Removed "${existing.title}" from ${existing.planDate}`
+                  : `Removed meal #${entryId}`
+              );
+            }
+          } catch (err) {
+            errors.push(err?.message || `Failed to remove entry #${entryId}`);
+          }
+          continue;
+        }
+
+        if (actionType === 'clear_day') {
+          const planDate = String(act?.plan_date || '').trim();
+          const slotFilter = act?.meal_slot ? normalizeSlot(act.meal_slot) : null;
+          if (!isValidYmd(planDate)) continue;
+
+          let dateEntries = entriesRef.current.filter((e) => e.planDate === planDate);
+          if (dateEntries.length === 0) {
+            try {
+              const res = await api.getMealPlans(planDate, planDate);
+              if (Array.isArray(res?.entries)) {
+                dateEntries = res.entries;
+              }
+            } catch {
+              dateEntries = [];
+            }
+          }
+
+          const toDelete = slotFilter
+            ? dateEntries.filter((e) => e.mealSlot === slotFilter)
+            : dateEntries;
+
+          for (const item of toDelete) {
+            try {
+              const delRes = await api.deleteMealPlanEntry(item.id);
+              if (delRes?.success) {
+                appliedCount += 1;
+                summaries.push(`Removed "${item.title}" from ${planDate} (${item.mealSlot})`);
+              }
+            } catch (err) {
+              errors.push(err?.message || `Failed to remove "${item.title}"`);
+            }
+          }
+        }
+      }
+
+      if (appliedCount > 0) {
+        await loadMealPlans();
+      }
+
+      return { appliedCount, summaries, errors };
+    },
+    [ensurePlannableRecipes, loadMealPlans]
+  );
+
+  // Live Audio Mode tool-call handler for Gemini BidiGenerateContent
+  const handleLiveToolCall = useCallback(
+    async (functionCall) => {
+      const name = functionCall?.name;
+      const args = functionCall?.args || {};
+
+      if (name === 'schedule_meal_plan_entries') {
+        const requested = Array.isArray(args.entries) ? args.entries : [];
+        const actions = requested.map((e) => ({ action: 'add', ...e }));
+        const result = await executeMealPlanActions(actions);
+        if (result.summaries.length > 0) {
+          setLiveActionLog((prev) => [...result.summaries, ...prev].slice(0, 12));
+        }
+        return {
+          success: result.appliedCount > 0,
+          scheduledCount: result.appliedCount,
+          details: result.summaries,
+          errors: result.errors,
+        };
+      }
+
+      if (name === 'update_meal_plan_entry') {
+        const result = await executeMealPlanActions([{ action: 'update', ...args }]);
+        if (result.summaries.length > 0) {
+          setLiveActionLog((prev) => [...result.summaries, ...prev].slice(0, 12));
+        }
+        return {
+          success: result.appliedCount > 0,
+          updatedCount: result.appliedCount,
+          details: result.summaries,
+          errors: result.errors,
+        };
+      }
+
+      if (name === 'remove_meal_plan_entries') {
+        const actions = [];
+        if (Array.isArray(args.entry_ids)) {
+          args.entry_ids.forEach((id) => {
+            if (Number(id) > 0) {
+              actions.push({ action: 'remove', entry_id: Number(id) });
+            }
+          });
+        }
+        if (args.clear_date) {
+          actions.push({
+            action: 'clear_day',
+            plan_date: args.clear_date,
+            meal_slot: args.meal_slot || undefined,
+          });
+        }
+        const result = await executeMealPlanActions(actions);
+        if (result.summaries.length > 0) {
+          setLiveActionLog((prev) => [...result.summaries, ...prev].slice(0, 12));
+        }
+        return {
+          success: result.appliedCount > 0,
+          removedCount: result.appliedCount,
+          details: result.summaries,
+          errors: result.errors,
+        };
+      }
+
+      return { success: false, message: `Unknown tool: ${name}` };
+    },
+    [executeMealPlanActions]
+  );
+
+  const handleConciergeModeSwitch = async (nextMode) => {
+    if (nextMode === conciergeMode) return;
+    if (nextMode === 'live') {
+      const confirmed = await confirmTokenUsage(
+        1,
+        'Entering Live Audio Mode on your Meal Planner'
+      );
+      if (!confirmed) return;
+      setLivePreConfirmed(true);
+    }
+    setConciergeMode(nextMode);
+  };
+
+  const mealPlannerLiveContext = useMemo(
+    () =>
+      buildMealPlannerEmmaSystemPrompt({
+        userName: currentUserName,
+        viewMode,
+        visibleRange,
+        todayYmd,
+        entries,
+        plannableRecipes,
+        dailyNutrientSummary: dayNutritionTotals,
+        focusedDateYmd: anchorDate,
+        vocalMode: true,
+      }),
+    [
+      currentUserName,
+      viewMode,
+      visibleRange,
+      todayYmd,
+      entries,
+      plannableRecipes,
+      dayNutritionTotals,
+      anchorDate,
+    ]
+  );
+
+  const sendConciergeMessage = async (promptText) => {
+    const trimmed = String(promptText || '').trim();
+    if (!trimmed || emmaBusy) return;
+
+    setEmmaInput('');
+    setEmmaError(null);
+    setEmmaBusy(true);
+
+    const nextHistory = [
+      ...emmaChatHistory,
+      { role: 'user', parts: [{ text: trimmed }], displayText: trimmed },
+    ];
+    setEmmaChatHistory(nextHistory);
+
+    try {
+      const activeRecipes = await ensurePlannableRecipes();
+      const systemInstructions = buildMealPlannerEmmaSystemPrompt({
+        userName: currentUserName,
+        viewMode,
+        visibleRange,
+        todayYmd,
+        entries: entriesRef.current,
+        plannableRecipes: activeRecipes,
+        dailyNutrientSummary: dayNutritionTotals,
+        focusedDateYmd: anchorDate,
+        vocalMode: false,
+      });
+
+      const apiHistory = nextHistory.map(({ role, parts }) => ({ role, parts }));
+      const rawReply = await sendChatMessage(apiHistory, systemInstructions);
+      const { cleanText, actions } = extractMealPlanActions(rawReply);
+
+      let executionResult = { appliedCount: 0, summaries: [], errors: [] };
+      if (actions.length > 0) {
+        executionResult = await executeMealPlanActions(actions);
+      }
+
+      setEmmaChatHistory([
+        ...nextHistory,
+        {
+          role: 'model',
+          parts: [{ text: rawReply }],
+          displayText:
+            cleanText ||
+            (executionResult.appliedCount > 0
+              ? 'Sorted! I have updated your meal plan calendar.'
+              : rawReply),
+          appliedActions: executionResult.summaries,
+          actionErrors: executionResult.errors,
+        },
+      ]);
+    } catch (err) {
+      const errorMsg = err?.message || 'Emma hit a snag connecting to the kitchen. Try again, love.';
+      setEmmaError(errorMsg);
+      setEmmaChatHistory([
+        ...nextHistory,
+        {
+          role: 'model',
+          parts: [{ text: 'Oh dear, my connection to the kitchen sputtered. Could you ask that again, darling?' }],
+          displayText: 'Oh dear, my connection to the kitchen sputtered. Could you ask that again, darling?',
+        },
+      ]);
+    } finally {
+      setEmmaBusy(false);
+    }
+  };
+
+  const handleConciergeSubmit = (e) => {
+    e.preventDefault();
+    sendConciergeMessage(emmaInput);
+  };
 
   return (
     <div className="meal-planner-page">
@@ -306,17 +821,187 @@ export default function MealPlanner() {
         <div>
           <h1>📅 My Meal Planner</h1>
           <p>
-            Schedule any published Masterpiece or your own private draft recipes across your Day, Week, or Month calendar.
+            Schedule any published Masterpiece or your own private draft recipes, track daily calories &amp; common nutrients, or ask Emma to plan your week.
           </p>
         </div>
-        <button
-          type="button"
-          className="mp-primary-add-btn"
-          onClick={() => openPickerModal(anchorDate, 'dinner')}
-        >
-          ➕ Add Meal to Plan
-        </button>
+        <div className="mp-top-header-actions">
+          <button
+            type="button"
+            className={`mp-emma-toggle-btn ${conciergeOpen ? 'active' : ''}`}
+            onClick={() => setConciergeOpen((prev) => !prev)}
+          >
+            👩‍🍳 {conciergeOpen ? 'Hide Emma Concierge' : 'Ask Emma to Plan'}
+          </button>
+          <button
+            type="button"
+            className="mp-primary-add-btn"
+            onClick={() => openPickerModal(anchorDate, 'dinner')}
+          >
+            ➕ Add Meal to Plan
+          </button>
+        </div>
       </div>
+
+      {/* EMMA'S MEAL PLANNING CONCIERGE (CHAT + LIVE AUDIO MODE) */}
+      {conciergeOpen && (
+        <section className="mp-emma-concierge-card" aria-label="Emma Meal Planning Concierge">
+          <div className="mp-emma-header">
+            <div className="mp-emma-title-block">
+              <span className="mp-emma-avatar" aria-hidden="true">👩‍🍳</span>
+              <div>
+                <h2>Emma&apos;s Meal Planning Concierge</h2>
+                <p>
+                  Full access to {plannableRecipes.length} Vault recipes &amp; your calendar — ask for recipe links, nutrition advice, or tell Emma to fill in days!
+                </p>
+              </div>
+            </div>
+
+            <div className="mp-emma-mode-tabs" role="group" aria-label="Emma concierge mode">
+              <button
+                type="button"
+                className={`mp-emma-mode-btn ${conciergeMode === 'chat' ? 'active' : ''}`}
+                onClick={() => handleConciergeModeSwitch('chat')}
+              >
+                💬 Text Chat
+              </button>
+              <button
+                type="button"
+                className={`mp-emma-mode-btn live ${conciergeMode === 'live' ? 'active' : ''}`}
+                onClick={() => handleConciergeModeSwitch('live')}
+                title="Talk live with Emma and let her populate your calendar in real time (1 Token per session)"
+              >
+                🎙️ Live Audio Mode (1 Token)
+              </button>
+            </div>
+          </div>
+
+          {conciergeMode === 'chat' ? (
+            <>
+              <div className="mp-emma-quick-chips">
+                {QUICK_CONCIERGE_PROMPTS.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    className="mp-emma-chip-btn"
+                    onClick={() => sendConciergeMessage(suggestion)}
+                    disabled={emmaBusy}
+                  >
+                    ✨ {suggestion}
+                  </button>
+                ))}
+              </div>
+
+              {emmaChatHistory.length > 0 && (
+                <div className="mp-emma-chat-window" ref={chatScrollRef}>
+                  {emmaChatHistory.map((msg, idx) => {
+                    if (msg.role === 'user') {
+                      return (
+                        <div key={idx} className="mp-emma-msg user">
+                          <div className="mp-emma-msg-bubble user">
+                            <strong>{currentUserName}:</strong> {msg.displayText}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={idx} className="mp-emma-msg model">
+                        <div className="mp-emma-msg-bubble model">
+                          <div className="mp-emma-msg-top">
+                            <strong>Emma</strong>
+                            <button
+                              type="button"
+                              className="mp-emma-speak-btn"
+                              onClick={() => handleSpeak(msg.displayText)}
+                              title="Listen to Emma"
+                            >
+                              {speechState === 'playing' ? '⏸️' : '🔊'}
+                            </button>
+                          </div>
+                          <div className="mp-emma-msg-markdown">
+                            <EmmaMarkdown>{msg.displayText}</EmmaMarkdown>
+                          </div>
+                          {Array.isArray(msg.appliedActions) && msg.appliedActions.length > 0 && (
+                            <div className="mp-emma-applied-actions">
+                              <strong>📅 Calendar Updated:</strong>
+                              <ul>
+                                {msg.appliedActions.map((line, i) => (
+                                  <li key={i}>{line}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {Array.isArray(msg.actionErrors) && msg.actionErrors.length > 0 && (
+                            <div className="mp-emma-action-warnings">
+                              {msg.actionErrors.map((errLine, i) => (
+                                <div key={i}>⚠️ {errLine}</div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {emmaBusy && (
+                    <div className="mp-emma-msg model">
+                      <div className="mp-emma-msg-bubble model typing">
+                        Emma is checking the Vault recipes and your calendar...
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {emmaError && (
+                <div className="mp-error-banner" role="alert">
+                  {emmaError}
+                </div>
+              )}
+
+              <form className="mp-emma-chat-form" onSubmit={handleConciergeSubmit}>
+                <input
+                  type="text"
+                  value={emmaInput}
+                  onChange={(e) => setEmmaInput(e.target.value)}
+                  placeholder="E.g., Fill in Mon–Fri dinners with Gluten-Free meals, or show me iron-rich recipe links..."
+                  className="mp-emma-chat-input"
+                  disabled={emmaBusy}
+                />
+                <button
+                  type="submit"
+                  className="mp-emma-send-btn"
+                  disabled={emmaBusy || !emmaInput.trim()}
+                >
+                  {emmaBusy ? 'Planning...' : 'Ask Emma'}
+                </button>
+              </form>
+            </>
+          ) : (
+            <div className="mp-emma-live-container">
+              <p className="mp-emma-live-hint">
+                Speak naturally — ask Emma to suggest recipes from The Veggie Vault or tell her to fill in specific days and meal slots on your calendar while you talk!
+              </p>
+              <LiveChat
+                mealPlanContext={mealPlannerLiveContext}
+                tools={MEAL_PLANNER_LIVE_TOOLS}
+                onToolCall={handleLiveToolCall}
+                preConfirmed={livePreConfirmed}
+              />
+              {liveActionLog.length > 0 && (
+                <div className="mp-emma-applied-actions">
+                  <strong>📅 Live Calendar Updates:</strong>
+                  <ul>
+                    {liveActionLog.map((item, idx) => (
+                      <li key={idx}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Controls Bar */}
       <div className="mp-controls-bar">
@@ -386,6 +1071,7 @@ export default function MealPlanner() {
                   const isToday = ymd === todayYmd;
                   const isOutside = dt.getMonth() !== visibleRange.activeMonth;
                   const dayMeals = entriesByDate[ymd] || [];
+                  const dayStats = nutrientsByDate[ymd];
                   const visibleMeals = dayMeals.slice(0, 3);
                   const hiddenCount = dayMeals.length - visibleMeals.length;
 
@@ -395,17 +1081,24 @@ export default function MealPlanner() {
                       className={`mp-month-cell ${isToday ? 'is-today' : ''} ${isOutside ? 'is-outside' : ''}`}
                     >
                       <div className="mp-month-cell-top">
-                        <button
-                          type="button"
-                          className="mp-month-day-num"
-                          onClick={() => {
-                            setAnchorDate(ymd);
-                            setViewMode('day');
-                          }}
-                          title="Open Day View"
-                        >
-                          {dt.getDate()}
-                        </button>
+                        <div className="mp-month-cell-left">
+                          <button
+                            type="button"
+                            className="mp-month-day-num"
+                            onClick={() => {
+                              setAnchorDate(ymd);
+                              setViewMode('day');
+                            }}
+                            title="Open Day View & Daily Nutrients"
+                          >
+                            {dt.getDate()}
+                          </button>
+                          {dayStats?.calories > 0 && (
+                            <span className="mp-month-kcal-pill" title={`Fiber: ${dayStats.fiber}g • Protein: ${dayStats.protein}g`}>
+                              {dayStats.calories} kcal
+                            </span>
+                          )}
+                        </div>
                         <button
                           type="button"
                           className="mp-month-cell-add"
@@ -473,10 +1166,7 @@ export default function MealPlanner() {
                 const dt = parseDateYMD(ymd);
                 const isToday = ymd === todayYmd;
                 const dayMeals = entriesByDate[ymd] || [];
-                const dayCals = dayMeals.reduce(
-                  (sum, m) => sum + Math.round((Number(m.calories) || 0) * Number(m.servings || 1)),
-                  0
-                );
+                const dayStats = nutrientsByDate[ymd];
 
                 return (
                   <div key={ymd} className={`mp-week-day-col ${isToday ? 'is-today' : ''}`}>
@@ -506,8 +1196,35 @@ export default function MealPlanner() {
                       </button>
                     </div>
 
-                    {dayCals > 0 && (
-                      <div className="mp-week-cals-bar">🔥 {dayCals} kcal planned</div>
+                    {dayStats && dayStats.totalMeals > 0 && (
+                      <div className="mp-week-nutrition-box">
+                        <div className="mp-week-cals-bar">🔥 {dayStats.calories} kcal planned</div>
+                        <div className="mp-week-macro-mini">
+                          <span>💪 {Math.round(dayStats.protein)}g P</span>
+                          <span>🥖 {Math.round(dayStats.carbs)}g C</span>
+                          <span>🥑 {Math.round(dayStats.fat)}g F</span>
+                          <span>🌾 {Math.round(dayStats.fiber)}g Fiber</span>
+                        </div>
+                        {dayStats.micros.length > 0 && (
+                          <div className="mp-week-micro-pills">
+                            {dayStats.micros.slice(0, 3).map((m) => (
+                              <span key={m.key} title={`${m.name}: ${m.amount}${m.unit}`}>
+                                {m.name}: {m.dvPercent}%
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          className="mp-week-nutrients-link"
+                          onClick={() => {
+                            setAnchorDate(ymd);
+                            setViewMode('day');
+                          }}
+                        >
+                          View Daily Nutrients &rarr;
+                        </button>
+                      </div>
                     )}
 
                     <div className="mp-week-meals-list">
@@ -579,18 +1296,104 @@ export default function MealPlanner() {
           {/* DAY VIEW */}
           {viewMode === 'day' && (
             <section className="mp-day-view" aria-label="Daily meal plan">
-              <div className="mp-day-summary-bar">
-                <div className="mp-day-summary-count">
-                  <strong>{dayEntries.length}</strong>{' '}
-                  {dayEntries.length === 1 ? 'Meal Planned' : 'Meals Planned'}
-                </div>
-                {dayNutritionTotals.calories > 0 && (
-                  <div className="mp-day-macro-pills">
-                    <span>🔥 {dayNutritionTotals.calories} kcal</span>
-                    <span>💪 {dayNutritionTotals.protein}g Protein</span>
-                    <span>🥖 {dayNutritionTotals.carbs}g Carbs</span>
-                    <span>🥑 {dayNutritionTotals.fat}g Fat</span>
+              <div className="mp-nutrition-dashboard">
+                <div className="mp-day-summary-bar">
+                  <div className="mp-day-summary-count">
+                    <strong>{dayEntries.length}</strong>{' '}
+                    {dayEntries.length === 1 ? 'Meal Planned' : 'Meals Planned'}
                   </div>
+                  <div className="mp-day-summary-kcal-badge">
+                    🔥 {dayNutritionTotals.calories} kcal Daily Total
+                  </div>
+                </div>
+
+                {dayEntries.length > 0 && (
+                  <>
+                    <div className="mp-macro-cards-grid">
+                      {Object.values(COMMON_NUTRIENT_TARGETS).map((spec) => {
+                        const val = Number(dayNutritionTotals[spec.key] || 0);
+                        const pct = spec.target > 0 ? Math.round((val / spec.target) * 100) : 0;
+                        const fillWidth = Math.min(100, pct);
+                        return (
+                          <div key={spec.key} className="mp-macro-stat-card">
+                            <div className="mp-macro-card-top">
+                              <span>{spec.icon} {spec.label}</span>
+                              <span className="mp-dv-pill">{pct}% DV</span>
+                            </div>
+                            <div className="mp-macro-card-val">
+                              <strong>{val}</strong> {spec.unit}
+                            </div>
+                            <div className="mp-progress-track">
+                              <div
+                                className={`mp-progress-fill ${pct >= 80 ? 'high' : pct >= 40 ? 'mid' : ''}`}
+                                style={{ width: `${fillWidth}%` }}
+                              />
+                            </div>
+                            <span className="mp-target-sub">Target: {spec.target} {spec.unit}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mp-micro-intake-section">
+                      <div className="mp-micro-intake-header">
+                        <h3>🧬 Daily Intake of Common Nutrients</h3>
+                        {dayNutritionTotals.micros.length > 8 && (
+                          <button
+                            type="button"
+                            className="mp-micro-expand-btn"
+                            onClick={() => setShowAllDailyMicros((prev) => !prev)}
+                          >
+                            {showAllDailyMicros
+                              ? 'Show Top 8 Nutrients'
+                              : `Show All ${dayNutritionTotals.micros.length} Nutrients`}
+                          </button>
+                        )}
+                      </div>
+
+                      {dayNutritionTotals.micros.length === 0 ? (
+                        <p className="mp-micro-empty-note">
+                          No detailed micronutrient entries found on today&apos;s scheduled recipes yet. Recipes with Masterpiece Nutrition Deep Dive will automatically populate vitamins &amp; minerals here.
+                        </p>
+                      ) : (
+                        <div className="mp-micro-grid">
+                          {(showAllDailyMicros
+                            ? dayNutritionTotals.micros
+                            : dayNutritionTotals.micros.slice(0, 8)
+                          ).map((micro) => (
+                            <div key={micro.key} className="mp-micro-card">
+                              <div className="mp-micro-card-top">
+                                <strong>{micro.name}</strong>
+                                <span
+                                  className={`mp-micro-dv-badge ${
+                                    micro.dvPercent >= 75
+                                      ? 'great'
+                                      : micro.dvPercent >= 35
+                                        ? 'good'
+                                        : 'low'
+                                  }`}
+                                >
+                                  {micro.dvPercent}% DV
+                                </span>
+                              </div>
+                              <div className="mp-micro-amount">
+                                {micro.amount} {micro.unit}
+                                {micro.dvTarget ? ` / ${micro.dvTarget} ${micro.unit}` : ''}
+                              </div>
+                              <div className="mp-progress-track">
+                                <div
+                                  className={`mp-progress-fill ${
+                                    micro.dvPercent >= 75 ? 'high' : micro.dvPercent >= 35 ? 'mid' : ''
+                                  }`}
+                                  style={{ width: `${Math.min(100, micro.dvPercent)}%` }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -618,67 +1421,76 @@ export default function MealPlanner() {
                         </p>
                       ) : (
                         <div className="mp-day-meals-list">
-                          {slotMeals.map((meal) => (
-                            <article key={meal.id} className="mp-day-meal-row">
-                              <Link to={`/recipe/${meal.recipeId}`} className="mp-day-meal-img-link">
-                                <img
-                                  src={resolveRecipeImageUrl(meal)}
-                                  alt={meal.title}
-                                  className="mp-day-meal-img"
-                                  onError={(e) => {
-                                    e.currentTarget.src = '/og-vault-preview.jpeg';
-                                  }}
-                                />
-                              </Link>
-
-                              <div className="mp-day-meal-info">
-                                <div className="mp-day-meal-badges">
-                                  <span className={`mp-status-pill ${meal.isDraft ? 'draft' : 'published'}`}>
-                                    {meal.isDraft ? '🔒 Private Draft' : '🌟 Published'}
-                                  </span>
-                                  <span className="mp-servings-pill">
-                                    🍽️ {Number(meal.servings)} serving{Number(meal.servings) === 1 ? '' : 's'}
-                                  </span>
-                                </div>
-
-                                <Link to={`/recipe/${meal.recipeId}`} className="mp-day-meal-title">
-                                  {meal.title}
+                          {slotMeals.map((meal) => {
+                            const detail = resolvedDetailsMap[meal.recipeId] || null;
+                            const mealCalories = meal.calories ?? detail?.macros?.calories ?? 0;
+                            const mealProtein = meal.protein_g ?? detail?.macros?.protein_g ?? 0;
+                            const mealCarbs = meal.carbs_g ?? detail?.macros?.carbs_g ?? 0;
+                            const mealFat = meal.fat_g ?? detail?.macros?.fat_g ?? 0;
+                            const mealFiber = resolveRecipeFiberGrams(meal, detail);
+                            return (
+                              <article key={meal.id} className="mp-day-meal-row">
+                                <Link to={`/recipe/${meal.recipeId}`} className="mp-day-meal-img-link">
+                                  <img
+                                    src={resolveRecipeImageUrl(meal)}
+                                    alt={meal.title}
+                                    className="mp-day-meal-img"
+                                    onError={(e) => {
+                                      e.currentTarget.src = '/og-vault-preview.jpeg';
+                                    }}
+                                  />
                                 </Link>
 
-                                <div className="mp-day-meal-meta">
-                                  <span>🧑‍🍳 By {meal.authorName}</span>
-                                  <span>⏱️ Prep {meal.prepTime}m • Cook {meal.cookTime}m</span>
-                                  {meal.calories ? (
-                                    <span>
-                                      🔥 {meal.calories} kcal • 💪 {meal.protein_g || 0}g P • 🥖 {meal.carbs_g || 0}g C • 🥑 {meal.fat_g || 0}g F
+                                <div className="mp-day-meal-info">
+                                  <div className="mp-day-meal-badges">
+                                    <span className={`mp-status-pill ${meal.isDraft ? 'draft' : 'published'}`}>
+                                      {meal.isDraft ? '🔒 Private Draft' : '🌟 Published'}
                                     </span>
-                                  ) : null}
-                                </div>
+                                    <span className="mp-servings-pill">
+                                      🍽️ {Number(meal.servings)} serving{Number(meal.servings) === 1 ? '' : 's'}
+                                    </span>
+                                  </div>
 
-                                {meal.notes && <p className="mp-day-meal-notes">📝 {meal.notes}</p>}
-
-                                <div className="mp-day-meal-actions">
-                                  <Link to={`/recipe/${meal.recipeId}`} className="mp-action-link">
-                                    Open Recipe
+                                  <Link to={`/recipe/${meal.recipeId}`} className="mp-day-meal-title">
+                                    {meal.title}
                                   </Link>
-                                  <button
-                                    type="button"
-                                    className="mp-action-btn"
-                                    onClick={() => openEditModal(meal)}
-                                  >
-                                    Edit / Move
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="mp-action-btn danger"
-                                    onClick={() => handleDeleteEntry(meal.id)}
-                                  >
-                                    Remove
-                                  </button>
+
+                                  <div className="mp-day-meal-meta">
+                                    <span>🧑‍🍳 By {meal.authorName}</span>
+                                    <span>⏱️ Prep {meal.prepTime}m • Cook {meal.cookTime}m</span>
+                                    {(mealCalories > 0 || mealFiber > 0) ? (
+                                      <span>
+                                        {mealCalories ? `🔥 ${mealCalories} kcal • 💪 ${mealProtein}g P • 🥖 ${mealCarbs}g C • 🥑 ${mealFat}g F • ` : ''}
+                                        🌾 {mealFiber}g Fiber
+                                      </span>
+                                    ) : null}
+                                  </div>
+
+                                  {meal.notes && <p className="mp-day-meal-notes">📝 {meal.notes}</p>}
+
+                                  <div className="mp-day-meal-actions">
+                                    <Link to={`/recipe/${meal.recipeId}`} className="mp-action-link">
+                                      Open Recipe
+                                    </Link>
+                                    <button
+                                      type="button"
+                                      className="mp-action-btn"
+                                      onClick={() => openEditModal(meal)}
+                                    >
+                                      Edit / Move
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="mp-action-btn danger"
+                                      onClick={() => handleDeleteEntry(meal.id)}
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
-                            </article>
-                          ))}
+                              </article>
+                            );
+                          })}
                         </div>
                       )}
                     </div>

@@ -4,17 +4,52 @@ import { EMMA_SYSTEM_INSTRUCTIONS } from '../config/emmaSystemPrompt';
 import { useAudioStream } from '../hooks/useAudioStream';
 import { AudioPlayer } from '../utils/AudioPlayer';
 import { useAuth } from '../context/AuthContext';
+import {
+  fetchPublishedRecipesCatalog,
+  buildPublishedRecipesPromptSection,
+} from '../utils/emmaRecipeContext';
 
-const LiveChat = ({ recipeContext = null, chatContext = null, preConfirmed = false }) => {
+const LiveChat = ({
+  recipeContext = null,
+  chatContext = null,
+  publishedRecipesContext = null,
+  mealPlanContext = null,
+  tools = null,
+  onToolCall = null,
+  preConfirmed = false,
+}) => {
   // 1. ALL HOOKS MUST LIVE AT THE VERY TOP!
   const [isLive, setIsLive] = useState(false);
   const [status, setStatus] = useState('Disconnected');
+  const [autoPublishedCatalogText, setAutoPublishedCatalogText] = useState('');
   const { user, spendToken, promptPurchaseTokens } = useAuth();
   const { startRecording, stopRecording, audioError } = useAudioStream();
 
   const wsRef = useRef(null);
   const playerRef = useRef(null);
   const consumedPreConfirmRef = useRef(false);
+  const onToolCallRef = useRef(onToolCall);
+
+  useEffect(() => {
+    onToolCallRef.current = onToolCall;
+  }, [onToolCall]);
+
+  useEffect(() => {
+    if (publishedRecipesContext !== null || mealPlanContext !== null) {
+      return undefined;
+    }
+    let active = true;
+    fetchPublishedRecipesCatalog().then((catalog) => {
+      if (active && Array.isArray(catalog) && catalog.length > 0) {
+        setAutoPublishedCatalogText(
+          buildPublishedRecipesPromptSection(catalog, 80, { vocalMode: true })
+        );
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [publishedRecipesContext, mealPlanContext]);
 
   const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -65,6 +100,12 @@ const LiveChat = ({ recipeContext = null, chatContext = null, preConfirmed = fal
     setStatus('Connecting to Emma...');
 
     try {
+      let resolvedPublishedText = publishedRecipesContext || autoPublishedCatalogText || '';
+      if (!resolvedPublishedText && !mealPlanContext) {
+        const catalog = await fetchPublishedRecipesCatalog();
+        resolvedPublishedText = buildPublishedRecipesPromptSection(catalog, 80, { vocalMode: true });
+      }
+
       const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${GEMINI_API_KEY}`;
       wsRef.current = new WebSocket(wsUrl);
 
@@ -74,6 +115,11 @@ const LiveChat = ({ recipeContext = null, chatContext = null, preConfirmed = fal
 
         playerRef.current = new AudioPlayer();
         let finalInstructions = EMMA_SYSTEM_INSTRUCTIONS;
+        if (mealPlanContext) {
+          finalInstructions += `\n\n${mealPlanContext}`;
+        } else if (resolvedPublishedText) {
+          finalInstructions += resolvedPublishedText;
+        }
         if (recipeContext) {
           finalInstructions += `\n\nCURRENT CONTEXT: The user is currently looking at a recipe with the following details: "${recipeContext}". If they ask a specific cooking question, assume it relates to this dish.`;
         }
@@ -81,18 +127,21 @@ const LiveChat = ({ recipeContext = null, chatContext = null, preConfirmed = fal
           finalInstructions += `\n\nCURRENT CHAT CONVERSATION CONTEXT:\nYou and the user have been having the following conversation in text chat. Use this entire context (including any recipes, ingredients, nutritional questions, or reference documents discussed) to seamlessly continue the conversation out loud:\n${chatContext}`;
         }
 
-        const setupMessage = {
-          setup: {
-            model: 'models/gemini-3.1-flash-live-preview',
-            systemInstruction: {
-              parts: [{ text: finalInstructions }],
-            },
-            generationConfig: {
-              responseModalities: ['AUDIO'],
-            },
+        const setupConfig = {
+          model: 'models/gemini-3.1-flash-live-preview',
+          systemInstruction: {
+            parts: [{ text: finalInstructions }],
+          },
+          generationConfig: {
+            responseModalities: ['AUDIO'],
           },
         };
-        wsRef.current.send(JSON.stringify(setupMessage));
+
+        if (Array.isArray(tools) && tools.length > 0) {
+          setupConfig.tools = tools;
+        }
+
+        wsRef.current.send(JSON.stringify({ setup: setupConfig }));
       };
 
       // WEBSOCKET EVENT: ON MESSAGE
@@ -125,8 +174,41 @@ const LiveChat = ({ recipeContext = null, chatContext = null, preConfirmed = fal
             return;
           }
 
+          if (data.toolCall && Array.isArray(data.toolCall.functionCalls)) {
+            const functionResponses = [];
+            for (const fc of data.toolCall.functionCalls) {
+              let resultPayload = { success: false, message: 'No tool handler registered.' };
+              if (typeof onToolCallRef.current === 'function') {
+                try {
+                  resultPayload = await onToolCallRef.current(fc);
+                } catch (toolErr) {
+                  resultPayload = {
+                    success: false,
+                    message: toolErr?.message || 'Error executing meal plan update.',
+                  };
+                }
+              }
+              functionResponses.push({
+                id: fc.id,
+                name: fc.name,
+                response: resultPayload,
+              });
+            }
+
+            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+              wsRef.current.send(
+                JSON.stringify({
+                  toolResponse: {
+                    functionResponses,
+                  },
+                })
+              );
+            }
+            return;
+          }
+
           if (data.serverContent && data.serverContent.modelTurn) {
-            const parts = data.serverContent.modelTurn.parts;
+            const parts = data.serverContent.modelTurn.parts || [];
             parts.forEach((part) => {
               if (part.inlineData && part.inlineData.data) {
                 if (playerRef.current) {
@@ -180,11 +262,15 @@ const LiveChat = ({ recipeContext = null, chatContext = null, preConfirmed = fal
     }
   };
 
-  const contextLabel = chatContext
-    ? '🧠 Emma has your current chat conversation in memory'
-    : recipeContext
-    ? '🧠 Emma has this recipe in memory'
-    : null;
+  const contextLabel = mealPlanContext
+    ? '🗓️ Emma has your Meal Planner calendar & full recipe catalog loaded'
+    : chatContext
+      ? '🧠 Emma has your current chat conversation in memory'
+      : recipeContext
+        ? '🧠 Emma has this recipe in memory'
+        : publishedRecipesContext || autoPublishedCatalogText
+          ? '📚 Emma has the published Veggie Vault recipe catalog in memory'
+          : null;
 
   // RENDER UI
   return (

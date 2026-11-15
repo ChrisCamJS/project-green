@@ -1,8 +1,12 @@
 // src/components/RecipeDashboard/EmmasRecipeEngine.jsx
 
-import React, { useState, useEffect } from 'react';
-import ReactMarkdown from 'react-markdown'; 
+import React, { useState, useEffect, useMemo } from 'react';
+import EmmaMarkdown from '../EmmaMarkdown';
 import { getSystemInstructions } from '../../utils/promptBuilder';
+import {
+    fetchPublishedRecipesCatalog,
+    buildPublishedRecipesPromptSection,
+} from '../../utils/emmaRecipeContext';
 import {
     sendChatMessage,
     generateRecipeImage,
@@ -40,10 +44,28 @@ const EmmasRecipeEngine = () => {
     const [currentSessionId, setCurrentSessionId] = useState(null);
     const [recentChats, setRecentChats] = useState([]);
     const [showRecentChats, setShowRecentChats] = useState(false);
+    const [publishedRecipes, setPublishedRecipes] = useState([]);
 
     useEffect(() => {
         setRecentChats(loadRecentChats(user?.id));
     }, [user?.id]);
+
+    useEffect(() => {
+        let active = true;
+        fetchPublishedRecipesCatalog().then((catalog) => {
+            if (active && Array.isArray(catalog)) {
+                setPublishedRecipes(catalog);
+            }
+        });
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    const publishedCatalogVocal = useMemo(
+        () => buildPublishedRecipesPromptSection(publishedRecipes, 80, { vocalMode: true }),
+        [publishedRecipes]
+    );
     
     const [showWelcomeModal, setShowWelcomeModal] = useState(() => {
         return localStorage.getItem('emmaEngineWelcomeDismissed') !== 'true';
@@ -179,7 +201,15 @@ const EmmasRecipeEngine = () => {
 
         try {
             const isChatActive = engineMode === 'chat';
-            const systemInstructions = getSystemInstructions(prefs, currentUserName, isChatActive);
+            const catalogToUse =
+                publishedRecipes.length > 0 ? publishedRecipes : await fetchPublishedRecipesCatalog();
+            const publishedCatalogSection = buildPublishedRecipesPromptSection(catalogToUse, 80);
+            const systemInstructions = getSystemInstructions(
+                prefs,
+                currentUserName,
+                isChatActive,
+                publishedCatalogSection
+            );
             
             if (engineMode === 'full' && baseHistory.length === 0) {
                 const activeImageOpts = imageOptionsOverride || imageStyleOptions;
@@ -521,6 +551,7 @@ const EmmasRecipeEngine = () => {
                         <div style={{ marginTop: '2rem' }}>
                             <LiveChat
                                 chatContext={buildChatContextForLive()}
+                                publishedRecipesContext={publishedCatalogVocal}
                                 preConfirmed={livePreConfirmed}
                             />
                         </div>
@@ -733,7 +764,7 @@ const EmmasRecipeEngine = () => {
                                             </button>
                                         </div>
                                         <div style={{ marginTop: '0.5rem', lineHeight: '1.5' }}>
-                                            <ReactMarkdown>{commentary}</ReactMarkdown>
+                                            <EmmaMarkdown>{commentary}</EmmaMarkdown>
                                         </div>
                                     </div>
                                 )}
@@ -778,6 +809,7 @@ const EmmasRecipeEngine = () => {
                     </div>
                     <LiveChat
                         chatContext={buildChatContextForLive()}
+                        publishedRecipesContext={publishedCatalogVocal}
                         preConfirmed={livePreConfirmed}
                     />
                 </section>
