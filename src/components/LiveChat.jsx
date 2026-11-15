@@ -24,7 +24,6 @@ const LiveChat = ({
   mealPlanContext = null,
   tools = null,
   onToolCall = null,
-  preConfirmed = false,
 }) => {
   // 1. ALL HOOKS MUST LIVE AT THE VERY TOP!
   const [isLive, setIsLive] = useState(false);
@@ -137,11 +136,10 @@ const LiveChat = ({
 
     setStatus('Consulting the ledger...');
 
-    // THE TOLLBOOTH: deduct first minute (0.10 tokens)
-    const shouldSkipConfirm = preConfirmed && !consumedPreConfirmRef.current;
+    // THE TOLLBOOTH: always confirm and deduct first minute (0.10 tokens) before going live
     const tokenResult = await spendToken(LIVE_AUDIO_TOKENS_PER_MIN, {
       actionLabel: 'Live Audio with Emma (0.10 Tokens/min)',
-      skipConfirm: shouldSkipConfirm,
+      skipConfirm: false,
     });
 
     if (tokenResult?.cancelled) {
@@ -338,7 +336,10 @@ const LiveChat = ({
   // RENDER UI
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', textAlign: 'center', maxWidth: '480px', margin: '0 auto' }}>
-      <h2 style={{ marginTop: 0, marginBottom: '0.6rem' }}>The Veggie Vault — Live Audio Mode</h2>
+      <h2 style={{ marginTop: 0, marginBottom: '0.4rem' }}>The Veggie Vault — Live Audio Mode</h2>
+      <p style={{ margin: '0 0 0.75rem', fontSize: '0.86rem', color: '#4a5568' }}>
+        Metered rate: <strong>0.10 tokens/min</strong> (0.10 tokens charged on start, then every 60s).
+      </p>
 
       {contextLabel && (
         <div

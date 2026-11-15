@@ -26,6 +26,10 @@ import StarRating from '../components/StarRating';
 import CommentSection from '../components/CommentSection';
 import FavoriteButton from '../components/FavoriteButton';
 import UserHoverFollow from '../components/UserHoverFollow';
+import {
+  formatStructuredRecipeForClipboard,
+  copyRichRecipeToClipboard,
+} from '../utils/recipeClipboard';
 import './RecipeDetails.css';
 
 // ============================================================================
@@ -46,6 +50,7 @@ const RecipeDetails = () => {
   const [followBusy, setFollowBusy] = useState(false);
   const [upgradeFeedback, setUpgradeFeedback] = useState(null);
   const [shareCopied, setShareCopied] = useState(false);
+  const [recipeCopied, setRecipeCopied] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imageStyleOptions, setImageStyleOptions] = useState({ ...DEFAULT_IMAGE_STYLE_OPTIONS });
@@ -367,6 +372,18 @@ const RecipeDetails = () => {
     ? `/profile/${authorId}`
     : (recipe.authorName && recipe.authorName !== 'Emma (AI)' ? `/profile/${encodeURIComponent(recipe.authorName)}` : null);
   const canFollowAuthor = Boolean(user && authorId && Number(authorId) !== Number(user.id));
+
+  const handleCopyFullRecipe = async () => {
+    if (!recipe) return;
+    try {
+      const formatted = formatStructuredRecipeForClipboard(recipe);
+      await copyRichRecipeToClipboard(formatted);
+      setRecipeCopied(true);
+      setTimeout(() => setRecipeCopied(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy recipe:', err);
+    }
+  };
 
   const handleToggleFollowAuthor = async () => {
     if (!canFollowAuthor || followBusy) return;
@@ -821,6 +838,14 @@ const RecipeDetails = () => {
                 </div>
               )}
             </div>
+
+            <button
+              type="button"
+              className="recipe-details-action-btn print-btn"
+              onClick={handleCopyFullRecipe}
+            >
+              {recipeCopied ? '✓ Recipe Copied!' : '📋 Copy Full Recipe'}
+            </button>
 
             <button
               type="button"

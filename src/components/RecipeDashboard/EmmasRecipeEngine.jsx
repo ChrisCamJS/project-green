@@ -37,7 +37,7 @@ import LiveChat from '../LiveChat';
 import './EmmasRecipeEngine.css';
 
 const EmmasRecipeEngine = () => {
-    const { user, spendToken, confirmTokenUsage, promptPurchaseTokens } = useAuth();
+    const { user, spendToken, promptPurchaseTokens } = useAuth();
     const currentUserName = user?.username || 'Love';
 
     const { speechState, handleSpeak } = useEmmaVoice();
@@ -364,25 +364,20 @@ const EmmasRecipeEngine = () => {
         return `Active Dietary Settings: ${activeDietFlags}\n\nConversation Transcript:\n${recentTurns.join('\n\n')}`;
     };
 
-    const handleToggleInlineLiveChat = async () => {
+    const handleToggleInlineLiveChat = () => {
         if (showInlineLiveChat) {
             setShowInlineLiveChat(false);
             setLivePreConfirmed(false);
             return;
         }
 
-        const confirmed = await confirmTokenUsage(0.1, 'Live Audio with Emma (0.10 Tokens/min)');
-        if (!confirmed) return;
-
-        setLivePreConfirmed(true);
+        setLivePreConfirmed(false);
         setShowInlineLiveChat(true);
     };
 
     const handleModeChange = async (nextMode) => {
         if (nextMode === 'live' && engineMode !== 'live') {
-            const confirmed = await confirmTokenUsage(0.1, 'Live Audio with Emma (0.10 Tokens/min)');
-            if (!confirmed) return;
-            setLivePreConfirmed(true);
+            setLivePreConfirmed(false);
         } else if (nextMode === 'full' && engineMode !== 'full' && Number(user?.generation_tokens ?? 0) < 1) {
             await promptPurchaseTokens(1, 'Creating a Full Masterpiece Recipe');
         }
@@ -608,7 +603,7 @@ const EmmasRecipeEngine = () => {
                         className={`chat-tool-btn live-audio-toggle-btn ${showInlineLiveChat ? 'active' : ''}`}
                         title="Continue this conversation in Live Audio Mode with Emma (0.10 Tokens/min)"
                     >
-                        {showInlineLiveChat ? '🛑 Close Live Audio' : '🎙️ Go Live with Emma'}
+                        {showInlineLiveChat ? '🛑 Close Live Audio' : '🎙️ Go Live with Emma (0.10/min)'}
                     </button>
                     <button
                         type="button"

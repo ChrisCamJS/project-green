@@ -12,6 +12,7 @@ import {
 import { getMicroCalculationInstructions, parseMicrosFromDeepDive } from '../../utils/promptBuilder';
 import { useEmmaVoice } from '../../hooks/useEmmaVoice';
 import LiveChat from '../LiveChat'; // Bringing in Live Mode
+import { copyRichRecipeToClipboard } from '../../utils/recipeClipboard';
 import ImageStyleOptions from './ImageStyleOptions';
 import './RecipeResult.css';
 
@@ -82,24 +83,24 @@ const RecipeResult = ({
     }
   }, [recipeMarkdown, isChat, isDraft, advancedMicros, isCalculatingMicros]);
 
-  const handleDownload = () => {
+  const [copiedRecipe, setCopiedRecipe] = useState(false);
+
+  const handleCopyRecipe = async () => {
     if (!recipeMarkdown) return;
-    let filename = isDraft ? 'emma-wfpb-draft.md' : 'emma-wfpb-recipe.md';
-    const titleMatch = recipeMarkdown.match(/^#\s+(.+)$/m);
-    if (titleMatch && titleMatch[1]) {
-      const safeTitle = titleMatch[1].toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      filename = `${safeTitle}.md`;
+    const finalOutput = advancedMicros
+      ? `${recipeMarkdown}\n\n## Advanced Analysis\n${advancedMicros}`
+      : recipeMarkdown;
+    const html = `<div style="font-family: system-ui, -apple-system, sans-serif; color: #1f2937; white-space: pre-wrap; line-height: 1.55;">${finalOutput
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')}</div>`;
+    try {
+      await copyRichRecipeToClipboard({ plainText: finalOutput, html });
+      setCopiedRecipe(true);
+      setTimeout(() => setCopiedRecipe(false), 2500);
+    } catch (err) {
+      console.error('Copy failed:', err);
     }
-    const finalOutput = advancedMicros ? `${recipeMarkdown}\n\n## Advanced Analysis\n${advancedMicros}` : recipeMarkdown;
-    const blob = new Blob([finalOutput], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const handleSaveToVault = async () => {
@@ -397,7 +398,7 @@ const RecipeResult = ({
                 className={`emma-chat-live-btn ${externalShowLiveChat ? 'active' : ''}`}
                 title="Switch into Live Audio Mode with full chat context (0.10 Tokens/min)"
               >
-                {externalShowLiveChat ? '🛑 Close Live' : '🎙️ Live Mode'}
+                {externalShowLiveChat ? '🛑 Close Live' : '🎙️ Live Mode (0.10/min)'}
               </button>
             )}
             <button
@@ -520,8 +521,8 @@ const RecipeResult = ({
                           : (isDraft ? '📝 Save Draft to Vault' : '📸 Save Full Recipe')))}
                 </button>
 
-                <button onClick={handleDownload} className="action-btn download-btn">
-                💾 Local Copy
+                <button type="button" onClick={handleCopyRecipe} className="action-btn download-btn">
+                {copiedRecipe ? '✓ Recipe Copied!' : '📋 Copy Full Recipe'}
                 </button>
             </>
         )}
