@@ -26,8 +26,9 @@ async function fetchWrapper(endpoint, options = {}) {
         const data = await response.json();
 
         if (!response.ok) {
-            // If PHP says our session died (401), clear out the ghost login!
-            if (response.status === 401 && endpoint !== '/login' && endpoint !== '/register') {
+            // If PHP says our session died (401) on a user-initiated route, clear out the ghost login
+            const isBackgroundCheck = endpoint === '/notifications' || endpoint === '/users/following';
+            if (response.status === 401 && endpoint !== '/login' && endpoint !== '/register' && !isBackgroundCheck) {
                 localStorage.removeItem('vault_user');
                 window.location.href = '/login'; // Or reload so AuthContext resets
             }

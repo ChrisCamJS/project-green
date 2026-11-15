@@ -47,15 +47,15 @@ const Login = () => {
                 // Save user data to context
                 login(response.user);
                 
-                const isAdmin = response.user.is_admin;
+                const isAdmin = response.user.is_admin === 1 || response.user.is_admin === '1' || response.user.is_admin === true;
                 const identifier = response.user.username;
                 
-                alert(isAdmin === 1 
+                alert(isAdmin 
                     ? `Welcome back, ${identifier} => You're wielding Admin privileges!` 
                     : `Welcome back to the vault, ${identifier}!`
                 );
                 
-                navigate('/admin');
+                navigate(isAdmin ? '/admin' : '/');
             } else {
                 setError(response.message || 'Login failed.');
             }
