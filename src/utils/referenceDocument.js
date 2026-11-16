@@ -26,6 +26,66 @@ const INLINE_MIME_MAP = {
 };
 
 const MAX_TEXT_CHARS = 60000;
+const MAX_INLINE_IMAGE_DIMENSION = 1600;
+const IMAGE_COMPRESS_THRESHOLD_BYTES = 350 * 1024;
+
+/**
+ * Resizes and compresses large uploaded images on the client so Gemini Vision
+ * receives a crisp image without exceeding server JSON body size limits.
+ */
+async function encodeImageForGemini(file, fallbackMime) {
+  const isImage = fallbackMime.startsWith('image/');
+  if (isImage && file.size > IMAGE_COMPRESS_THRESHOLD_BYTES && typeof document !== 'undefined') {
+    try {
+      const objectUrl = URL.createObjectURL(file);
+      try {
+        const img = await new Promise((resolve, reject) => {
+          const el = new Image();
+          el.onload = () => resolve(el);
+          el.onerror = () => reject(new Error('Image decode failed'));
+          el.src = objectUrl;
+        });
+
+        const scale = Math.min(
+          1,
+          MAX_INLINE_IMAGE_DIMENSION / Math.max(img.naturalWidth || 1, img.naturalHeight || 1)
+        );
+        const targetW = Math.max(1, Math.round((img.naturalWidth || 1) * scale));
+        const targetH = Math.max(1, Math.round((img.naturalHeight || 1) * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, targetW, targetH);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          const commaIdx = compressedDataUrl.indexOf(',');
+          if (commaIdx !== -1) {
+            return {
+              mimeType: 'image/jpeg',
+              base64Data: compressedDataUrl.slice(commaIdx + 1),
+            };
+          }
+        }
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    } catch {
+      // Fall back to raw file encoding if browser canvas compression fails
+    }
+  }
+
+  const dataUrl = await readFileAsDataUrl(file);
+  const commaIdx = dataUrl.indexOf(',');
+  if (commaIdx === -1) {
+    throw new Error(`Failed to encode "${file.name}".`);
+  }
+  return {
+    mimeType: fallbackMime,
+    base64Data: dataUrl.slice(commaIdx + 1),
+  };
+}
 
 /**
  * Formats byte sizes into a compact human-readable string.
@@ -225,24 +285,20 @@ export async function parseReferenceFile(file) {
   }
 
   if (INLINE_MIME_MAP[ext] || rawMime === 'application/pdf' || rawMime.startsWith('image/')) {
-    const dataUrl = await readFileAsDataUrl(file);
-    const commaIdx = dataUrl.indexOf(',');
-    if (commaIdx === -1) {
-      throw new Error(`Failed to encode "${file.name}".`);
-    }
-    const base64Data = dataUrl.slice(commaIdx + 1);
     const normalizedMime =
       rawMime === 'image/jpg'
         ? 'image/jpeg'
         : INLINE_MIME_MAP[ext] || rawMime || 'application/octet-stream';
 
+    const { mimeType, base64Data } = await encodeImageForGemini(file, normalizedMime);
+
     return {
       fileName: file.name,
       fileSize: file.size,
-      mimeType: normalizedMime,
+      mimeType,
       kind: 'inlineData',
       inlineData: {
-        mimeType: normalizedMime,
+        mimeType,
         data: base64Data,
       },
     };

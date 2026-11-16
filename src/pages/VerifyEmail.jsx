@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +10,15 @@ export default function VerifyEmail() {
     const navigate = useNavigate();
     const { login } = useAuth();
 
+    const attemptedTokenRef = useRef(null);
+    const loginRef = useRef(login);
+    const navigateRef = useRef(navigate);
+
+    useEffect(() => {
+        loginRef.current = login;
+        navigateRef.current = navigate;
+    }, [login, navigate]);
+
     const [status, setStatus] = useState(token ? 'verifying' : 'error');
     const [message, setMessage] = useState(
         token
@@ -19,30 +28,35 @@ export default function VerifyEmail() {
 
     useEffect(() => {
         if (!token) return;
-        let active = true;
+        if (attemptedTokenRef.current === token) return;
+        attemptedTokenRef.current = token;
+
+        let isMounted = true;
+        let redirectTimer = null;
 
         api.verifyEmail(token)
             .then((data) => {
-                if (!active) return;
+                if (data.user) {
+                    loginRef.current(data.user);
+                }
+                if (!isMounted) return;
                 setStatus('success');
                 setMessage(data.message || 'Email verified! Welcome to The Veggie Vault.');
-                if (data.user) {
-                    login(data.user);
-                }
-                setTimeout(() => {
-                    if (active) navigate('/');
+                redirectTimer = setTimeout(() => {
+                    if (isMounted) navigateRef.current('/');
                 }, 1800);
             })
             .catch((err) => {
-                if (!active) return;
+                if (!isMounted) return;
                 setStatus('error');
                 setMessage(err.message || 'Verification failed or link has expired.');
             });
 
         return () => {
-            active = false;
+            isMounted = false;
+            if (redirectTimer) clearTimeout(redirectTimer);
         };
-    }, [token, login, navigate]);
+    }, [token]);
 
     return (
         <div className={styles.loginContainer}>
