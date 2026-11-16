@@ -365,6 +365,88 @@ const EmmasRecipeEngine = () => {
         return `Active Dietary Settings: ${activeDietFlags}\n\nConversation Transcript:\n${recentTurns.join('\n\n')}`;
     };
 
+    const handleLiveTranscriptTurn = ({ role, text }) => {
+        const cleanText = String(text || '').trim();
+        if (!cleanText) return;
+
+        const activeSessionId =
+            currentSessionId || `chat_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        if (!currentSessionId) {
+            setCurrentSessionId(activeSessionId);
+        }
+
+        setChatHistory((prev) => {
+            const next = [...prev];
+            if (next.length === 0 && role === 'model') {
+                next.push({
+                    role: 'user',
+                    parts: [{ text: 'Started Live Audio session with Emma.' }],
+                    displayParts: {
+                        userText: 'Started Live Audio session',
+                        referenceBadges: ['🎙️ Live Audio'],
+                    },
+                });
+            }
+
+            const last = next[next.length - 1];
+            if (last && last.role === role) {
+                const prevText = (last.parts?.[0]?.text || '').trim();
+                const mergedText = prevText ? `${prevText}\n${cleanText}` : cleanText;
+                const updatedDisplayParts =
+                    role === 'user'
+                        ? {
+                              ...last.displayParts,
+                              userText: mergedText,
+                              referenceBadges: last.displayParts?.referenceBadges?.includes('🎙️ Live Audio')
+                                  ? last.displayParts.referenceBadges
+                                  : [...(last.displayParts?.referenceBadges || []), '🎙️ Live Audio'],
+                          }
+                        : {
+                              ...last.displayParts,
+                              recipe: mergedText,
+                          };
+                next[next.length - 1] = {
+                    ...last,
+                    parts: [{ text: mergedText }],
+                    displayParts: updatedDisplayParts,
+                };
+            } else if (role === 'user') {
+                next.push({
+                    role: 'user',
+                    parts: [{ text: cleanText }],
+                    displayParts: {
+                        userText: cleanText,
+                        referenceBadges: ['🎙️ Live Audio'],
+                    },
+                });
+            } else {
+                next.push({
+                    role: 'model',
+                    parts: [{ text: cleanText }],
+                    displayParts: {
+                        commentary: null,
+                        recipe: cleanText,
+                    },
+                });
+            }
+
+            saveChatSession(user?.id, {
+                id: activeSessionId,
+                engineMode: engineMode === 'live' ? 'chat' : engineMode,
+                dietaryPrefs,
+                chatHistory: next,
+            })
+                .then(({ chats }) => {
+                    if (Array.isArray(chats)) setRecentChats(chats);
+                })
+                .catch((err) => {
+                    console.warn('Could not save live transcript to recent chats:', err);
+                });
+
+            return next;
+        });
+    };
+
     const handleToggleInlineLiveChat = () => {
         if (showInlineLiveChat) {
             setShowInlineLiveChat(false);
@@ -586,6 +668,7 @@ const EmmasRecipeEngine = () => {
                                 chatContext={buildChatContextForLive()}
                                 publishedRecipesContext={publishedCatalogVocal}
                                 preConfirmed={livePreConfirmed}
+                                onTranscriptTurn={handleLiveTranscriptTurn}
                             />
                         </div>
                     )}
@@ -843,6 +926,7 @@ const EmmasRecipeEngine = () => {
                     <LiveChat
                         chatContext={buildChatContextForLive()}
                         publishedRecipesContext={publishedCatalogVocal}
+                        onTranscriptTurn={handleLiveTranscriptTurn}
                         autoStart={true}
                     />
                 </section>

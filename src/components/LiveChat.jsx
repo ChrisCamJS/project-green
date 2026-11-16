@@ -1,5 +1,5 @@
 // src/components/LiveChat.jsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { EMMA_SYSTEM_INSTRUCTIONS } from '../config/emmaSystemPrompt';
 import { useAudioStream } from '../hooks/useAudioStream';
 import { AudioPlayer } from '../utils/AudioPlayer';
@@ -25,6 +25,7 @@ const LiveChat = ({
   mealPlanContext = null,
   tools = null,
   onToolCall = null,
+  onTranscriptTurn = null,
   autoStart = false,
 }) => {
   // 1. ALL HOOKS MUST LIVE AT THE VERY TOP!
@@ -40,12 +41,34 @@ const LiveChat = ({
   const playerRef = useRef(null);
   const consumedPreConfirmRef = useRef(false);
   const onToolCallRef = useRef(onToolCall);
+  const onTranscriptTurnRef = useRef(onTranscriptTurn);
   const spendTokenRef = useRef(spendToken);
   const stopRecordingRef = useRef(stopRecording);
+  const pendingInputTranscriptRef = useRef('');
+  const pendingOutputTranscriptRef = useRef('');
 
   useEffect(() => {
     onToolCallRef.current = onToolCall;
   }, [onToolCall]);
+
+  useEffect(() => {
+    onTranscriptTurnRef.current = onTranscriptTurn;
+  }, [onTranscriptTurn]);
+
+  const flushTranscriptRole = useCallback((role) => {
+    const ref = role === 'user' ? pendingInputTranscriptRef : pendingOutputTranscriptRef;
+    const text = ref.current.trim();
+    if (!text) return;
+    ref.current = '';
+    if (typeof onTranscriptTurnRef.current === 'function') {
+      onTranscriptTurnRef.current({ role, text });
+    }
+  }, []);
+
+  const flushAllTranscripts = useCallback(() => {
+    flushTranscriptRole('user');
+    flushTranscriptRole('model');
+  }, [flushTranscriptRole]);
 
   useEffect(() => {
     spendTokenRef.current = spendToken;
@@ -75,6 +98,7 @@ const LiveChat = ({
   // Ensure microphone and WebSocket close cleanly if the inline Live Chat panel unmounts
   useEffect(() => {
     return () => {
+      flushAllTranscripts();
       stopRecording();
       if (
         wsRef.current &&
@@ -85,7 +109,7 @@ const LiveChat = ({
       }
       playerRef.current?.stop();
     };
-  }, [stopRecording]);
+  }, [stopRecording, flushAllTranscripts]);
 
   // Metered per-minute billing & live elapsed timer while audio session is active
   useEffect(() => {
@@ -201,6 +225,8 @@ const LiveChat = ({
           generationConfig: {
             responseModalities: ['AUDIO'],
           },
+          inputAudioTranscription: {},
+          outputAudioTranscription: {},
         };
 
         if (Array.isArray(tools) && tools.length > 0) {
@@ -273,15 +299,37 @@ const LiveChat = ({
             return;
           }
 
-          if (data.serverContent && data.serverContent.modelTurn) {
-            const parts = data.serverContent.modelTurn.parts || [];
-            parts.forEach((part) => {
-              if (part.inlineData && part.inlineData.data) {
-                if (playerRef.current) {
-                  playerRef.current.playBase64Audio(part.inlineData.data);
-                }
+          if (data.serverContent) {
+            const sc = data.serverContent;
+
+            if (sc.inputTranscription?.text) {
+              if (pendingOutputTranscriptRef.current.trim()) {
+                flushTranscriptRole('model');
               }
-            });
+              pendingInputTranscriptRef.current += sc.inputTranscription.text;
+            }
+
+            if (sc.outputTranscription?.text) {
+              if (pendingInputTranscriptRef.current.trim()) {
+                flushTranscriptRole('user');
+              }
+              pendingOutputTranscriptRef.current += sc.outputTranscription.text;
+            }
+
+            if (sc.modelTurn) {
+              const parts = sc.modelTurn.parts || [];
+              parts.forEach((part) => {
+                if (part.inlineData && part.inlineData.data) {
+                  if (playerRef.current) {
+                    playerRef.current.playBase64Audio(part.inlineData.data);
+                  }
+                }
+              });
+            }
+
+            if (sc.turnComplete || sc.interrupted) {
+              flushAllTranscripts();
+            }
           }
         } catch (err) {
           console.error('Error parsing incoming message:', err);
@@ -319,6 +367,7 @@ const LiveChat = ({
 
   // CLEANUP LOGIC
   const cleanupSession = (preserveErrorStatus = false) => {
+    flushAllTranscripts();
     stopRecording();
     if (
       wsRef.current &&
