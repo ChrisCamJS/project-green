@@ -393,6 +393,25 @@
   box-shadow: 0 2px 4px rgba(72, 187, 120, 0.15);
 }
 
+@media (max-width: 600px) {
+  .mode-selector-container {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .mode-label {
+    text-align: center;
+    padding: 0.65rem 0.5rem;
+    font-size: 0.88rem;
+  }
+
+  .mode-label:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
 /* --- Chat & Messaging --- */
 .chat-container {
   margin-top: 1.5rem;
@@ -434,6 +453,57 @@
 
 .action-row.bottom-action {
   justify-content: flex-start;
+}
+
+.action-row.result-actions {
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+@media (max-width: 640px) {
+  .recipe-result-card {
+    padding: 1rem;
+    margin-top: 1.25rem;
+  }
+
+  .recipe-content h1 {
+    font-size: 1.4rem;
+    text-align: center;
+  }
+
+  .follow-up-input {
+    flex: 1 1 100%;
+    width: 100%;
+    min-height: 84px;
+    box-sizing: border-box;
+  }
+
+  .recipe-content h2 {
+    font-size: 1.12rem;
+  }
+
+  .action-row.result-actions {
+    gap: 0.5rem;
+  }
+
+  .action-row.result-actions .action-btn {
+    flex: 1 1 100%;
+    min-width: 0;
+    font-size: 0.86rem;
+    padding: 0.6rem 0.8rem;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .action-row.top-action {
+    justify-content: center;
+    gap: 0.45rem;
+  }
+
+  .action-row.top-action .chat-tool-btn {
+    font-size: 0.82rem;
+    padding: 0.45rem 0.75rem;
+  }
 }
 
 .chat-tool-btn {
@@ -545,6 +615,9 @@
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   cursor: pointer;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
@@ -565,15 +638,15 @@
 
 .recent-chat-title {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.45rem;
   font-weight: 700;
   color: #1a202c;
   font-size: 0.98rem;
   margin-bottom: 0.3rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .recent-chat-meta {
@@ -646,7 +719,12 @@
 @media (max-width: 640px) {
   .recent-chat-item {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+  }
+
+  .recent-chat-info {
+    width: 100%;
+    min-width: 0;
   }
 
   .recent-chat-actions {

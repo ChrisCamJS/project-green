@@ -297,6 +297,22 @@
     padding: 7px 12px;
   }
 
+  .gridHeaderRow {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .gridHeaderRow > div:first-child {
+    width: 100%;
+    text-align: center;
+  }
+
+  .controlsCluster {
+    width: 100%;
+    justify-content: center;
+  }
+
   .title,
   .subTitle {
     text-align: center;

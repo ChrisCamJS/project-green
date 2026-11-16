@@ -90,6 +90,16 @@ const EmmasRecipeEngine = () => {
         setShowWelcomeModal(false);
     };
 
+    const [showMasterpieceSaveModal, setShowMasterpieceSaveModal] = useState(false);
+    const [dontShowMasterpieceSaveAgain, setDontShowMasterpieceSaveAgain] = useState(false);
+
+    const handleDismissMasterpieceSaveModal = () => {
+        if (dontShowMasterpieceSaveAgain) {
+            localStorage.setItem('emmaMasterpieceSaveReminderDismissed', 'true');
+        }
+        setShowMasterpieceSaveModal(false);
+    };
+
     const [recipeImage, setRecipeImage] = useState(null);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [imageGenFailed, setImageGenFailed] = useState(false);
@@ -268,6 +278,14 @@ const EmmasRecipeEngine = () => {
 
             setChatHistory(finalHistory);
             setCurrentSessionId(activeSessionId);
+
+            if (
+                engineMode === 'full' &&
+                baseHistory.length === 0 &&
+                localStorage.getItem('emmaMasterpieceSaveReminderDismissed') !== 'true'
+            ) {
+                setShowMasterpieceSaveModal(true);
+            }
 
             const { chats } = await saveChatSession(user?.id, {
                 id: activeSessionId,
@@ -609,6 +627,39 @@ const EmmasRecipeEngine = () => {
                             onClick={handleDismissWelcome}
                         >
                             Right, let's get cooking!
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {showMasterpieceSaveModal && (
+                <div className="welcome-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="masterpiece-save-title">
+                    <div className="welcome-modal-content">
+                        <h3 id="masterpiece-save-title">Save Your Masterpiece! 📸</h3>
+                        <p>
+                            Your Masterpiece recipe is ready! Be sure to click <strong>Save Full Recipe</strong> below the recipe card to publish it to The Veggie Vault and keep it permanently.
+                        </p>
+                        <p>
+                            While this conversation is stored in your Recent Chats for 30 days, saving the recipe to the Vault prevents losing it and shares it with the community.
+                        </p>
+
+                        <div className="modal-preferences">
+                            <label className="checkbox-label">
+                                <input
+                                    type="checkbox"
+                                    checked={dontShowMasterpieceSaveAgain}
+                                    onChange={(e) => setDontShowMasterpieceSaveAgain(e.target.checked)}
+                                />
+                                Don&apos;t show this reminder again
+                            </label>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="dismiss-modal-btn"
+                            onClick={handleDismissMasterpieceSaveModal}
+                        >
+                            Got it!
                         </button>
                     </div>
                 </div>
