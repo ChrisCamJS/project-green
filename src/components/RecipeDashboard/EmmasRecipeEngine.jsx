@@ -562,11 +562,6 @@ const EmmasRecipeEngine = () => {
         engineMode,
     });
 
-    const handleExportCurrentTxt = () => {
-        if (chatHistory.length === 0) return;
-        exportChatToTxt(getCurrentExportPayload());
-    };
-
     const handleExportCurrentPdf = () => {
         if (chatHistory.length === 0) return;
         exportChatToPdf(getCurrentExportPayload());
@@ -755,30 +750,6 @@ const EmmasRecipeEngine = () => {
 
             {chatHistory.length > 0 && engineMode !== 'live' && (
                 <div className="action-row top-action">
-                    <button
-                        type="button"
-                        onClick={handleToggleInlineLiveChat}
-                        disabled={isLoading}
-                        className={`chat-tool-btn live-audio-toggle-btn ${showInlineLiveChat ? 'active' : ''}`}
-                        title="Continue this conversation in Live Audio Mode with Emma (0.10 Tokens/min)"
-                    >
-                        {showInlineLiveChat ? (
-                            '🛑 Close Live Audio'
-                        ) : (
-                            <>
-                                🎙️ Go Live with Emma<span className="live-cost-desktop"> (0.10/min)</span>
-                            </>
-                        )}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleExportCurrentTxt}
-                        disabled={isLoading}
-                        className="chat-tool-btn export-txt-btn"
-                        title="Download this chat as a plain text (.txt) file"
-                    >
-                        📄 Save TXT
-                    </button>
                     <button
                         type="button"
                         onClick={handleExportCurrentPdf}
@@ -1013,48 +984,54 @@ const EmmasRecipeEngine = () => {
             {chatHistory.length > 0 && (
                 <form onSubmit={handleFollowUpSubmit} className="follow-up-form-wrapper">
                     <div className="follow-up-form">
-                        <textarea
-                            ref={followUpInputRef}
-                            rows={1}
-                            value={followUpText}
-                            onChange={(e) => setFollowUpText(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    if (canSubmitFollowUp && !isLoading && !isParsingFollowUpFile) {
-                                        handleFollowUpSubmit(e);
+                        <div className="follow-up-input-wrap">
+                            <textarea
+                                ref={followUpInputRef}
+                                rows={1}
+                                value={followUpText}
+                                onChange={(e) => setFollowUpText(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        if (canSubmitFollowUp && !isLoading && !isParsingFollowUpFile) {
+                                            handleFollowUpSubmit(e);
+                                        }
                                     }
+                                }}
+                                placeholder={
+                                    engineMode === 'chat'
+                                        ? "E.g., Let's natter about plant protein, or adapt an attached recipe..."
+                                        : "Chat with Emma or ask her to tweak/iterate on this recipe..."
                                 }
-                            }}
-                            placeholder={
-                                engineMode === 'chat'
-                                    ? "E.g., Let's natter about plant protein, or adapt an attached recipe..."
-                                    : "Chat with Emma or ask her to tweak/iterate on this recipe..."
-                            }
-                            disabled={isLoading}
-                            className="follow-up-input"
-                        />
-                        <VoiceDictationButton
-                            value={followUpText}
-                            onChange={setFollowUpText}
-                            disabled={isLoading}
-                        />
-                        <button
-                            type="button"
-                            className={`follow-up-ref-btn ${(showFollowUpRef || hasFollowUpRef) ? 'active' : ''}`}
-                            onClick={() => setShowFollowUpRef((prev) => !prev)}
-                            disabled={isLoading}
-                            title="Attach a reference document or paste a base recipe"
-                        >
-                            📎 {hasFollowUpRef ? 'Ref Added' : 'Reference'}
-                        </button>
-                        <button 
-                            type="submit" 
-                            className="submit-btn follow-up-submit"
-                            disabled={isLoading || isParsingFollowUpFile || !canSubmitFollowUp}
-                        >
-                            {isLoading ? "Thinking..." : "Send"}
-                        </button>
+                                disabled={isLoading}
+                                className="follow-up-input"
+                            />
+                            <div className="follow-up-mic-slot">
+                                <VoiceDictationButton
+                                    value={followUpText}
+                                    onChange={setFollowUpText}
+                                    disabled={isLoading}
+                                />
+                            </div>
+                        </div>
+                        <div className="follow-up-action-btns">
+                            <button
+                                type="button"
+                                className={`follow-up-ref-btn ${(showFollowUpRef || hasFollowUpRef) ? 'active' : ''}`}
+                                onClick={() => setShowFollowUpRef((prev) => !prev)}
+                                disabled={isLoading}
+                                title="Attach a reference document or paste a base recipe"
+                            >
+                                📎 {hasFollowUpRef ? 'Ref Added' : 'Reference'}
+                            </button>
+                            <button 
+                                type="submit" 
+                                className="submit-btn follow-up-submit"
+                                disabled={isLoading || isParsingFollowUpFile || !canSubmitFollowUp}
+                            >
+                                {isLoading ? "Thinking..." : "Send"}
+                            </button>
+                        </div>
                     </div>
 
                     {showFollowUpRef && (

@@ -458,6 +458,7 @@
 .action-row.result-actions {
   flex-wrap: wrap;
   gap: 0.65rem;
+  margin-bottom: 1rem;
 }
 
 @media (max-width: 640px) {
@@ -466,16 +467,42 @@
     margin-top: 1.25rem;
   }
 
+  .recipe-result-card .recipe-content {
+    margin-top: 1.15rem;
+  }
+
   .recipe-content h1 {
     font-size: 1.4rem;
     text-align: center;
   }
 
-  .follow-up-input {
+  .follow-up-input-wrap {
     flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .follow-up-input-wrap .follow-up-input {
     width: 100%;
     min-height: 84px;
     box-sizing: border-box;
+  }
+
+  .follow-up-action-btns {
+    width: 100%;
+    display: flex;
+    gap: 0.65rem;
+  }
+
+  .follow-up-action-btns .follow-up-ref-btn,
+  .follow-up-action-btns .follow-up-submit {
+    flex: 1 1 0%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .action-row.bottom-action {
+    justify-content: center;
   }
 
   .recipe-content h2 {
@@ -772,10 +799,33 @@
   flex-wrap: wrap;
 }
 
-.follow-up-input {
+.follow-up-input-wrap {
+  position: relative;
   flex: 1;
   min-width: 240px;
-  padding: 0.85rem 1rem;
+  display: flex;
+}
+
+.follow-up-mic-slot {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+}
+
+.follow-up-action-btns {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+.follow-up-input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  padding: 0.85rem 3.1rem 0.85rem 1rem;
+  box-sizing: border-box;
   border-radius: 8px;
   border: 2px solid #e2e8f0;
   background-color: #ffffff;
