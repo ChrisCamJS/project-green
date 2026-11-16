@@ -266,15 +266,21 @@
 
 .mp-emma-chat-form {
   display: flex;
+  align-items: flex-end;
   gap: 0.6rem;
 }
 
 .mp-emma-chat-input {
   flex: 1;
+  min-width: 0;
   padding: 0.68rem 0.9rem;
   border: 1.5px solid #d6bcfa;
   border-radius: 10px;
   font-size: 0.95rem;
+  font-family: inherit;
+  line-height: 1.45;
+  resize: none;
+  overflow-y: hidden;
   background-color: #ffffff;
 }
 

@@ -690,17 +690,22 @@
   margin-top: 0;
   display: flex;
   gap: 0.75rem;
-  align-items: center;
+  align-items: flex-end;
   flex-wrap: wrap;
 }
 
 .follow-up-input {
   flex: 1;
+  min-width: 240px;
   padding: 0.85rem 1rem;
   border-radius: 8px;
   border: 2px solid #e2e8f0;
   background-color: #ffffff;
   font-size: 1rem;
+  font-family: inherit;
+  line-height: 1.45;
+  resize: none;
+  overflow-y: hidden;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -1058,7 +1063,9 @@
   border-radius: 8px;
   font-family: inherit;
   font-size: 0.92rem;
-  resize: vertical;
+  line-height: 1.45;
+  resize: none;
+  overflow-y: hidden;
   background-color: #ffffff;
 }
 
@@ -1258,6 +1265,13 @@
   font-size: 0.9rem;
   background-color: #ffffff;
   color: #1a202c;
+}
+
+.style-text-input,
+.style-textarea {
+  line-height: 1.45;
+  resize: none;
+  overflow-y: hidden;
 }
 
 .style-text-input:focus,

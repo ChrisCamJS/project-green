@@ -115,6 +115,22 @@ const EmmasRecipeEngine = () => {
     const [showInlineLiveChat, setShowInlineLiveChat] = useState(false);
     const [livePreConfirmed, setLivePreConfirmed] = useState(false);
     const inlineLivePanelRef = useRef(null);
+    const followUpInputRef = useRef(null);
+    const followUpRefPasteRef = useRef(null);
+
+    useEffect(() => {
+        const el = followUpInputRef.current;
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = `${el.scrollHeight}px`;
+    }, [followUpText]);
+
+    useEffect(() => {
+        const el = followUpRefPasteRef.current;
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = `${el.scrollHeight}px`;
+    }, [followUpPastedRef, showFollowUpRef]);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -936,10 +952,19 @@ const EmmasRecipeEngine = () => {
             {chatHistory.length > 0 && engineMode !== 'live' && (
                 <form onSubmit={handleFollowUpSubmit} className="follow-up-form-wrapper">
                     <div className="follow-up-form">
-                        <input 
-                            type="text" 
+                        <textarea
+                            ref={followUpInputRef}
+                            rows={1}
                             value={followUpText}
                             onChange={(e) => setFollowUpText(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    if (canSubmitFollowUp && !isLoading && !isParsingFollowUpFile && !(isBroke && engineMode === 'full')) {
+                                        handleFollowUpSubmit(e);
+                                    }
+                                }
+                            }}
                             placeholder={(isBroke && engineMode === 'full') 
                                 ? "Out of tokens, love!" 
                                 : "E.g., Let's natter about plant protein, or adapt an attached recipe..."}
@@ -1031,6 +1056,7 @@ const EmmasRecipeEngine = () => {
                                     )}
                                 </div>
                                 <textarea
+                                    ref={followUpRefPasteRef}
                                     id="followup-reference-paste"
                                     className="reference-paste-textarea"
                                     rows="3"

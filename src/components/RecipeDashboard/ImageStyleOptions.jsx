@@ -1,6 +1,6 @@
 // src/components/RecipeDashboard/ImageStyleOptions.jsx
 
-import React, { useState, useId } from 'react';
+import React, { useState, useId, useRef, useEffect } from 'react';
 import { DEFAULT_IMAGE_STYLE_OPTIONS } from '../../services/geminiApi';
 
 const KITCHEN_COLOR_PRESETS = [
@@ -45,11 +45,21 @@ const ImageStyleOptions = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const uid = useId();
+  const colorInputRef = useRef(null);
+  const detailsTextareaRef = useRef(null);
 
   const current = {
     ...DEFAULT_IMAGE_STYLE_OPTIONS,
     ...(value || {}),
   };
+
+  useEffect(() => {
+    [colorInputRef.current, detailsTextareaRef.current].forEach((el) => {
+      if (!el) return;
+      el.style.height = 'auto';
+      el.style.height = `${el.scrollHeight}px`;
+    });
+  }, [current.kitchenColorScheme, current.customDetails, isExpanded]);
 
   const activeCount = Object.values(current).filter((v) => Boolean(v && String(v).trim())).length;
 
@@ -121,9 +131,10 @@ const ImageStyleOptions = ({
                 );
               })}
             </div>
-            <input
+            <textarea
+              ref={colorInputRef}
               id={`${uid}-color`}
-              type="text"
+              rows={1}
               className="style-text-input"
               value={current.kitchenColorScheme}
               onChange={(e) => updateField('kitchenColorScheme', e.target.value)}
@@ -188,6 +199,7 @@ const ImageStyleOptions = ({
           <div className="style-field-block">
             <label htmlFor={`${uid}-details`}>Additional Photo Details (Optional)</label>
             <textarea
+              ref={detailsTextareaRef}
               id={`${uid}-details`}
               className="style-textarea"
               rows={2}

@@ -147,6 +147,14 @@ export default function MealPlanner() {
   const [conciergeMode, setConciergeMode] = useState('chat'); // 'chat' | 'live'
   const [emmaChatHistory, setEmmaChatHistory] = useState([]);
   const [emmaInput, setEmmaInput] = useState('');
+  const emmaInputRef = useRef(null);
+
+  useEffect(() => {
+    const el = emmaInputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [emmaInput]);
   const [emmaBusy, setEmmaBusy] = useState(false);
   const [emmaError, setEmmaError] = useState(null);
   const [livePreConfirmed, setLivePreConfirmed] = useState(false);
@@ -1018,10 +1026,19 @@ export default function MealPlanner() {
               )}
 
               <form className="mp-emma-chat-form" onSubmit={handleConciergeSubmit}>
-                <input
-                  type="text"
+                <textarea
+                  ref={emmaInputRef}
+                  rows={1}
                   value={emmaInput}
                   onChange={(e) => setEmmaInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (!emmaBusy && emmaInput.trim()) {
+                        handleConciergeSubmit(e);
+                      }
+                    }
+                  }}
                   placeholder="E.g., Fill in Mon–Fri dinners with Gluten-Free meals, or show me iron-rich recipe links..."
                   className="mp-emma-chat-input"
                   disabled={emmaBusy}

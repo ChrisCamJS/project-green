@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../services/api';
 import {
@@ -82,6 +82,14 @@ const RecipeDetails = () => {
   // --- EMMA'S CHAT & VOICE STATE ---
   const { speechState, handleSpeak } = useEmmaVoice();
   const [chatMessage, setChatMessage] = useState('');
+  const chatInputRef = useRef(null);
+
+  useEffect(() => {
+    const el = chatInputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [chatMessage]);
   const [chatHistory, setChatHistory] = useState([]);
   const [isChatting, setIsChatting] = useState(false);
   const [showLiveChat, setShowLiveChat] = useState(false);
@@ -1114,10 +1122,19 @@ const RecipeDetails = () => {
                     )}
 
                     <form onSubmit={handleChatSubmit} className="recipe-chat-form">
-                        <input
-                            type="text"
+                        <textarea
+                            ref={chatInputRef}
+                            rows={1}
                             value={chatMessage}
                             onChange={(e) => setChatMessage(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    if (!isChatting && chatMessage.trim()) {
+                                        handleChatSubmit(e);
+                                    }
+                                }
+                            }}
                             placeholder="E.g., How much Vitamin C is in this? Can I substitute the mushrooms?"
                             className="recipe-chat-input"
                             disabled={isChatting}

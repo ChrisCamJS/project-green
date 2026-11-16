@@ -808,6 +808,13 @@
   color: #1a202c;
 }
 
+.style-text-input,
+.style-textarea {
+  line-height: 1.45;
+  resize: none;
+  overflow-y: hidden;
+}
+
 .style-text-input:focus,
 .style-select:focus,
 .style-textarea:focus {
@@ -937,7 +944,7 @@
 
 .recipe-chat-form {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 0.5rem;
   width: 100%;
   max-width: 100%;
@@ -954,6 +961,10 @@
   border: 1px solid #d1d5db;
   outline: none;
   font-size: 0.95rem;
+  font-family: inherit;
+  line-height: 1.45;
+  resize: none;
+  overflow-y: hidden;
 }
 
 .recipe-chat-input:focus {

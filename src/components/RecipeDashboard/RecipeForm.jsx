@@ -13,6 +13,15 @@ const RecipeForm = ({ onGenerate, isLoading, isBroke, engineMode }) => {
   const [userRequest, setUserRequest] = useState('');
 
   const baseTextRef = useRef('');
+  const requestTextareaRef = useRef(null);
+  const referencePasteRef = useRef(null);
+
+  useEffect(() => {
+    const el = requestTextareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [userRequest]);
 
   const [prefs, setPrefs] = useState({
     oilFree: true,
@@ -23,6 +32,13 @@ const RecipeForm = ({ onGenerate, isLoading, isBroke, engineMode }) => {
   // Reference document / pasted base recipe state
   const [showReferenceBox, setShowReferenceBox] = useState(false);
   const [pastedReference, setPastedReference] = useState('');
+
+  useEffect(() => {
+    const el = referencePasteRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [pastedReference, showReferenceBox]);
   const [uploadedDoc, setUploadedDoc] = useState(null);
   const [isParsingFile, setIsParsingFile] = useState(false);
   const [fileError, setFileError] = useState(null);
@@ -125,12 +141,14 @@ const RecipeForm = ({ onGenerate, isLoading, isBroke, engineMode }) => {
         {/* We wrap the textarea and mic button in a container for styling */}
         <div className="textarea-wrapper">
           <textarea
+            ref={requestTextareaRef}
             id="recipe-request"
             value={userRequest}
             onChange={(e) => setUserRequest(e.target.value)}
             placeholder={getPlaceholder()}
             disabled={isLoading}
             rows="4"
+            style={{ overflowY: 'hidden', resize: 'none' }}
             required={!hasReference}
           />
 
@@ -250,6 +268,7 @@ const RecipeForm = ({ onGenerate, isLoading, isBroke, engineMode }) => {
                 )}
               </div>
               <textarea
+                ref={referencePasteRef}
                 id="reference-paste-area"
                 className="reference-paste-textarea"
                 rows="4"
