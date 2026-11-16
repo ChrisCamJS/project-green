@@ -1,9 +1,9 @@
 
 .scroll-to-top-button-div {
-  /* Locks the button to the bottom right of the viewport */
+  /* Locks the button to the bottom left of the viewport */
   position: fixed;
   bottom: 2rem;
-  right: 2rem;
+  left: 2rem;
   /* Ensures it always floats above your content and cards */
   z-index: 999; 
 }

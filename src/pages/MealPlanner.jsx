@@ -1075,6 +1075,7 @@ export default function MealPlanner() {
                 tools={MEAL_PLANNER_LIVE_TOOLS}
                 onToolCall={handleLiveToolCall}
                 preConfirmed={livePreConfirmed}
+                autoStart={true}
               />
               {liveActionLog.length > 0 && (
                 <div className="mp-emma-applied-actions">

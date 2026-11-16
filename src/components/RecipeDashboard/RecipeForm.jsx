@@ -9,7 +9,14 @@ import {
 } from '../../utils/referenceDocument';
 import ImageStyleOptions from './ImageStyleOptions';
 
-const RecipeForm = ({ onGenerate, isLoading, isBroke, engineMode }) => {
+const RecipeForm = ({
+  onGenerate,
+  isLoading,
+  isBroke,
+  engineMode,
+  onToggleLiveChat = null,
+  showLiveChat = false,
+}) => {
   const [userRequest, setUserRequest] = useState('');
 
   const baseTextRef = useRef('');
@@ -169,8 +176,78 @@ const RecipeForm = ({ onGenerate, isLoading, isBroke, engineMode }) => {
         </div>
       </div>
 
+      {engineMode !== 'chat' && (
+        <div className="dietary-toggles-container">
+          <button
+            type="button"
+            className={`diet-pill ${prefs.oilFree ? 'active' : 'warning'}`}
+            onClick={() => handleToggle('oilFree')}
+            disabled={isLoading}
+            title="Toggle strictly oil-free"
+          >
+            {prefs.oilFree ? '✅ Oil-Free' : '⚠️ Oil Allowed'}
+          </button>
+
+          <button
+            type="button"
+            className={`diet-pill ${prefs.glutenFree ? 'active' : ''}`}
+            onClick={() => handleToggle('glutenFree')}
+            disabled={isLoading}
+          >
+            {prefs.glutenFree ? '✅ Gluten-Free' : 'Gluten-Free'}
+          </button>
+
+          <button
+            type="button"
+            className={`diet-pill ${prefs.sugarFree ? 'active' : 'warning'}`}
+            onClick={() => handleToggle('sugarFree')}
+            disabled={isLoading}
+            title="Refined Sugar-Free"
+          >
+            {prefs.sugarFree ? '✅ Refined Sugar-Free' : '⚠️ Refined Sugar Allowed'}
+          </button>
+        </div>
+      )}
+
+      {engineMode === 'full' && (
+        <ImageStyleOptions
+          value={imageOptions}
+          onChange={setImageOptions}
+          disabled={isLoading}
+        />
+      )}
+
+      {engineMode === 'chat' && onToggleLiveChat ? (
+        <div className="chat-submit-split-row">
+          <button
+            type="submit"
+            className="submit-btn chat-split-send-btn"
+            disabled={isLoading || isParsingFile || !canSubmit}
+          >
+            {getButtonText()}
+          </button>
+          <button
+            type="button"
+            onClick={onToggleLiveChat}
+            disabled={isLoading}
+            className={`chat-tool-btn live-audio-toggle-btn chat-split-live-btn ${showLiveChat ? 'active' : ''}`}
+            title="Start talking with Emma in Live Audio Mode (0.10 Tokens/min)"
+          >
+            {showLiveChat ? '🛑 Close Live' : '🎙️ Go Live (0.10/min)'}
+          </button>
+        </div>
+      ) : (
+        <button
+          type="submit"
+          className="submit-btn"
+          disabled={isLoading || isParsingFile || !canSubmit}
+        >
+          {getButtonText()}
+        </button>
+      )}
+
       {/* Reference Document / Base Recipe Section */}
-      <div className={`reference-section ${showReferenceBox ? 'open' : ''}`}>
+      <div className={`reference-section ${showReferenceBox ? 'open' : ''}`} style={{ marginTop: '0.85rem' }}>
         <div className="reference-toggle-row">
           <button
             type="button"
@@ -281,55 +358,6 @@ const RecipeForm = ({ onGenerate, isLoading, isBroke, engineMode }) => {
           </div>
         )}
       </div>
-
-      {engineMode !== 'chat' && (
-        <div className="dietary-toggles-container">
-          <button
-            type="button"
-            className={`diet-pill ${prefs.oilFree ? 'active' : 'warning'}`}
-            onClick={() => handleToggle('oilFree')}
-            disabled={isLoading}
-            title="Toggle strictly oil-free"
-          >
-            {prefs.oilFree ? '✅ Oil-Free' : '⚠️ Oil Allowed'}
-          </button>
-
-          <button
-            type="button"
-            className={`diet-pill ${prefs.glutenFree ? 'active' : ''}`}
-            onClick={() => handleToggle('glutenFree')}
-            disabled={isLoading}
-          >
-            {prefs.glutenFree ? '✅ Gluten-Free' : 'Gluten-Free'}
-          </button>
-
-          <button
-            type="button"
-            className={`diet-pill ${prefs.sugarFree ? 'active' : 'warning'}`}
-            onClick={() => handleToggle('sugarFree')}
-            disabled={isLoading}
-            title="Refined Sugar-Free"
-          >
-            {prefs.sugarFree ? '✅ Refined Sugar-Free' : '⚠️ Refined Sugar Allowed'}
-          </button>
-        </div>
-      )}
-
-      {engineMode === 'full' && (
-        <ImageStyleOptions
-          value={imageOptions}
-          onChange={setImageOptions}
-          disabled={isLoading}
-        />
-      )}
-
-      <button
-        type="submit"
-        className="submit-btn"
-        disabled={isLoading || isParsingFile || !canSubmit}
-      >
-        {getButtonText()}
-      </button>
     </form>
   );
 };

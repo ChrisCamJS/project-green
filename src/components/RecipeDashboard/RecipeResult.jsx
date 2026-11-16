@@ -499,6 +499,7 @@ const RecipeResult = ({
               <LiveChat
                   recipeContext={`The user is currently cooking or reviewing this recipe: \n\n${recipeMarkdown.substring(0, 1000)}`}
                   preConfirmed={true}
+                  autoStart={true}
               />
           </div>
       )}

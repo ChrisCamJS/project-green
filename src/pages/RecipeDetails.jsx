@@ -1090,6 +1090,7 @@ const RecipeDetails = () => {
                                     : null
                             }
                             preConfirmed={true}
+                            autoStart={true}
                         />
                     </div>
                 )}

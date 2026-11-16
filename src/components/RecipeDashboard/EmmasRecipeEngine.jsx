@@ -113,7 +113,6 @@ const EmmasRecipeEngine = () => {
     const [engineMode, setEngineMode] = useState('chat');
     const [showBottomBin, setShowBottomBin] = useState(false);
     const [showInlineLiveChat, setShowInlineLiveChat] = useState(false);
-    const [livePreConfirmed, setLivePreConfirmed] = useState(false);
     const inlineLivePanelRef = useRef(null);
     const followUpInputRef = useRef(null);
     const followUpRefPasteRef = useRef(null);
@@ -186,7 +185,7 @@ const EmmasRecipeEngine = () => {
         referenceData = null,
         imageOptionsOverride = null
     ) => {
-        if (engineMode === 'full') {
+        if (engineMode === 'full' && baseHistory.length === 0) {
             if (Number(user?.generation_tokens ?? 0) < 1) {
                 await promptPurchaseTokens(1, 'Creating a Full Masterpiece Recipe');
                 return;
@@ -466,11 +465,9 @@ const EmmasRecipeEngine = () => {
     const handleToggleInlineLiveChat = () => {
         if (showInlineLiveChat) {
             setShowInlineLiveChat(false);
-            setLivePreConfirmed(false);
             return;
         }
 
-        setLivePreConfirmed(false);
         setShowInlineLiveChat(true);
         setTimeout(() => {
             inlineLivePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -478,11 +475,10 @@ const EmmasRecipeEngine = () => {
     };
 
     const handleModeChange = async (nextMode) => {
-        if (nextMode === 'live' && engineMode !== 'live') {
-            setLivePreConfirmed(false);
-        } else if (nextMode === 'full' && engineMode !== 'full' && Number(user?.generation_tokens ?? 0) < 1) {
+        if (nextMode === 'full' && engineMode !== 'full' && Number(user?.generation_tokens ?? 0) < 1) {
             await promptPurchaseTokens(1, 'Creating a Full Masterpiece Recipe');
         }
+        setShowInlineLiveChat(false);
         setEngineMode(nextMode);
     };
 
@@ -500,7 +496,6 @@ const EmmasRecipeEngine = () => {
         setFollowUpUploadedDoc(null);
         setFollowUpFileError(null);
         setShowInlineLiveChat(false);
-        setLivePreConfirmed(false);
         setError(null);
     };
 
@@ -518,7 +513,6 @@ const EmmasRecipeEngine = () => {
         setFollowUpUploadedDoc(null);
         setFollowUpFileError(null);
         setShowInlineLiveChat(false);
-        setLivePreConfirmed(false);
         setError(null);
         setShowRecentChats(false);
     };
@@ -663,30 +657,41 @@ const EmmasRecipeEngine = () => {
                             <input type="radio" name="engineMode" value="chat" checked={engineMode === 'chat'} onChange={(e) => handleModeChange(e.target.value)} />
                             💬 Chat /w Emma
                         </label>
-                        <label className={`mode-label ${engineMode === 'live' ? 'active' : ''}`}>
-                            <input type="radio" name="engineMode" value="live" checked={engineMode === 'live'} onChange={(e) => handleModeChange(e.target.value)} />
-                            🎙️ Live Audio Session (0.10 Tokens/min)
-                        </label>
                     </div>
 
-                    {engineMode !== 'live' && (
-                        <RecipeForm 
-                            onGenerate={handleInitialGenerate} 
-                            isLoading={isLoading} 
-                            isBroke={isBroke && engineMode === 'full'} 
-                            engineMode={engineMode}
-                        />
-                    )}
-                    
-                    {engineMode === 'live' && (
-                        <div style={{ marginTop: '2rem' }}>
+                    <RecipeForm 
+                        onGenerate={handleInitialGenerate} 
+                        isLoading={isLoading} 
+                        isBroke={isBroke && engineMode === 'full'} 
+                        engineMode={engineMode}
+                        onToggleLiveChat={engineMode === 'chat' ? handleToggleInlineLiveChat : null}
+                        showLiveChat={showInlineLiveChat}
+                    />
+
+                    {showInlineLiveChat && engineMode === 'chat' && (
+                        <section ref={inlineLivePanelRef} className="inline-live-chat-panel" aria-label="Live Audio Chat with Emma">
+                            <div className="inline-live-chat-header">
+                                <div>
+                                    <strong>🎙️ Live Audio Session Active</strong>
+                                    <span>Talk with Emma out loud — everything spoken is saved into this conversation.</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="close-inline-live-btn"
+                                    onClick={() => {
+                                        setShowInlineLiveChat(false);
+                                    }}
+                                >
+                                    Close Panel
+                                </button>
+                            </div>
                             <LiveChat
                                 chatContext={buildChatContextForLive()}
                                 publishedRecipesContext={publishedCatalogVocal}
-                                preConfirmed={livePreConfirmed}
                                 onTranscriptTurn={handleLiveTranscriptTurn}
+                                autoStart={true}
                             />
-                        </div>
+                        </section>
                     )}
                 </>
             )}
@@ -912,7 +917,7 @@ const EmmasRecipeEngine = () => {
                                     onRetryImage={index === 1 ? handleRetryMasterpieceImage : null}
                                     imageStyleOptions={imageStyleOptions}
                                     onUpdateImageStyleOptions={setImageStyleOptions}
-                                    onToggleLiveChat={engineMode === 'chat' ? handleToggleInlineLiveChat : null}
+                                    onToggleLiveChat={handleToggleInlineLiveChat}
                                     externalShowLiveChat={showInlineLiveChat}
                                 />
                             </React.Fragment>
@@ -933,7 +938,6 @@ const EmmasRecipeEngine = () => {
                             className="close-inline-live-btn"
                             onClick={() => {
                                 setShowInlineLiveChat(false);
-                                setLivePreConfirmed(false);
                             }}
                         >
                             Close Panel
@@ -949,7 +953,7 @@ const EmmasRecipeEngine = () => {
             )}
 
             {/* Follow-up Form with Reference Attachment Support */}
-            {chatHistory.length > 0 && engineMode !== 'live' && (
+            {chatHistory.length > 0 && (
                 <form onSubmit={handleFollowUpSubmit} className="follow-up-form-wrapper">
                     <div className="follow-up-form">
                         <textarea
@@ -960,37 +964,39 @@ const EmmasRecipeEngine = () => {
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
-                                    if (canSubmitFollowUp && !isLoading && !isParsingFollowUpFile && !(isBroke && engineMode === 'full')) {
+                                    if (canSubmitFollowUp && !isLoading && !isParsingFollowUpFile) {
                                         handleFollowUpSubmit(e);
                                     }
                                 }
                             }}
-                            placeholder={(isBroke && engineMode === 'full') 
-                                ? "Out of tokens, love!" 
-                                : "E.g., Let's natter about plant protein, or adapt an attached recipe..."}
-                            disabled={isLoading || (isBroke && engineMode === 'full')}
-                            className={`follow-up-input ${(isBroke && engineMode === 'full') ? 'broke-input' : ''}`}
+                            placeholder={
+                                engineMode === 'chat'
+                                    ? "E.g., Let's natter about plant protein, or adapt an attached recipe..."
+                                    : "Chat with Emma or ask her to tweak/iterate on this recipe..."
+                            }
+                            disabled={isLoading}
+                            className="follow-up-input"
                         />
                         <VoiceDictationButton
                             value={followUpText}
                             onChange={setFollowUpText}
-                            disabled={isLoading || (isBroke && engineMode === 'full')}
+                            disabled={isLoading}
                         />
                         <button
                             type="button"
                             className={`follow-up-ref-btn ${(showFollowUpRef || hasFollowUpRef) ? 'active' : ''}`}
                             onClick={() => setShowFollowUpRef((prev) => !prev)}
-                            disabled={isLoading || (isBroke && engineMode === 'full')}
+                            disabled={isLoading}
                             title="Attach a reference document or paste a base recipe"
                         >
                             📎 {hasFollowUpRef ? 'Ref Added' : 'Reference'}
                         </button>
                         <button 
                             type="submit" 
-                            className={`submit-btn follow-up-submit ${(isBroke && engineMode === 'full') ? 'broke-btn' : ''}`}
-                            disabled={isLoading || isParsingFollowUpFile || !canSubmitFollowUp || (isBroke && engineMode === 'full')}
+                            className="submit-btn follow-up-submit"
+                            disabled={isLoading || isParsingFollowUpFile || !canSubmitFollowUp}
                         >
-                            {isLoading ? "Thinking..." : ((isBroke && engineMode === 'full') ? "🪙 Skint" : "Send")}
+                            {isLoading ? "Thinking..." : "Send"}
                         </button>
                     </div>
 

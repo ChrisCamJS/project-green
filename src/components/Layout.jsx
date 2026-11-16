@@ -4,6 +4,7 @@ import ScrollToTop from './ScrollToTop';
 import Footer from './Footer';
 import InstallAppBanner from './InstallAppBanner';
 import MealPlanModal from './MealPlanModal';
+import FloatingEmma from './FloatingEmma';
 
 /**
  * Layout Component
@@ -21,6 +22,7 @@ const Layout = ({children}) => {
                 <Footer />
                 <InstallAppBanner />
                 <MealPlanModal />
+                <FloatingEmma />
                 <ScrollToTop />
          </div>
     );

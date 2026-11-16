@@ -27,6 +27,7 @@ const LiveChat = ({
   onToolCall = null,
   onTranscriptTurn = null,
   autoStart = false,
+  compact = false,
 }) => {
   // 1. ALL HOOKS MUST LIVE AT THE VERY TOP!
   const [isLive, setIsLive] = useState(false);
@@ -398,6 +399,62 @@ const LiveChat = ({
           : null;
 
   // RENDER UI
+  if (compact) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.5rem',
+          padding: '0.4rem 0.75rem',
+          fontFamily: 'sans-serif',
+          fontSize: '0.78rem',
+          flexWrap: 'wrap',
+        }}
+      >
+        <span
+          style={{
+            fontWeight: 700,
+            color: audioError ? '#c53030' : isLive ? '#22543d' : '#4a5568',
+          }}
+        >
+          {audioError ? `⚠️ ${audioError}` : isLive ? '🔴 Live Audio' : `🎙️ ${status}`}
+        </span>
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.6rem',
+            fontWeight: 700,
+            color: isLive ? '#c53030' : '#4a5568',
+          }}
+        >
+          <span>⏱️ {formatElapsedTime(elapsedSeconds)}</span>
+          <span>🪙 {sessionTokensSpent.toFixed(2)} tok</span>
+          {!isLive && (
+            <button
+              type="button"
+              onClick={startLiveSession}
+              style={{
+                padding: '0.2rem 0.55rem',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                backgroundColor: '#38a169',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+              }}
+            >
+              Start
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', textAlign: 'center', maxWidth: '480px', margin: '0 auto' }}>
       <h2 style={{ marginTop: 0, marginBottom: '0.4rem' }}>The Veggie Vault — Live Audio Mode</h2>
