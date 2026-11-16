@@ -63,7 +63,6 @@ const RecipeCard = ({ recipe }) => {
                     <img
                         src={fullImageUrl}
                         alt={title}
-                        style={{width: '100%', height: 'auto'}}
                         onError={(e) => {
                             e.currentTarget.src = '/og-vault-preview.jpeg';
                         }}
@@ -110,12 +109,12 @@ const RecipeCard = ({ recipe }) => {
                             <span>{authorName}</span>
                         )}
                     </p>
+                    <StarRating 
+                        recipeId={recipe.id} 
+                        initialRating={recipe.averageRating} 
+                        onRate={(id, newRating) => console.log(`Recipe ${id} rated ${newRating} stars`)} 
+                    />
                 </div>
-                <StarRating 
-                    recipeId={recipe.id} 
-                    initialRating={recipe.averageRating} 
-                    onRate={(id, newRating) => console.log(`Recipe ${id} rated ${newRating} stars`)} 
-                />
                 <p className='recipe-description'>
                     {/* safety check: ensures it only slices if description exists */}
                     {description ? description.slice(0, 200) + '...' : 'A delicious plant-based creation.'}

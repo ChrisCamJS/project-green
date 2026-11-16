@@ -142,6 +142,35 @@ const Header = () => {
             {/* The Nav Drawer */}
             <nav ref={navRef} className={`main-nav ${isMenuOpen ? 'open' : ''}`}>
                 <ul>
+                    {user && (
+                        <li className="user-status">
+                            <Link to="/profile" onClick={closeMenu} className="welcome-link" title="View or edit your profile">
+                                <span className="welcome-text">
+                                    Welcome, {user.username || 'Love'}
+                                </span>
+                            </Link>
+                            
+                            {/* Desktop Token Badge */}
+                            {user?.account_tier === 'premium' && (
+                                <Link
+                                    to="/buy-tokens"
+                                    onClick={closeMenu}
+                                    className="token-badge desktop-token"
+                                    title="Emma Generation Tokens — Click to Buy More Tokens"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="token-icon">
+                                        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22ZM12 15.5C13.933 15.5 15.5 13.933 15.5 12C15.5 10.067 13.933 8.5 12 8.5C10.067 8.5 8.5 10.067 8.5 12C8.5 13.933 10.067 15.5 12 15.5Z"></path>
+                                    </svg>
+                                    {Number(Number(user.generation_tokens ?? 0).toFixed(1))}
+                                </Link>
+                            )}
+
+                            <div className="desktop-notif">
+                                <NotificationBell onNavigate={closeMenu} />
+                            </div>
+                        </li>
+                    )}
+
                     <li><Link to="/" onClick={closeMenu}>Home</Link></li>
                     <li><Link to="/wellness" onClick={closeMenu}>Wellness Tools</Link></li>
                     
@@ -150,64 +179,32 @@ const Header = () => {
                             {user?.account_tier === 'premium' && (
                                 <li><Link to="/engine" onClick={closeMenu}>Flavor Forge</Link></li>
                             )}
+
+                            <li>
+                                <Link to="/meal-planner" onClick={closeMenu} className="nav-link">
+                                    📅 Meal Plan
+                                </Link>
+                            </li>
                             
                             {(user?.is_admin === 1 || user?.is_admin === '1' || user?.is_admin === true) && (
                                 <li><Link to="/admin" onClick={closeMenu}>Admin Vault</Link></li>
                             )}
                             
-                            <li className="user-status">
-                                <Link to="/profile" onClick={closeMenu} className="welcome-link" title="View or edit your profile">
-                                    <span className="welcome-text">
-                                        Welcome, {user.username || 'Love'} 
-                                        {user?.account_tier === 'premium' && (
-                                            <span title="Premium Member" className="premium-sparkle">✨</span>
-                                        )}
-                                    </span>
+                            <li>
+                                <Link to="/buy-tokens" onClick={closeMenu} className="nav-link">
+                                    Buy Tokens
                                 </Link>
-                                
-                                {/* Desktop Token Badge */}
-                                {user?.account_tier === 'premium' && (
-                                    <Link
-                                        to="/buy-tokens"
-                                        onClick={closeMenu}
-                                        className="token-badge desktop-token"
-                                        title="Emma Generation Tokens — Click to Buy More Tokens"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="token-icon">
-                                            <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22ZM12 15.5C13.933 15.5 15.5 13.933 15.5 12C15.5 10.067 13.933 8.5 12 8.5C10.067 8.5 8.5 10.067 8.5 12C8.5 13.933 10.067 15.5 12 15.5Z"></path>
-                                        </svg>
-                                        {Number(Number(user.generation_tokens ?? 0).toFixed(1))}
-                                    </Link>
-                                )}
-
-                                <div className="desktop-notif">
-                                    <NotificationBell onNavigate={closeMenu} />
-                                </div>
                             </li>
-                            {user && (
-                                <>
-                                    <li>
-                                        <Link to="/buy-tokens" onClick={closeMenu} className="nav-link">
-                                            Buy Tokens
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link to="/profile" onClick={closeMenu} className="nav-link">
-                                            My Profile
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link to="/favorites" onClick={closeMenu} className="nav-link">
-                                            My Vault
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link to="/meal-planner" onClick={closeMenu} className="nav-link">
-                                            📅 Meal Plan
-                                        </Link>
-                                    </li>
-                                </>
-                            )}
+                            <li>
+                                <Link to="/profile" onClick={closeMenu} className="nav-link">
+                                    My Profile
+                                </Link>
+                            </li>
+                            <li>
+                                <Link to="/favorites" onClick={closeMenu} className="nav-link">
+                                    My Vault
+                                </Link>
+                            </li>
                             <li>
                                 <button onClick={handleLogout} className="logout-btn">
                                     Logout

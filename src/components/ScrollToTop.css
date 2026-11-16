@@ -49,3 +49,16 @@
   transform: translateY(0); 
   pointer-events: auto;
 }
+
+@media (max-width: 600px) {
+  .scroll-to-top-button-div {
+    bottom: 12px;
+    left: 12px;
+  }
+
+  .scroll-to-top-button-div .btn {
+    padding: 0.48rem 0.75rem;
+    font-size: 0.78rem;
+    gap: 0.3rem;
+  }
+}

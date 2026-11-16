@@ -711,7 +711,13 @@ const EmmasRecipeEngine = () => {
                         className={`chat-tool-btn live-audio-toggle-btn ${showInlineLiveChat ? 'active' : ''}`}
                         title="Continue this conversation in Live Audio Mode with Emma (0.10 Tokens/min)"
                     >
-                        {showInlineLiveChat ? '🛑 Close Live Audio' : '🎙️ Go Live with Emma (0.10/min)'}
+                        {showInlineLiveChat ? (
+                            '🛑 Close Live Audio'
+                        ) : (
+                            <>
+                                🎙️ Go Live with Emma<span className="live-cost-desktop"> (0.10/min)</span>
+                            </>
+                        )}
                     </button>
                     <button
                         type="button"

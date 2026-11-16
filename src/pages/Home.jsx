@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import RecipeCard from '../components/RecipeCard';
 import SearchBar from '../components/SearchBar';
 import Paginator from '../components/Paginator';
@@ -12,9 +12,9 @@ import { useFollow } from '../context/FollowContext';
 import styles from './Home.module.css';
 
 const DIETARY_FILTER_OPTIONS = [
-    { key: 'glutenFree', label: 'Gluten-Free', icon: '🌾' },
-    { key: 'oilFree', label: '100% Oil-Free', icon: '🌱' },
-    { key: 'sugarFree', label: 'Refined Sugar-Free', icon: '🍯' },
+    { key: 'glutenFree', label: 'Gluten-Free' },
+    { key: 'oilFree', label: 'Oil-Free' },
+    { key: 'sugarFree', label: 'Refined Sugar-Free' },
 ];
 
 const QUERY_TAG_PATTERNS = [
@@ -41,6 +41,23 @@ const Home = () => {
     });
     const [minRating, setMinRating] = useState(0);
     const [followingOnly, setFollowingOnly] = useState(false);
+    const [showFiltersDropdown, setShowFiltersDropdown] = useState(false);
+    const filtersMenuRef = useRef(null);
+
+    useEffect(() => {
+        if (!showFiltersDropdown) return undefined;
+        const handleOutsideClick = (event) => {
+            if (filtersMenuRef.current && !filtersMenuRef.current.contains(event.target)) {
+                setShowFiltersDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleOutsideClick);
+        document.addEventListener('touchstart', handleOutsideClick, { passive: true });
+        return () => {
+            document.removeEventListener('mousedown', handleOutsideClick);
+            document.removeEventListener('touchstart', handleOutsideClick);
+        };
+    }, [showFiltersDropdown]);
 
     // --- Pagination / Endless Scroll State ---
     const [currentPage, setCurrentPage] = useState(1);
@@ -281,83 +298,123 @@ const Home = () => {
                     setEndlessCount(10);
                 }}
             />
-            <div className={styles.filterBar} role="group" aria-label="Dietary filters">
-                <span className={styles.filterLabel}>Filter by Diet:</span>
-                <div className={styles.filterPills}>
-                    {DIETARY_FILTER_OPTIONS.map(({ key, label, icon }) => {
-                        const isActive = activeFilters[key];
-                        return (
-                            <button
-                                key={key}
-                                type="button"
-                                onClick={() => toggleFilter(key)}
-                                aria-pressed={isActive}
-                                className={`${styles.filterPill} ${styles[`${key}Pill`]} ${
-                                    isActive ? styles.filterPillActive : ''
-                                }`}
-                            >
-                                <span aria-hidden="true">{icon}</span>
-                                <span>{label}</span>
-                                <span className={styles.filterCount}>{dietaryCounts[key]}</span>
-                            </button>
-                        );
-                    })}
-                    <select
-                        className={styles.ratingFilterSelect}
-                        value={minRating}
-                        onChange={(e) => handleRatingChange(e.target.value)}
-                        aria-label="Filter by minimum star rating"
-                    >
-                        <option value={0}>⭐ All Ratings</option>
-                        <option value={4}>⭐ 4+ Stars</option>
-                        <option value={3}>⭐ 3+ Stars</option>
-                        <option value={2}>⭐ 2+ Stars</option>
-                        <option value={1}>⭐ 1+ Stars</option>
-                    </select>
-                    {user && (
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setFollowingOnly((prev) => !prev);
-                                setCurrentPage(1);
-                                setEndlessCount(10);
-                            }}
-                            aria-pressed={followingOnly}
-                            className={`${styles.filterPill} ${styles.oilFreePill} ${
-                                followingOnly ? styles.filterPillActive : ''
-                            }`}
-                        >
-                            <span aria-hidden="true">👥</span>
-                            <span>Following Only</span>
-                        </button>
-                    )}
-                    {hasActiveFilters && (
-                        <button
-                            type="button"
-                            onClick={clearAllFilters}
-                            className={styles.clearFiltersBtn}
-                        >
-                            Clear Filters
-                        </button>
-                    )}
-                </div>
-                {hasActiveFilters && (
-                    <p className={styles.filterStatusText}>
-                        Showing <strong>{filteredRecipes.length}</strong> of {recipes.length} recipes
-                    </p>
-                )}
-            </div>
             <div className={styles.gridHeaderRow}>
                 <div>
                     <h2 className={styles.title}>Latest Culinary Discoveries</h2>
                     <p className={styles.subTitle}>Hand-crafted, plant-based, and powered by you.</p>
                 </div>
-                <RecipeViewControls
-                    viewMode={viewMode}
-                    onChange={handleViewModeChange}
-                    totalItems={filteredRecipes.length}
-                />
+                <div className={styles.controlsCluster}>
+                    <div className={styles.filterDropdownWrap} ref={filtersMenuRef}>
+                        <button
+                            type="button"
+                            className={`${styles.filterDropdownBtn} ${
+                                (activeFilters.glutenFree || activeFilters.oilFree || activeFilters.sugarFree || minRating > 0 || followingOnly)
+                                    ? styles.filterDropdownBtnActive
+                                    : ''
+                            }`}
+                            onClick={() => setShowFiltersDropdown((prev) => !prev)}
+                            aria-expanded={showFiltersDropdown}
+                            aria-haspopup="true"
+                        >
+                            <span>
+                                Filters
+                                {(() => {
+                                    const count =
+                                        (activeFilters.glutenFree ? 1 : 0) +
+                                        (activeFilters.oilFree ? 1 : 0) +
+                                        (activeFilters.sugarFree ? 1 : 0) +
+                                        (minRating > 0 ? 1 : 0) +
+                                        (followingOnly ? 1 : 0);
+                                    return count > 0 ? ` (${count})` : '';
+                                })()}
+                            </span>
+                            <span aria-hidden="true">{showFiltersDropdown ? '▲' : '▼'}</span>
+                        </button>
+
+                        {showFiltersDropdown && (
+                            <div className={styles.filterDropdownMenu} role="group" aria-label="Recipe filters">
+                                <div className={styles.filterDropdownSectionTitle}>Diet</div>
+                                <div className={styles.filterDropdownPills}>
+                                    {DIETARY_FILTER_OPTIONS.map(({ key, label }) => {
+                                        const isActive = activeFilters[key];
+                                        return (
+                                            <button
+                                                key={key}
+                                                type="button"
+                                                onClick={() => toggleFilter(key)}
+                                                aria-pressed={isActive}
+                                                className={`${styles.filterPill} ${styles[`${key}Pill`]} ${
+                                                    isActive ? styles.filterPillActive : ''
+                                                }`}
+                                            >
+                                                <span>{label}</span>
+                                                <span className={styles.filterCount}>{dietaryCounts[key]}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className={styles.filterDropdownSectionTitle}>Rating</div>
+                                <select
+                                    className={styles.ratingFilterSelect}
+                                    value={minRating}
+                                    onChange={(e) => handleRatingChange(e.target.value)}
+                                    aria-label="Filter by minimum star rating"
+                                >
+                                    <option value={0}>⭐ All Ratings</option>
+                                    <option value={4}>⭐ 4+ Stars</option>
+                                    <option value={3}>⭐ 3+ Stars</option>
+                                    <option value={2}>⭐ 2+ Stars</option>
+                                    <option value={1}>⭐ 1+ Stars</option>
+                                </select>
+
+                                {user && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setFollowingOnly((prev) => !prev);
+                                            setCurrentPage(1);
+                                            setEndlessCount(10);
+                                        }}
+                                        aria-pressed={followingOnly}
+                                        className={`${styles.filterPill} ${styles.oilFreePill} ${
+                                            followingOnly ? styles.filterPillActive : ''
+                                        }`}
+                                        style={{ width: '100%', justifyContent: 'center' }}
+                                    >
+                                        <span>Following Only</span>
+                                    </button>
+                                )}
+
+                                {hasActiveFilters && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            clearAllFilters();
+                                            setShowFiltersDropdown(false);
+                                        }}
+                                        className={styles.clearFiltersBtn}
+                                        style={{ width: '100%' }}
+                                    >
+                                        Clear Filters
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    <RecipeViewControls
+                        viewMode={viewMode}
+                        onChange={handleViewModeChange}
+                        totalItems={filteredRecipes.length}
+                    />
+                </div>
             </div>
+            {hasActiveFilters && (
+                <p className={styles.filterStatusText}>
+                    Showing <strong>{filteredRecipes.length}</strong> of {recipes.length} recipes
+                </p>
+            )}
             <div className={styles.recipeGrid}>
                 {currentRecipes.length > 0 ? (
                     currentRecipes.map(recipe => (

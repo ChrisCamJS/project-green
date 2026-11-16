@@ -194,6 +194,10 @@
   }
 
   .desktop-token,
+  .main-nav a.desktop-token,
+  .user-status .desktop-token,
+  .desktop-notif,
+  .user-status .desktop-notif,
   .desktop-install-btn {
     display: none; /* Hide duplicates already shown in mobile-controls */
   }

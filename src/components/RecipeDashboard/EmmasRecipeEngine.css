@@ -1307,6 +1307,12 @@
   padding: 0.75rem 0.65rem;
 }
 
+@media (max-width: 600px) {
+  .live-cost-desktop {
+    display: none;
+  }
+}
+
 .live-audio-toggle-btn {
   background-color: #e6fffa;
   color: #234e52;

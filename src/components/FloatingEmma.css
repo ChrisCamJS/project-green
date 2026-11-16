@@ -408,5 +408,22 @@
   .floating-emma-pill-wrap {
     right: 12px;
     bottom: 12px;
+    gap: 0.3rem;
+  }
+
+  .floating-emma-pill {
+    padding: 0.48rem 0.75rem;
+    font-size: 0.8rem;
+    gap: 0.35rem;
+  }
+
+  .floating-emma-pill-sub {
+    display: none;
+  }
+
+  .floating-emma-hide-pill-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 0.78rem;
   }
 }

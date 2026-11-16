@@ -1043,21 +1043,23 @@ export default function MealPlanner() {
                   className="mp-emma-chat-input"
                   disabled={emmaBusy}
                 />
-                <VoiceDictationButton
-                  value={emmaInput}
-                  onChange={setEmmaInput}
-                  disabled={emmaBusy}
-                />
-                <button
-                  type="submit"
-                  className="mp-emma-send-btn"
-                  disabled={emmaBusy || !emmaInput.trim()}
-                >
-                  {emmaBusy ? 'Planning...' : 'Ask Emma'}
-                </button>
+                <div className="mp-emma-chat-actions">
+                  <VoiceDictationButton
+                    value={emmaInput}
+                    onChange={setEmmaInput}
+                    disabled={emmaBusy}
+                  />
+                  <button
+                    type="submit"
+                    className="mp-emma-send-btn"
+                    disabled={emmaBusy || !emmaInput.trim()}
+                  >
+                    {emmaBusy ? 'Planning...' : 'Ask Emma'}
+                  </button>
+                </div>
               </form>
               <div className="mp-emma-usage-note" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: '#64748b', marginTop: '0.45rem', flexWrap: 'wrap', gap: '0.4rem' }}>
-                <span>🪙 Usage-based: <strong>0.05 Tokens</strong> per message (20 messages = 1 Token)</span>
+                <span>Usage-based: <strong>0.05 Tokens</strong> per message (20 messages = 1 Token)</span>
                 {mealChatTokensSpent > 0 && (
                   <span style={{ fontWeight: 700, color: '#047857' }}>
                     Session used: {mealChatTokensSpent.toFixed(2)} tokens

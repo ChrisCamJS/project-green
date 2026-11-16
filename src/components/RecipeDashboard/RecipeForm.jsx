@@ -233,7 +233,13 @@ const RecipeForm = ({
             className={`chat-tool-btn live-audio-toggle-btn chat-split-live-btn ${showLiveChat ? 'active' : ''}`}
             title="Start talking with Emma in Live Audio Mode (0.10 Tokens/min)"
           >
-            {showLiveChat ? '🛑 Close Live' : '🎙️ Go Live (0.10/min)'}
+            {showLiveChat ? (
+              '🛑 Close Live'
+            ) : (
+              <>
+                🎙️ Go Live<span className="live-cost-desktop"> (0.10/min)</span>
+              </>
+            )}
           </button>
         </div>
       ) : (
