@@ -4,6 +4,7 @@ import { EMMA_SYSTEM_INSTRUCTIONS } from '../config/emmaSystemPrompt';
 import { useAudioStream } from '../hooks/useAudioStream';
 import { AudioPlayer } from '../utils/AudioPlayer';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../services/api';
 import {
   fetchPublishedRecipesCatalog,
   buildPublishedRecipesPromptSection,
@@ -70,8 +71,6 @@ const LiveChat = ({
       active = false;
     };
   }, [publishedRecipesContext, mealPlanContext]);
-
-  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
   // Ensure microphone and WebSocket close cleanly if the inline Live Chat panel unmounts
   useEffect(() => {
@@ -165,7 +164,12 @@ const LiveChat = ({
         resolvedPublishedText = buildPublishedRecipesPromptSection(catalog, 80, { vocalMode: true });
       }
 
-      const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${GEMINI_API_KEY}`;
+      const tokenRes = await api.aiGetLiveToken();
+      if (!tokenRes?.token) {
+        throw new Error(tokenRes?.message || 'Could not obtain a live audio session token.');
+      }
+
+      const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=${encodeURIComponent(tokenRes.token)}`;
       wsRef.current = new WebSocket(wsUrl);
 
       // WEBSOCKET EVENT: ON OPEN

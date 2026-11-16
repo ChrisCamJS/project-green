@@ -409,5 +409,26 @@ export const api = {
         return fetchWrapper(`/fitness-activities?id=${encodeURIComponent(id)}`, {
             method: 'DELETE',
         });
+    },
+
+    // AI PROXY (KEEPS GEMINI API KEY SERVER-SIDE)
+    aiChat: (contents, systemInstruction) => {
+        return fetchWrapper('/ai/chat', {
+            method: 'POST',
+            body: JSON.stringify({ contents, systemInstruction }),
+        });
+    },
+
+    aiGenerateImage: (prompt) => {
+        return fetchWrapper('/ai/image', {
+            method: 'POST',
+            body: JSON.stringify({ prompt }),
+        });
+    },
+
+    aiGetLiveToken: () => {
+        return fetchWrapper('/ai/live-token', {
+            method: 'POST',
+        });
     }
 };
