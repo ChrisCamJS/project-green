@@ -36,7 +36,10 @@
 
 .comment-textarea {
   min-height: 100px;
-  resize: vertical;
+  line-height: 1.45;
+  resize: none;
+  overflow-y: hidden;
+  box-sizing: border-box;
 }
 
 .comment-actions {

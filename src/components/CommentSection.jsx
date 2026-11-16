@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
@@ -19,6 +19,14 @@ const CommentForm = ({ recipeId, parentId = null, onCommentAdded, onCancel, curr
   const [body, setBody] = useState('');
   const [image, setImage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const textareaRef = useRef(null);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [body]);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -59,6 +67,7 @@ const CommentForm = ({ recipeId, parentId = null, onCommentAdded, onCancel, curr
         Commenting as <strong>@{activeUser?.username || 'Member'}</strong>
       </div>
       <textarea
+        ref={textareaRef}
         placeholder={parentId ? 'Write a reply...' : 'Share your thoughts or variations...'}
         value={body}
         onChange={(e) => setBody(e.target.value)}
