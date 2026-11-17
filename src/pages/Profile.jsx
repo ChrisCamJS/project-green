@@ -497,7 +497,23 @@ export default function Profile() {
             <strong>{recipes.length}</strong>
             <span>Published Masterpieces</span>
           </div>
-          <div className="profile-stat">
+          <div
+            className={`profile-stat ${profile.is_own_profile ? 'clickable' : ''}`}
+            onClick={profile.is_own_profile ? () => setActiveTab('followers') : undefined}
+            role={profile.is_own_profile ? 'button' : undefined}
+            tabIndex={profile.is_own_profile ? 0 : undefined}
+            onKeyDown={
+              profile.is_own_profile
+                ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setActiveTab('followers');
+                    }
+                  }
+                : undefined
+            }
+            title={profile.is_own_profile ? 'Click to view your followers' : undefined}
+          >
             <strong>{profile.follower_count ?? 0}</strong>
             <span>Followers</span>
           </div>
@@ -528,6 +544,15 @@ export default function Profile() {
               onClick={() => setActiveTab('overview')}
             >
               🍽️ My Masterpieces ({recipes.length})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'followers'}
+              className={`profile-tab-btn ${activeTab === 'followers' ? 'active' : ''}`}
+              onClick={() => setActiveTab('followers')}
+            >
+              👥 Followers ({profile.follower_count ?? 0})
             </button>
             <button
               type="button"
@@ -608,6 +633,52 @@ export default function Profile() {
               {profile.is_own_profile && (
                 <Link to="/engine" className="profile-cta-link">Open Emma&apos;s Flavor Forge</Link>
               )}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* TAB: FOLLOWERS (OWN PROFILE ONLY) */}
+      {profile.is_own_profile && activeTab === 'followers' && (
+        <section className="profile-panel-card" aria-label="Your Followers">
+          <h2>👥 Your Followers ({profile.follower_count ?? 0})</h2>
+          <p className="profile-panel-subtitle">
+            Chefs and community members following your Veggie Vault recipes.
+          </p>
+
+          {Array.isArray(profile.followers) && profile.followers.length > 0 ? (
+            <div className="profile-followers-grid">
+              {profile.followers.map((follower) => {
+                const fAvatar = resolveAssetUrl(follower.profile_image);
+                const fName = follower.display_name || follower.username;
+                const fInitial = (fName || 'C').charAt(0).toUpperCase();
+                return (
+                  <Link
+                    key={follower.id}
+                    to={`/profile/${encodeURIComponent(follower.username || follower.id)}`}
+                    className="profile-follower-card"
+                  >
+                    {fAvatar ? (
+                      <img src={fAvatar} alt={fName} className="profile-follower-avatar" />
+                    ) : (
+                      <div className="profile-follower-avatar-fallback">{fInitial}</div>
+                    )}
+                    <div className="profile-follower-info">
+                      <strong>{fName}</strong>
+                      <span>@{follower.username}</span>
+                      <small>
+                        🍽️ {Number(follower.recipe_count || 0)}{' '}
+                        {Number(follower.recipe_count || 0) === 1 ? 'Recipe' : 'Recipes'}
+                        {follower.location ? ` · 📍 ${follower.location}` : ''}
+                      </small>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="profile-empty-recipes">
+              <p>You don&apos;t have any followers yet. Share your profile link or publish a Masterpiece to grow your following!</p>
             </div>
           )}
         </section>

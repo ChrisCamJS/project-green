@@ -752,3 +752,84 @@
   color: #ffffff;
   font-weight: 700;
 }
+
+.profile-stat.clickable {
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background-color 0.15s ease;
+}
+
+.profile-stat.clickable:hover {
+  background-color: #f0fff4;
+}
+
+.profile-followers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.profile-follower-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.profile-follower-card:hover {
+  border-color: #2f855a;
+  transform: translateY(-1px);
+  background: #f0fff4;
+}
+
+.profile-follower-avatar,
+.profile-follower-avatar-fallback {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.profile-follower-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2f855a, #48bb78);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+.profile-follower-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.profile-follower-info strong {
+  color: #1a202c;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-follower-info span {
+  color: #2f855a;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.profile-follower-info small {
+  color: #64748b;
+  font-size: 0.76rem;
+  margin-top: 0.15rem;
+}

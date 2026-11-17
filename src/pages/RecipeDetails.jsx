@@ -954,7 +954,6 @@ const RecipeDetails = () => {
           <div className="recipe-details-header">
         <div className="title-row">
           <h1 className="recipe-title">{recipe.title}</h1>
-          <FavoriteButton recipeId={recipe.id} initialFavorited={recipe.isFavorited || false} />
         </div>
         {/* The Creator Tag & Action Toolbar */}
         <div className="author-badge">
@@ -1203,6 +1202,7 @@ const RecipeDetails = () => {
             <span className="rating-count">
               ({recipe.rating_count || 0} reviews)
             </span>
+            <FavoriteButton recipeId={recipe.id} initialFavorited={recipe.isFavorited || false} />
           </div>
           
           {displayDescription && (
@@ -1222,7 +1222,36 @@ const RecipeDetails = () => {
           {/* LEFT COLUMN */}
           <div className="recipe-main-col">
             <section className="recipe-section">
-              <h3 className="recipe-section-title">Ingredients</h3>
+              <div className="recipe-section-heading-row">
+                <h3 className="recipe-section-title">Ingredients</h3>
+                {recipe.ingredients && recipe.ingredients.length > 0 && (
+                  <button
+                    type="button"
+                    className="recipe-section-speak-btn no-print"
+                    onClick={() => {
+                      const spoken = `Ingredients for ${recipe.title || 'this recipe'}. ` +
+                        recipe.ingredients
+                          .map((ing) => {
+                            const hasQty = Number(ing.quantity) !== 0 && Number(ing.quantity) !== 1;
+                            const hasUnit = ing.unit && ing.unit !== 'serving' && ing.unit !== '';
+                            return [
+                              hasQty ? Number(ing.quantity) : '',
+                              hasUnit ? ing.unit : '',
+                              ing.ingredient_name || '',
+                            ]
+                              .filter(Boolean)
+                              .join(' ');
+                          })
+                          .join('. ');
+                      handleSpeak(spoken);
+                    }}
+                    title="Listen to Ingredients"
+                    aria-label="Listen to Ingredients"
+                  >
+                    {speechState === 'playing' ? '⏸️' : '🔊'}
+                  </button>
+                )}
+              </div>
               <ul className="recipe-ingredients-list">
                 {recipe.ingredients && recipe.ingredients.length > 0 ? (
                   recipe.ingredients.map((ing, index) => {
@@ -1244,7 +1273,26 @@ const RecipeDetails = () => {
             </section>
 
             <section className="recipe-section">
-              <h3 className="recipe-section-title">Instructions</h3>
+              <div className="recipe-section-heading-row">
+                <h3 className="recipe-section-title">Instructions</h3>
+                {recipe.instructions && recipe.instructions.length > 0 && (
+                  <button
+                    type="button"
+                    className="recipe-section-speak-btn no-print"
+                    onClick={() => {
+                      const spoken = `Instructions for ${recipe.title || 'this recipe'}. ` +
+                        recipe.instructions
+                          .map((step) => `Step ${step.step_number}. ${step.instruction_text}`)
+                          .join('. ');
+                      handleSpeak(spoken);
+                    }}
+                    title="Listen to Instructions"
+                    aria-label="Listen to Instructions"
+                  >
+                    {speechState === 'playing' ? '⏸️' : '🔊'}
+                  </button>
+                )}
+              </div>
               <ol className="recipe-instructions-list">
                 {recipe.instructions && recipe.instructions.length > 0 ? (
                   recipe.instructions.map((step) => (
