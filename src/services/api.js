@@ -430,5 +430,26 @@ export const api = {
         return fetchWrapper('/ai/live-token', {
             method: 'POST',
         });
+    },
+
+    // RECIPE PHOTO GALLERY
+    addRecipePhotos: (recipeId, images, setPrimary = false) => {
+        return fetchWrapper('/recipes/photos', {
+            method: 'POST',
+            body: JSON.stringify({ recipe_id: recipeId, images, set_primary: setPrimary }),
+        });
+    },
+
+    setPrimaryRecipePhoto: (recipeId, imageUrl) => {
+        return fetchWrapper('/recipes/primary-photo', {
+            method: 'PUT',
+            body: JSON.stringify({ recipe_id: recipeId, image_url: imageUrl }),
+        });
+    },
+
+    deleteRecipePhoto: (recipeId, imageId) => {
+        return fetchWrapper(`/recipes/photos?recipe_id=${encodeURIComponent(recipeId)}&image_id=${encodeURIComponent(imageId)}`, {
+            method: 'DELETE',
+        });
     }
 };

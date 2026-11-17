@@ -26,6 +26,7 @@ import StarRating from '../components/StarRating';
 import CommentSection from '../components/CommentSection';
 import FavoriteButton from '../components/FavoriteButton';
 import UserHoverFollow from '../components/UserHoverFollow';
+import RecipeCard from '../components/RecipeCard';
 import {
   formatStructuredRecipeForClipboard,
   copyRichRecipeToClipboard,
@@ -54,6 +55,9 @@ const RecipeDetails = () => {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imageStyleOptions, setImageStyleOptions] = useState({ ...DEFAULT_IMAGE_STYLE_OPTIONS });
+  const [selectedPreviewPath, setSelectedPreviewPath] = useState(null);
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+  const [photoActionMsg, setPhotoActionMsg] = useState(null);
 
   useEffect(() => {
     if (!isImageModalOpen) return undefined;
@@ -80,6 +84,11 @@ const RecipeDetails = () => {
   const [error, setError] = useState(null);
 
   // --- EMMA'S CHAT & VOICE STATE ---
+  useEffect(() => {
+    setSelectedPreviewPath(null);
+    setPhotoActionMsg(null);
+  }, [id]);
+
   const { speechState, handleSpeak } = useEmmaVoice();
   const [chatMessage, setChatMessage] = useState('');
   const chatInputRef = useRef(null);
@@ -94,6 +103,43 @@ const RecipeDetails = () => {
   const [isChatting, setIsChatting] = useState(false);
   const [showLiveChat, setShowLiveChat] = useState(false);
   const [publishedCatalog, setPublishedCatalog] = useState([]);
+
+  const similarRecipes = useMemo(() => {
+    if (!recipe || !Array.isArray(publishedCatalog) || publishedCatalog.length === 0) {
+      return [];
+    }
+    const currentId = Number(recipe.id);
+    const currentFlags = getRecipeDietaryFlags(recipe);
+    const stopWords = new Set(['with', 'and', 'the', 'for', 'bowl', 'style', 'easy', 'quick', 'vegan', 'plant', 'based']);
+    const titleTokens = new Set(
+      `${recipe.title || ''} ${recipe.description || ''}`
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter((w) => w.length >= 4 && !stopWords.has(w))
+    );
+
+    return publishedCatalog
+      .filter((item) => Number(item.id) !== currentId)
+      .map((item) => {
+        const flags = getRecipeDietaryFlags(item);
+        let score = 0;
+        if (currentFlags.oilFree && flags.oilFree) score += 2;
+        if (currentFlags.glutenFree && flags.glutenFree) score += 2;
+        if (currentFlags.sugarFree && flags.sugarFree) score += 1;
+
+        const itemWords = `${item.title || ''} ${item.description || ''}`
+          .toLowerCase()
+          .split(/[^a-z0-9]+/);
+        for (const w of itemWords) {
+          if (titleTokens.has(w)) score += 3;
+        }
+        score += (Number(item.averageRating || 0) * 0.4);
+        return { item, score };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map((entry) => entry.item);
+  }, [recipe, publishedCatalog]);
 
   useEffect(() => {
     let active = true;
@@ -361,10 +407,19 @@ const RecipeDetails = () => {
   };
   const mappedMicros = recipe.micros || recipe.micronutrients || [];
 
-  const targetImage = recipe?.imageUrl || recipe?.image_url; 
-  const fullImageUrl = targetImage 
-    ? ((targetImage.startsWith('http') || targetImage.startsWith('data:')) ? targetImage : `${API_URL}${targetImage}`)
-    : '/belle-house-fiesta-bowl.jpg';
+  const resolveImageSrc = (rawPath) => {
+    if (!rawPath) return '/belle-house-fiesta-bowl.jpg';
+    return (rawPath.startsWith('http') || rawPath.startsWith('data:')) ? rawPath : `${API_URL}${rawPath}`;
+  };
+
+  const targetImage = recipe?.imageUrl || recipe?.image_url;
+  const galleryImages = Array.isArray(recipe?.images) && recipe.images.length > 0
+    ? recipe.images
+    : (targetImage && !targetImage.includes('default-veggie-vault-placeholder')
+        ? [{ id: 0, image_url: targetImage, source: recipe.imageSource || recipe.image_source || 'user' }]
+        : []);
+  const activeHeroPath = selectedPreviewPath || targetImage;
+  const fullImageUrl = resolveImageSrc(activeHeroPath);
 
   const currentImageSource = recipe.imageSource || recipe.image_source || 'none';
   const hasRealImage = Boolean(
@@ -376,6 +431,13 @@ const RecipeDetails = () => {
   const isDraftRecipe = !Number(recipe.is_public ?? (recipe.isPublic ? 1 : 0));
 
   const authorId = recipe.authorId || recipe.user_id || null;
+  const isAdmin = Boolean(
+    user && (Number(user.is_admin) === 1 || user.is_admin === true)
+  );
+  const isRecipeOwner = Boolean(
+    user &&
+    (Number(user.id) === Number(authorId) || isAdmin)
+  );
   const authorProfileLink = authorId
     ? `/profile/${authorId}`
     : (recipe.authorName && recipe.authorName !== 'Emma (AI)' ? `/profile/${encodeURIComponent(recipe.authorName)}` : null);
@@ -390,6 +452,87 @@ const RecipeDetails = () => {
       setTimeout(() => setRecipeCopied(false), 2500);
     } catch (err) {
       console.error('Failed to copy recipe:', err);
+    }
+  };
+
+  const handleUploadAdditionalPhotos = async (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!files.length || !recipe) return;
+
+    setIsUploadingPhotos(true);
+    setPhotoActionMsg(null);
+    try {
+      const encoded = await Promise.all(
+        files.slice(0, 6).map(
+          (file) =>
+            new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = () => reject(new Error(`Could not read ${file.name}`));
+              reader.readAsDataURL(file);
+            })
+        )
+      );
+
+      const res = await api.addRecipePhotos(recipe.id, encoded, false);
+      if (res?.success) {
+        setRecipe((prev) => ({
+          ...prev,
+          image_url: res.image_url || prev.image_url,
+          imageUrl: res.image_url || prev.imageUrl,
+          images: res.images || prev.images,
+        }));
+        setPhotoActionMsg(res.message || 'Photos added! Emma’s image remains your public cover unless you pick another.');
+      }
+    } catch (err) {
+      setPhotoActionMsg(err?.message || 'Failed to upload photos.');
+    } finally {
+      setIsUploadingPhotos(false);
+    }
+  };
+
+  const handleSetPrimaryPhoto = async (imageUrl) => {
+    if (!recipe || !imageUrl) return;
+    setPhotoActionMsg(null);
+    try {
+      const res = await api.setPrimaryRecipePhoto(recipe.id, imageUrl);
+      if (res?.success) {
+        setRecipe((prev) => ({
+          ...prev,
+          image_url: res.image_url,
+          imageUrl: res.image_url,
+          image_source: res.image_source,
+          imageSource: res.image_source,
+          images: res.images || prev.images,
+        }));
+        setSelectedPreviewPath(res.image_url);
+        setPhotoActionMsg('Public cover photo updated!');
+      }
+    } catch (err) {
+      setPhotoActionMsg(err?.message || 'Could not update public cover photo.');
+    }
+  };
+
+  const handleDeleteGalleryPhoto = async (img) => {
+    if (!recipe || !img?.id) return;
+    setPhotoActionMsg(null);
+    try {
+      const res = await api.deleteRecipePhoto(recipe.id, img.id);
+      if (res?.success) {
+        setRecipe((prev) => ({
+          ...prev,
+          image_url: res.image_url || prev.image_url,
+          imageUrl: res.image_url || prev.imageUrl,
+          images: res.images || prev.images,
+        }));
+        if (selectedPreviewPath === img.image_url) {
+          setSelectedPreviewPath(null);
+        }
+        setPhotoActionMsg('Photo removed.');
+      }
+    } catch (err) {
+      setPhotoActionMsg(err?.message || 'Could not remove photo.');
     }
   };
 
@@ -713,6 +856,88 @@ const RecipeDetails = () => {
         </button>
       </div>
 
+      {(galleryImages.length > 1 || isRecipeOwner) && (
+        <div className="recipe-gallery-bar no-print">
+          <div className="recipe-gallery-header">
+            <span className="recipe-gallery-title">
+              📸 Dish Photos ({galleryImages.length})
+            </span>
+            {isRecipeOwner && (
+              <label className={`recipe-gallery-upload-btn ${isUploadingPhotos ? 'disabled' : ''}`}>
+                {isUploadingPhotos ? '⏳ Uploading...' : '➕ Add Dish Photos'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleUploadAdditionalPhotos}
+                  disabled={isUploadingPhotos}
+                  hidden
+                />
+              </label>
+            )}
+          </div>
+
+          {photoActionMsg && (
+            <p className="recipe-gallery-feedback">{photoActionMsg}</p>
+          )}
+
+          {galleryImages.length > 0 && (
+            <div className="recipe-gallery-thumbs">
+              {galleryImages.map((img, idx) => {
+                const isPrimary = img.image_url === targetImage;
+                const isPreviewing = img.image_url === activeHeroPath;
+                return (
+                  <div
+                    key={img.id || `${img.image_url}-${idx}`}
+                    className={`recipe-gallery-thumb-card ${isPreviewing ? 'previewing' : ''}`}
+                  >
+                    <button
+                      type="button"
+                      className="recipe-gallery-thumb-btn"
+                      onClick={() => setSelectedPreviewPath(img.image_url)}
+                      title="Preview this photo"
+                    >
+                      <img
+                        src={resolveImageSrc(img.image_url)}
+                        alt={`${recipe.title} view ${idx + 1}`}
+                      />
+                      {isPrimary && (
+                        <span className="recipe-gallery-cover-badge">✓ Cover</span>
+                      )}
+                    </button>
+                    {isRecipeOwner && (
+                      <div className="recipe-gallery-thumb-actions">
+                        {!isPrimary && (
+                          <button
+                            type="button"
+                            className="recipe-gallery-set-cover-btn"
+                            onClick={() => handleSetPrimaryPhoto(img.image_url)}
+                            title="Make this the public recipe cover"
+                          >
+                            Set Cover
+                          </button>
+                        )}
+                        {img.id > 0 && galleryImages.length > 1 && (
+                          <button
+                            type="button"
+                            className="recipe-gallery-del-btn"
+                            onClick={() => handleDeleteGalleryPhoto(img)}
+                            title="Remove photo"
+                            aria-label="Remove photo"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="recipe-card">
         <header className="recipe-header">
           <div className="recipe-dietary-header-badges">
@@ -762,6 +987,16 @@ const RecipeDetails = () => {
           </div>
 
           <div className="recipe-action-toolbar">
+            {isAdmin && (
+              <Link
+                to={`/admin/edit/${recipe.id}`}
+                className="recipe-details-action-btn"
+                style={{ textDecoration: 'none', backgroundColor: '#fef3c7', color: '#92400e', borderColor: '#f59e0b' }}
+              >
+                ✏️ Edit Recipe
+              </Link>
+            )}
+
             <button
               type="button"
               className="recipe-details-plan-btn"
@@ -1165,6 +1400,17 @@ const RecipeDetails = () => {
 
         <CommentSection recipeId={recipe.id} />
       </div>
+
+      {similarRecipes.length > 0 && (
+        <section className="recipe-suggested-section no-print" aria-label="Similar and suggested recipes">
+          <h2 className="recipe-suggested-heading">🍽️ Similar &amp; Suggested Recipes</h2>
+          <div className="recipe-suggested-grid">
+            {similarRecipes.map((item) => (
+              <RecipeCard key={item.id} recipe={item} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {isImageModalOpen && (
         <div

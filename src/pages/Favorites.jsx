@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import RecipeCard from '../components/RecipeCard';
+import RecipeFilterToolbar from '../components/RecipeFilterToolbar';
+import { filterRecipesList } from '../utils/recipeFilterUtils';
 import './Favorites.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -18,6 +20,13 @@ export default function Favorites() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // 'all', 'public', 'drafts', 'following'
   const [unfollowingId, setUnfollowingId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilters, setActiveFilters] = useState({
+    glutenFree: false,
+    oilFree: false,
+    sugarFree: false,
+  });
+  const [minRating, setMinRating] = useState(0);
 
   const loadVaultData = async () => {
     try {
@@ -68,11 +77,33 @@ export default function Favorites() {
     }
   };
 
-  const filteredList = favorites.filter((recipe) => {
-    if (filter === 'public') return recipe.isPublic;
-    if (filter === 'drafts') return recipe.isDraft;
-    return true;
-  });
+  const tabScopedRecipes = useMemo(() => {
+    return favorites.filter((recipe) => {
+      if (filter === 'public') return recipe.isPublic;
+      if (filter === 'drafts') return recipe.isDraft;
+      return true;
+    });
+  }, [favorites, filter]);
+
+  const filteredList = useMemo(
+    () =>
+      filterRecipesList(tabScopedRecipes, {
+        searchQuery,
+        activeFilters,
+        minRating,
+      }),
+    [tabScopedRecipes, searchQuery, activeFilters, minRating]
+  );
+
+  const toggleDietaryFilter = (key) => {
+    setActiveFilters((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const clearRecipeFilters = () => {
+    setSearchQuery('');
+    setActiveFilters({ glutenFree: false, oilFree: false, sugarFree: false });
+    setMinRating(0);
+  };
 
   return (
     <div className="favorites-page">
@@ -109,6 +140,21 @@ export default function Favorites() {
             👥 Following ({followingList.length})
           </button>
         </div>
+
+        {filter !== 'following' && (
+          <RecipeFilterToolbar
+            recipes={tabScopedRecipes}
+            filteredCount={filteredList.length}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            activeFilters={activeFilters}
+            onToggleFilter={toggleDietaryFilter}
+            minRating={minRating}
+            onRatingChange={setMinRating}
+            onClearFilters={clearRecipeFilters}
+            placeholder="Search your saved masterpieces and drafts..."
+          />
+        )}
 
         {filter !== 'following' && (
           <div className="vault-following-summary">

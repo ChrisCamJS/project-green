@@ -6,6 +6,8 @@ import RecipeCard from '../components/RecipeCard';
 import UserHoverFollow from '../components/UserHoverFollow';
 import AchievementsSection from '../components/AchievementsSection';
 import SEOHead from '../components/SEOHead';
+import RecipeFilterToolbar from '../components/RecipeFilterToolbar';
+import { filterRecipesList } from '../utils/recipeFilterUtils';
 import { SITE_URL, cleanSeoText } from '../utils/seoUtils';
 import './Profile.css';
 
@@ -62,6 +64,14 @@ export default function Profile() {
   const [removeAvatar, setRemoveAvatar] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileFeedback, setProfileFeedback] = useState({ type: '', text: '' });
+  const [profileLinkCopied, setProfileLinkCopied] = useState(false);
+  const [recipeSearchQuery, setRecipeSearchQuery] = useState('');
+  const [recipeActiveFilters, setRecipeActiveFilters] = useState({
+    glutenFree: false,
+    oilFree: false,
+    sugarFree: false,
+  });
+  const [recipeMinRating, setRecipeMinRating] = useState(0);
 
   // Email change form state
   const [emailForm, setEmailForm] = useState({
@@ -289,11 +299,22 @@ export default function Profile() {
     }
   };
 
+  const filteredProfileRecipes = useMemo(
+    () =>
+      filterRecipesList(recipes, {
+        searchQuery: recipeSearchQuery,
+        activeFilters: recipeActiveFilters,
+        minRating: recipeMinRating,
+      }),
+    [recipes, recipeSearchQuery, recipeActiveFilters, recipeMinRating]
+  );
+
   const profileSeo = useMemo(() => {
     if (!profile) return null;
     const name = profile.display_name || profile.username || 'Chef Profile';
-    const path = identifier
-      ? `/profile/${encodeURIComponent(identifier)}`
+    const shareSlug = profile.username || profile.id;
+    const path = shareSlug
+      ? `/profile/${encodeURIComponent(shareSlug)}`
       : '/profile';
     const desc = cleanSeoText(
       profile.bio ||
@@ -307,7 +328,7 @@ export default function Profile() {
       canonicalPath: path,
       ogType: 'profile',
       image: avatar || undefined,
-      noindex: !identifier,
+      noindex: !identifier && !shareSlug,
       jsonLd: {
         '@context': 'https://schema.org',
         '@type': 'ProfilePage',
@@ -432,6 +453,29 @@ export default function Profile() {
           </div>
 
           <div className="profile-actions-col">
+            <button
+              type="button"
+              onClick={async () => {
+                const sharePath = `/profile/${encodeURIComponent(profile.username || profile.id)}`;
+                const shareUrl = `${window.location.origin}${sharePath}`;
+                try {
+                  if (navigator.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(shareUrl);
+                  } else {
+                    window.prompt('Copy this profile link:', shareUrl);
+                  }
+                  setProfileLinkCopied(true);
+                  setTimeout(() => setProfileLinkCopied(false), 2500);
+                } catch {
+                  window.prompt('Copy this profile link:', shareUrl);
+                }
+              }}
+              className="profile-share-btn"
+              title="Copy a shareable link to this chef profile"
+            >
+              {profileLinkCopied ? '✓ Profile Link Copied!' : '🔗 Share Profile'}
+            </button>
+
             {!profile.is_own_profile && (
               <button
                 type="button"
@@ -523,11 +567,37 @@ export default function Profile() {
             Published Recipes by {displayTitle}
           </h2>
           {recipes.length > 0 ? (
-            <div className="profile-recipes-grid">
-              {recipes.map((recipe) => (
-                <RecipeCard key={recipe.id} recipe={recipe} />
-              ))}
-            </div>
+            <>
+              <RecipeFilterToolbar
+                recipes={recipes}
+                filteredCount={filteredProfileRecipes.length}
+                searchQuery={recipeSearchQuery}
+                onSearchChange={setRecipeSearchQuery}
+                activeFilters={recipeActiveFilters}
+                onToggleFilter={(key) =>
+                  setRecipeActiveFilters((prev) => ({ ...prev, [key]: !prev[key] }))
+                }
+                minRating={recipeMinRating}
+                onRatingChange={setRecipeMinRating}
+                onClearFilters={() => {
+                  setRecipeSearchQuery('');
+                  setRecipeActiveFilters({ glutenFree: false, oilFree: false, sugarFree: false });
+                  setRecipeMinRating(0);
+                }}
+                placeholder="Search recipes by title, description, or ingredient..."
+              />
+              {filteredProfileRecipes.length > 0 ? (
+                <div className="profile-recipes-grid">
+                  {filteredProfileRecipes.map((recipe) => (
+                    <RecipeCard key={recipe.id} recipe={recipe} />
+                  ))}
+                </div>
+              ) : (
+                <div className="profile-empty-recipes">
+                  <p>No published recipes match your search or filters.</p>
+                </div>
+              )}
+            </>
           ) : (
             <div className="profile-empty-recipes">
               <p>
