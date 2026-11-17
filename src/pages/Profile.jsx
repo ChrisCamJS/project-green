@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -65,6 +65,14 @@ export default function Profile() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileFeedback, setProfileFeedback] = useState({ type: '', text: '' });
   const [profileLinkCopied, setProfileLinkCopied] = useState(false);
+  const followersSectionRef = useRef(null);
+
+  const handleOpenFollowersSection = () => {
+    setActiveTab('followers');
+    setTimeout(() => {
+      followersSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  };
   const [recipeSearchQuery, setRecipeSearchQuery] = useState('');
   const [recipeActiveFilters, setRecipeActiveFilters] = useState({
     glutenFree: false,
@@ -499,7 +507,7 @@ export default function Profile() {
           </div>
           <div
             className={`profile-stat ${profile.is_own_profile ? 'clickable' : ''}`}
-            onClick={profile.is_own_profile ? () => setActiveTab('followers') : undefined}
+            onClick={profile.is_own_profile ? handleOpenFollowersSection : undefined}
             role={profile.is_own_profile ? 'button' : undefined}
             tabIndex={profile.is_own_profile ? 0 : undefined}
             onKeyDown={
@@ -507,7 +515,7 @@ export default function Profile() {
                 ? (e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      setActiveTab('followers');
+                      handleOpenFollowersSection();
                     }
                   }
                 : undefined
@@ -640,7 +648,7 @@ export default function Profile() {
 
       {/* TAB: FOLLOWERS (OWN PROFILE ONLY) */}
       {profile.is_own_profile && activeTab === 'followers' && (
-        <section className="profile-panel-card" aria-label="Your Followers">
+        <section ref={followersSectionRef} className="profile-panel-card" aria-label="Your Followers">
           <h2>👥 Your Followers ({profile.follower_count ?? 0})</h2>
           <p className="profile-panel-subtitle">
             Chefs and community members following your Veggie Vault recipes.

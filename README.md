@@ -1,57 +1,51 @@
 # 🥦 The Veggie Vault
 
-**The Veggie Vault** is a full-featured, Whole-Food, Plant-Based (WFPB) & 100% oil-free culinary platform powered by **The Chris & Emma Show** ([chrisandemmashow.com](https://chrisandemmashow.com/)). It pairs community recipe sharing and mathematically verified macro/micronutrient breakdowns with **Emma**, an AI culinary & nutrition assistant available across text chat and real-time live voice.
+**The Veggie Vault** is a full-featured, Whole-Food, Plant-Based (WFPB) & 100% oil-free culinary platform powered by **The Chris & Emma Show** ([chrisandemmashow.com](https://chrisandemmashow.com/)). It pairs community recipe sharing and mathematically verified macro/micronutrient breakdowns with **Emma**, an AI culinary & nutrition assistant available across text chat, voice dictation, and real-time live audio.
 
 ---
 
 ## 🛠️ Tech Stack
 
 - **Frontend:** React 19 + Vite 7, React Router v7, Vanilla CSS (modular & component-scoped stylesheets), PWA install support.
-- **AI & Voice:** Google Gemini API (Recipe Engine, Meal Planning Concierge, Admin DB Assistant, AI food photography, Live Audio sessions, and Web Speech API voice-to-text dictation).
-- **Backend API:** PHP 8+ REST API (`pantry-rebuild-api`) with PDO/MySQL, session authentication, email verification, and Stripe Checkout token purchases.
+- **AI & Voice:** Google Gemini API proxied securely through the backend (`pantry-rebuild-api`), ephemeral Live Audio tokens, and Web Speech API voice-to-text dictation.
+- **Backend API:** PHP 8+ REST API (`pantry-rebuild-api`) with PDO/MySQL, HTTPS cross-origin session authentication, email verification, and Stripe Checkout token purchases.
 
 ---
 
 ## ✨ Key Features
 
 ### 🔍 Recipe Discovery, Filtering & Viewing
-- **Master Recipe Grid:** Browse community and AI-crafted recipes with prep/cook times, macro summaries, dietary badges (`100% Oil-Free`, `Gluten-Free`, `Refined Sugar-Free`), and oil-free ingredient rationales.
-- **Smart Search & Filters:** Filter by dietary tags, free-text keywords/ingredients, and **minimum star rating** (`1+` to `4+` stars).
+- **Chronological Home Timeline:** Displays all published recipes chronologically by default, with a **Following Only** filter option for chefs you follow.
+- **Smart Search & Filters Dropdown:** Filter by dietary tags (`Gluten-Free`, `Oil-Free`, `Refined Sugar-Free`), free-text keywords/ingredients, and **minimum star rating** (`1+` to `4+` stars) from a compact `Filters` dropdown on Home, **My Vault**, and **Chef Profiles**.
 - **Flexible Pagination & Endless Scroll:** Switch seamlessly between **6**, **10**, or **15** recipes per page, or **Endless Scroll** (available on both the Home feed and the Admin Manage Recipes inventory).
 
-### 🤖 Emma's Flavor Forge (AI Recipe & Nutrition Engine)
-- **Multiple Creation Modes:** Create complete **Masterpiece Recipes** (with nutrition deep dives and AI-generated photography), chat in text mode, or talk hands-free in **Live Voice Audio** sessions.
+### 🤖 Emma's Flavor Forge & Site-Wide Floating Helper
+- **Unified Chat & Live Audio:** Text chat and **Live Audio** operate as one continuous conversation across Chat, Recipe Draft, and Masterpiece modes—spoken turns are transcribed in real time and saved directly into chat history and 30-day Recent Chats.
+- **Floating Emma Helper:** Page-aware site assistant available across the app (Home, Recipe Details, Meal Planner, Wellness, Profile) with compact/expanded/minimized/hidden states and quick navigation links.
+- **Masterpiece & Recipe Creation:** Generate **Quick Recipe Drafts** (free) or **Full Masterpieces** (1 token, with AI food photography, customizable kitchen/photo styling, and a save-to-vault reminder modal), then iterate freely in the same conversation.
+- **Auto-Expanding Inputs & Reference Attachments:** All chat, reference, kitchen styling, and comment inputs auto-expand as you type or dictate, with client-side compression for large reference images (`.txt`, `.md`, `.docx`, `.pdf`, `.csv`, `.json`, or photos).
 - **Automatic Allergy Protection:** Food allergies saved in your profile are automatically injected into Emma's prompts across text and live audio so unsafe ingredients are always avoided.
-- **Voice-to-Text Dictation:** Microphone dictation button built into every text chat input across the platform (Flavor Forge, Recipe Q&A, Meal Planner Concierge, and Admin DB Assistant).
-- **30-Day Database Chat History:** Conversations are persisted in the database for 30 days, with one-click export to `.txt` or `.pdf` and support for uploading reference documents (`.txt`, `.md`, `.docx`, `.pdf`, `.csv`, `.json`, or images).
-- **Transparent Metered Tokens:** Masterpiece generation, per-minute Live Audio billing, per-message Meal Planner chat, and Stripe token top-ups.
 
-### 📊 Recipe Details, Nutrition & Community Engagement
-- **Progressive Disclosure Nutrition:** `NutritionPanel` verifies macro math (`Protein × 4`, `Carbs × 4`, `Fat × 9`) and breaks down 15+ micronutrients with Daily Value percentages.
-- **Localized Recipe Chat:** Ask Emma recipe-specific questions (text or live audio) right on any recipe page.
-- **Ratings, Comments & Vaulting:** 5-star ratings, threaded comments with image uploads and like/dislike voting, and Favorites / Drafts in **My Vault**.
-- **Hover-to-Follow Chefs:** Mouse over any chef's username on recipe cards, recipe pages, comments, sitemaps, or profiles to follow/unfollow them directly from a floating popover.
-- **Comment Notifications:** Header notification bell with unread badge, dropdown feed, mark-as-read controls, and direct navigation when someone comments on or replies to your recipes.
+### 📊 Recipe Details, Nutrition & Multi-Photo Galleries
+- **Mandatory Fiber & Sodium + Micronutrients:** `NutritionPanel` verifies macro math (`Protein × 4`, `Carbs × 4`, `Fat × 9`) and breaks down 12+ nutrients per serving, always including **Dietary Fiber** and **Sodium** alongside key vitamins and minerals.
+- **Multi-Photo Recipe Gallery:** Recipe creators can upload additional real-life dish photos after publishing while keeping Emma's AI image as the default public cover, or pick any uploaded photo as the public cover.
+- **Clipboard Export & Section Audio:** One-click **Copy Full Recipe** (formatted rich text + plain text), speaker buttons to listen to **Ingredients**, **Instructions**, or **Emma's Deep Dive**, **Admin Quick Edit** link, and **Similar & Suggested Recipes** at the bottom of every recipe page.
+- **Ratings, Comments & Community:** 5-star ratings, threaded comments with image uploads and like/dislike voting, **Hover-to-Follow Chefs**, and header **Comment Notifications**.
 
 ### 🩺 Wellness Tools & Meal Planning Calendar
 - **Wellness Calculators:** Interactive **BMI Calculator**, **TDEE / Caloric Needs Calculator**, and **Macronutrient Planner** that save directly to your user profile.
 - **Meal Planning Calendar:** Plan Breakfast, Lunch, Dinner, and Snacks across **Day**, **Week**, and **Month** views with automatic daily macro/micronutrient aggregation against your saved Wellness Profile targets.
-- **Emma Meal Concierge:** Ask Emma (via text or live audio) to fill meal slots, suggest nutrient-rich recipes, and balance your week.
-- **Daily Fitness & Calorie Burn Tracker:** Log multiple workouts per day (`Running`, `Cycling`, `Walking`, `Hiking`, `Swimming`, or custom `Other` activities like *Basketball*) with duration in minutes, MET-based estimated calories burned, and daily net calories.
+- **Emma Meal Concierge & Fitness Tracker:** Ask Emma (via text or live audio) to fill meal slots and balance your week, and log daily workouts with MET-based calorie burn and net calories.
 
-### 🏆 Multi-Level Achievements & Profiles
-- **Chef Profiles:** Customizable bio, avatar, location, pronouns, website, dietary focus, and allergies.
-- **Progressive Achievement Badges:** Earn multi-level badges with unlock timestamps across 6 tracks:
-  - **Masterpiece Chef** (published recipes)
-  - **Community Chatterbox** (recipe comments)
-  - **Meal Prep Strategist** (meals planned)
-  - **Active Explorer** (fitness sessions logged)
-  - **Calorie Crusher** (active minutes logged)
-  - **Vault Supporter** (chefs followed)
+### 🏆 Multi-Level Achievements & Shareable Profiles
+- **Shareable Chef Profiles & SEO:** Copyable profile links (`/profile/{username}`) with Open Graph (`og:type="profile"`) and `ProfilePage` JSON-LD metadata (including server-side crawler previews in `bot-handler.php`).
+- **Followers List:** Logged-in users viewing their own profile can click their **Followers** count to jump directly to their follower list.
+- **Progressive Achievement Badges:** Earn multi-level badges across 6 tracks (**Masterpiece Chef**, **Community Chatterbox**, **Meal Prep Strategist**, **Active Explorer**, **Calorie Crusher**, **Vault Supporter**).
 
 ### 🔐 Security & Admin Vault Control
-- **Email Verification & Auth:** Registration email verification links, password strength meter, resend verification flow, password reset emails, and configurable beta invite codes.
-- **Admin Dashboard:** Add/edit/publish/hide/delete recipes, manage beta invite codes, and use the **Free Admin Emma DB Assistant** (0 tokens) to audit and batch-update recipe database fields via natural language.
+- **Server-Side AI Proxy & Ephemeral Live Tokens:** All Gemini text, image, and Live Audio token requests are authenticated and proxied through `pantry-rebuild-api` (`/ai/chat`, `/ai/image`, `/ai/live-token`) so `GEMINI_API_KEY` never appears in frontend bundles or browser network requests.
+- **Auth & Upload Hardening:** Idempotent email verification, password strength meter, password reset emails, configurable beta invite codes, validated image uploads, and sanitized error responses.
+- **Admin Dashboard:** Add/edit/publish/hide/delete recipes, jump straight from any recipe page via **Edit Recipe**, manage beta invite codes, and use the **Free Admin Emma DB Assistant**.
 
 ---
 
@@ -61,7 +55,11 @@
    ```bash
    npm install
    ```
-2. **Configure environment variables** in `.env` at the project root (pointing `VITE_API_BASE_URL` to your `pantry-rebuild-api` backend and configuring your `VITE_GEMINI_API_KEY`).
+2. **Configure environment variables** in `.env` at the project root:
+   ```env
+   VITE_API_BASE_URL=http://localhost/pantry-rebuild-api/public
+   ```
+   *(Keep `GEMINI_API_KEY` and Stripe secrets strictly in `pantry-rebuild-api/.env` on the backend—never in the frontend `.env`.)*
 3. **Start the development server:**
    ```bash
    npm run dev
