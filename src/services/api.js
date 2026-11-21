@@ -451,5 +451,19 @@ export const api = {
         return fetchWrapper(`/recipes/photos?recipe_id=${encodeURIComponent(recipeId)}&image_id=${encodeURIComponent(imageId)}`, {
             method: 'DELETE',
         });
+    },
+
+    updateRecipeTitle: (recipeId, title) => {
+        return fetchWrapper('/recipes/title', {
+            method: 'PUT',
+            body: JSON.stringify({ recipe_id: recipeId, title }),
+        });
+    },
+
+    recalculateRecipeNutrition: (recipeId) => {
+        return fetchWrapper('/recipes/calculate-nutrition', {
+            method: 'POST',
+            body: JSON.stringify({ recipe_id: recipeId }),
+        });
     }
 };

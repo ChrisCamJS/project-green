@@ -53,6 +53,8 @@ const RecipeDetails = () => {
   const [isGeneratingAiImage, setIsGeneratingAiImage] = useState(false);
   const [aiImagePaid, setAiImagePaid] = useState(false);
   const [isUpgradingNutrition, setIsUpgradingNutrition] = useState(false);
+  const [isRecalculatingUsda, setIsRecalculatingUsda] = useState(false);
+  const [usdaFeedback, setUsdaFeedback] = useState(null);
   const [followBusy, setFollowBusy] = useState(false);
   const [upgradeFeedback, setUpgradeFeedback] = useState(null);
   const [shareCopied, setShareCopied] = useState(false);
@@ -63,6 +65,12 @@ const RecipeDetails = () => {
   const [selectedPreviewPath, setSelectedPreviewPath] = useState(null);
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
   const [photoActionMsg, setPhotoActionMsg] = useState(null);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
+  const [titleError, setTitleError] = useState(null);
+  const [titleFeedback, setTitleFeedback] = useState(null);
+  const titleFeedbackTimerRef = useRef(null);
 
   useEffect(() => {
     if (!isImageModalOpen) return undefined;
@@ -92,7 +100,19 @@ const RecipeDetails = () => {
   useEffect(() => {
     setSelectedPreviewPath(null);
     setPhotoActionMsg(null);
+    setUsdaFeedback(null);
+    setIsEditingTitle(false);
+    setTitleError(null);
+    setTitleFeedback(null);
   }, [id]);
+
+  useEffect(() => {
+    return () => {
+      if (titleFeedbackTimerRef.current) {
+        clearTimeout(titleFeedbackTimerRef.current);
+      }
+    };
+  }, []);
 
   const { speechState, activeKey, handleSpeak } = useEmmaVoice();
   const [chatMessage, setChatMessage] = useState('');
@@ -543,6 +563,60 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
     }
   };
 
+  const handleStartEditTitle = () => {
+    setTitleDraft(recipe?.title || '');
+    setTitleError(null);
+    setTitleFeedback(null);
+    setIsEditingTitle(true);
+  };
+
+  const handleCancelEditTitle = () => {
+    setIsEditingTitle(false);
+    setTitleError(null);
+  };
+
+  const handleSaveTitle = async (e) => {
+    e?.preventDefault();
+    if (!recipe || isSavingTitle) return;
+
+    const trimmed = String(titleDraft || '').replace(/\s+/g, ' ').trim();
+    if (!trimmed) {
+      setTitleError('Recipe name cannot be empty.');
+      return;
+    }
+
+    if (trimmed === String(recipe.title || '').trim()) {
+      setIsEditingTitle(false);
+      setTitleError(null);
+      return;
+    }
+
+    setIsSavingTitle(true);
+    setTitleError(null);
+    try {
+      const res = await api.updateRecipeTitle(recipe.id, trimmed);
+      if (res?.success) {
+        const nextTitle = res.title || trimmed;
+        setRecipe((prev) => ({
+          ...prev,
+          title: nextTitle,
+        }));
+        setIsEditingTitle(false);
+        setTitleFeedback('✓ Recipe name updated!');
+        if (titleFeedbackTimerRef.current) {
+          clearTimeout(titleFeedbackTimerRef.current);
+        }
+        titleFeedbackTimerRef.current = setTimeout(() => {
+          setTitleFeedback(null);
+        }, 3000);
+      }
+    } catch (err) {
+      setTitleError(err?.message || 'Could not update recipe name.');
+    } finally {
+      setIsSavingTitle(false);
+    }
+  };
+
   const handleToggleFollowAuthor = async () => {
     if (!canFollowAuthor || followBusy) return;
     setFollowBusy(true);
@@ -726,6 +800,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
         setRecipe((prev) => ({
           ...prev,
           notes: res.notes,
+          macros: res.macros || prev.macros,
           micros: res.micros,
           is_public: res.isPublic ? 1 : prev.is_public,
           isPublic: res.isPublic,
@@ -738,6 +813,28 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
       alert(err.message || 'Could not generate Masterpiece nutrition.');
     } finally {
       setIsUpgradingNutrition(false);
+    }
+  };
+
+  const handleRecalculateUsda = async () => {
+    if (!recipe || isRecalculatingUsda) return;
+    setIsRecalculatingUsda(true);
+    setUsdaFeedback(null);
+    try {
+      const res = await api.recalculateRecipeNutrition(recipe.id);
+      if (res?.success) {
+        setRecipe((prev) => ({
+          ...prev,
+          macros: res.macros || prev.macros,
+          micros: res.micros || prev.micros,
+        }));
+        setUsdaFeedback(res.message || 'Nutrition recalculated from USDA FoodData Central!');
+      }
+    } catch (err) {
+      console.error('Failed to recalculate USDA nutrition:', err);
+      setUsdaFeedback(err?.message || 'Could not recalculate nutrition from USDA.');
+    } finally {
+      setIsRecalculatingUsda(false);
     }
   };
 
@@ -960,7 +1057,70 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
           </div>
           <div className="recipe-details-header">
         <div className="title-row">
-          <h1 className="recipe-title">{recipe.title}</h1>
+          {!isEditingTitle ? (
+            <>
+              <h1 className="recipe-title">{recipe.title}</h1>
+              {isRecipeOwner && (
+                <button
+                  type="button"
+                  className="recipe-title-edit-btn no-print"
+                  onClick={handleStartEditTitle}
+                  title="Edit recipe name"
+                >
+                  ✏️ Edit Name
+                </button>
+              )}
+              {titleFeedback && (
+                <span className="recipe-title-feedback no-print" role="status">
+                  {titleFeedback}
+                </span>
+              )}
+            </>
+          ) : (
+            <form className="recipe-title-edit-form no-print" onSubmit={handleSaveTitle}>
+              <div className="recipe-title-edit-controls">
+                <input
+                  type="text"
+                  className="recipe-title-edit-input"
+                  value={titleDraft}
+                  onChange={(e) => {
+                    setTitleDraft(e.target.value);
+                    if (titleError) setTitleError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      handleCancelEditTitle();
+                    }
+                  }}
+                  maxLength={200}
+                  disabled={isSavingTitle}
+                  autoFocus
+                  aria-label="Edit recipe name"
+                  placeholder="Enter recipe name..."
+                />
+                <button
+                  type="submit"
+                  className="recipe-title-save-btn"
+                  disabled={isSavingTitle || !titleDraft.trim()}
+                >
+                  {isSavingTitle ? 'Saving...' : '✓ Save'}
+                </button>
+                <button
+                  type="button"
+                  className="recipe-title-cancel-btn"
+                  onClick={handleCancelEditTitle}
+                  disabled={isSavingTitle}
+                >
+                  Cancel
+                </button>
+              </div>
+              {titleError && (
+                <p className="recipe-title-edit-error" role="alert">
+                  {titleError}
+                </p>
+              )}
+            </form>
+          )}
         </div>
         {/* The Creator Tag & Action Toolbar */}
         <div className="author-badge">
@@ -1317,7 +1477,14 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
           {/* RIGHT COLUMN */}
           <div className="recipe-sidebar-col">
             <div className="recipe-sticky-sidebar">
-              <NutritionPanel macros={mappedMacros} micros={mappedMicros} />
+              <NutritionPanel
+                macros={mappedMacros}
+                micros={mappedMicros}
+                canRecalculate={isRecipeOwner}
+                isRecalculating={isRecalculatingUsda}
+                onRecalculate={handleRecalculateUsda}
+                recalculateMessage={usdaFeedback}
+              />
             </div>
           </div>
         </div>

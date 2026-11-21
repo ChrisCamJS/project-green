@@ -137,20 +137,23 @@ const RecipeResult = ({
           notes = notes ? `${notes}\n\n### Advanced Nutritional Analysis\n${advancedMicros}` : `### Advanced Nutritional Analysis\n${advancedMicros}`;
       }
 
+      const nutritionSectionMatch = recipeMarkdown.match(/##\s*Nutrition Information[^\n]*\n([\s\S]*?)(?=\n##|$)/i);
+      const macroSearchScope = nutritionSectionMatch ? nutritionSectionMatch[1] : recipeMarkdown;
+
       let calories = 0, protein_g = 0, carbs_g = 0, fat_g = 0, fiber_g = 0;
-      const calMatch = recipeMarkdown.match(/(?:\*\*|__)?Calories(?:\*\*|__)?:\s*(\d+(?:\.\d+)?)/i);
+      const calMatch = macroSearchScope.match(/^[-*\s]*(?:\*\*|__)?Calories(?:\*\*|__)?\s*:?(?:\*\*|__)?\s*(\d+(?:\.\d+)?)/im);
       if (calMatch) calories = Math.round(parseFloat(calMatch[1]));
       
-      const proMatch = recipeMarkdown.match(/(?:\*\*|__)?Protein(?:\*\*|__)?:\s*(\d+(?:\.\d+)?)/i);
-      if (proMatch) protein_g = Math.round(parseFloat(proMatch[1]));
+      const proMatch = macroSearchScope.match(/^[-*\s]*(?:\*\*|__)?Protein(?:\*\*|__)?\s*:?(?:\*\*|__)?\s*(\d+(?:\.\d+)?)/im);
+      if (proMatch) protein_g = Math.round(parseFloat(proMatch[1]) * 10) / 10;
       
-      const carbMatch = recipeMarkdown.match(/(?:\*\*|__)?Carbs?(?:\*\*|__)?:\s*(\d+(?:\.\d+)?)/i);
-      if (carbMatch) carbs_g = Math.round(parseFloat(carbMatch[1]));
+      const carbMatch = macroSearchScope.match(/^[-*\s]*(?:\*\*|__)?(?:Total\s+)?Carb(?:ohydrate)?s?(?:\*\*|__)?\s*:?(?:\*\*|__)?\s*(\d+(?:\.\d+)?)/im);
+      if (carbMatch) carbs_g = Math.round(parseFloat(carbMatch[1]) * 10) / 10;
       
-      const fatMatch = recipeMarkdown.match(/(?:\*\*|__)?Fat(?:\*\*|__)?:\s*(\d+(?:\.\d+)?)/i);
-      if (fatMatch) fat_g = Math.round(parseFloat(fatMatch[1]));
+      const fatMatch = macroSearchScope.match(/^[-*\s]*(?:\*\*|__)?(?:Total\s+)?Fat(?:\*\*|__)?\s*:?(?:\*\*|__)?\s*(\d+(?:\.\d+)?)/im);
+      if (fatMatch) fat_g = Math.round(parseFloat(fatMatch[1]) * 10) / 10;
 
-      const fiberMatch = recipeMarkdown.match(/(?:\*\*|__)?(?:Dietary\s+)?Fiber(?:\*\*|__)?:\s*(\d+(?:\.\d+)?)/i);
+      const fiberMatch = macroSearchScope.match(/^[-*\s]*(?:\*\*|__)?(?:Dietary\s+)?Fiber(?:\*\*|__)?\s*:?(?:\*\*|__)?\s*(\d+(?:\.\d+)?)/im);
       if (fiberMatch) fiber_g = Math.round(parseFloat(fiberMatch[1]) * 10) / 10;
 
       const parsedMicros = parseMicrosFromDeepDive(advancedMicros || '');

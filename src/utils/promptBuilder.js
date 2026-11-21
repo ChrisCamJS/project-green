@@ -95,7 +95,7 @@ export const getSystemInstructions = (
     ## Instructions
     1. [Clear, step-by-step instructions]
 
-    ## Nutrition Information
+    ## Nutrition Information (Per Serving)
     * Calories: [Number]
     * Protein: [Number]g
     * Carbs: [Number]g
