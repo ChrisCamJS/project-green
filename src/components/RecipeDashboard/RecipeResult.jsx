@@ -9,7 +9,7 @@ import {
   generateRecipeImage,
   DEFAULT_IMAGE_STYLE_OPTIONS,
 } from '../../services/geminiApi';
-import { getMicroCalculationInstructions, parseMicrosFromDeepDive } from '../../utils/promptBuilder';
+import { getMicroCalculationInstructions, parseMicrosFromDeepDive, cleanRecipeTitle } from '../../utils/promptBuilder';
 import { useEmmaVoice } from '../../hooks/useEmmaVoice';
 import LiveChat from '../LiveChat'; // Bringing in Live Mode
 import { copyRichRecipeToClipboard } from '../../utils/recipeClipboard';
@@ -109,7 +109,9 @@ const RecipeResult = ({
       
       let recipeTitle = 'Untitled Emma Masterpiece';
       const titleMatch = recipeMarkdown.match(/^#\s+(.+)$/m);
-      if (titleMatch && titleMatch[1]) recipeTitle = titleMatch[1].trim();
+      if (titleMatch && titleMatch[1]) {
+          recipeTitle = cleanRecipeTitle(titleMatch[1]) || recipeTitle;
+      }
 
       const descMatch = recipeMarkdown.match(/^#\s+[^\n]+\n+([\s\S]*?)(?=\n\*\*|\n##)/);
       const description = descMatch ? descMatch[1].trim() : 'A glorious AI-generated WFPB meal.';

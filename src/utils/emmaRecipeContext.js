@@ -2,6 +2,7 @@ import { api } from '../services/api';
 import { getRecipeDietaryFlags } from './dietaryUtils';
 import { parseMicrosFromDeepDive } from './promptBuilder';
 import { formatDateYMD, addDaysYMD, parseDateYMD } from './mealPlanUtils';
+import { RECIPE_IDEAS_PROMPT_PROTOCOL } from './recipeIdeas';
 
 const CATALOG_CACHE_TTL_MS = 5 * 60 * 1000;
 let cachedCatalog = null;
@@ -608,7 +609,9 @@ NEVER recommend or schedule any recipe whose title or ingredients contain ${user
    - ONLY use real \`recipe_id\` integers from the Plannable Recipe Catalog below, and valid \`YYYY-MM-DD\` dates from the Calendar Date Reference.
    - Check each recipe's \`Diet\` tags and ingredients before scheduling if the user specifies Gluten-Free, Oil-Free, high-protein, high-iron, etc.
    - \`servings\` supports \`0.25\` increments from \`0.25\` to \`20\` (e.g., \`0.5\`, \`0.75\`, \`1\`, \`1.25\`, \`1.5\`, \`1.75\`, \`2\`).
-   - If the user is ONLY asking a question (e.g., "give me links to gluten-free dinners" or "what nutrients am I low on?"), do NOT output \`<MEAL_PLAN_ACTIONS>\`. Only emit \`<MEAL_PLAN_ACTIONS>\` when they want the calendar modified, rescaled, or filled in.`;
+   - If the user is ONLY asking a question (e.g., "give me links to gluten-free dinners" or "what nutrients am I low on?"), do NOT output \`<MEAL_PLAN_ACTIONS>\`. Only emit \`<MEAL_PLAN_ACTIONS>\` when they want the calendar modified, rescaled, or filled in.
+
+${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
 
   return `You are Emma Advanced, a sassy, warm, fiercely intelligent British culinary partner and WFPB nutrition scientist, co-host of The Chris and Emma Show. You are helping ${userName} manage their Meal Planner on The Veggie Vault.
 

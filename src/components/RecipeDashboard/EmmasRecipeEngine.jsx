@@ -1,10 +1,12 @@
 // src/components/RecipeDashboard/EmmasRecipeEngine.jsx
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import EmmaMarkdown from '../EmmaMarkdown';
+import RecipeIdeaActions from '../RecipeIdeaActions';
 import VoiceDictationButton from '../VoiceDictationButton';
 import { getSystemInstructions } from '../../utils/promptBuilder';
+import { extractRecipeIdeas } from '../../utils/recipeIdeas';
 import {
     fetchPublishedRecipesCatalog,
     buildPublishedRecipesPromptSection,
@@ -37,6 +39,9 @@ import LiveChat from '../LiveChat';
 import './EmmasRecipeEngine.css';
 
 const EmmasRecipeEngine = () => {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const initialPrefill = location.state?.prefillPrompt ? location.state : null;
     const { user, spendToken, promptPurchaseTokens } = useAuth();
     const currentUserName = user?.username || 'Love';
 
@@ -120,7 +125,15 @@ const EmmasRecipeEngine = () => {
         sugarFree: true 
     });
 
-    const [engineMode, setEngineMode] = useState('chat');
+    const [engineMode, setEngineMode] = useState(() =>
+        initialPrefill ? (initialPrefill.prefillMode === 'full' ? 'full' : 'draft') : 'chat'
+    );
+    const [prefillPrompt, setPrefillPrompt] = useState(() =>
+        String(initialPrefill?.prefillPrompt || '')
+    );
+    const [prefillKey, setPrefillKey] = useState(() =>
+        initialPrefill?.prefillPrompt ? 1 : 0
+    );
     const [showBottomBin, setShowBottomBin] = useState(false);
     const [showInlineLiveChat, setShowInlineLiveChat] = useState(false);
     const inlineLivePanelRef = useRef(null);
@@ -265,6 +278,10 @@ const EmmasRecipeEngine = () => {
                     emmaCommentary = modelReplyText.substring(0, titleMatchIndex).trim();
                     recipeMarkdown = modelReplyText.substring(titleMatchIndex).trim();
                 }
+                recipeMarkdown = recipeMarkdown.replace(
+                    /^(#\s+)(?:\*+\s*)?\[([^\]]+)\](?:\s*\*+)?(\s*(?:\r?\n|$))/,
+                    '$1$2$3'
+                );
             }
 
             const finalHistory = [
@@ -306,6 +323,7 @@ const EmmasRecipeEngine = () => {
     const handleInitialGenerate = (userRequest, formPrefs, referenceData = null, formImageOptions = DEFAULT_IMAGE_STYLE_OPTIONS) => {
         const newSessionId = `chat_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
         const resolvedStyleOpts = formImageOptions || { ...DEFAULT_IMAGE_STYLE_OPTIONS };
+        setPrefillPrompt('');
         setCurrentSessionId(newSessionId);
         setShowRecentChats(false);
         setChatHistory([]);
@@ -500,7 +518,7 @@ const EmmasRecipeEngine = () => {
         setEngineMode(nextMode);
     };
 
-    const handleResetEngine = () => {
+    const handleResetEngine = useCallback(() => {
         setCurrentSessionId(null);
         setChatHistory([]);
         setRecipeImage(null);
@@ -514,8 +532,53 @@ const EmmasRecipeEngine = () => {
         setFollowUpUploadedDoc(null);
         setFollowUpFileError(null);
         setShowInlineLiveChat(false);
+        setPrefillPrompt('');
         setError(null);
-    };
+    }, []);
+
+    const handleLaunchIdeaInForge = useCallback(
+        ({ mode, prompt }) => {
+            const targetMode = mode === 'full' ? 'full' : 'draft';
+            handleResetEngine();
+            setShowRecentChats(false);
+            setEngineMode(targetMode);
+            setPrefillPrompt(String(prompt || ''));
+            setPrefillKey((prev) => prev + 1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (targetMode === 'full' && Number(user?.generation_tokens ?? 0) < 1) {
+                promptPurchaseTokens(1, 'Creating a Full Masterpiece Recipe');
+            }
+        },
+        [handleResetEngine, promptPurchaseTokens, user?.generation_tokens]
+    );
+
+    const hasHandledInitialPrefillRef = useRef(false);
+    useEffect(() => {
+        const state = location.state;
+        if (!state || typeof state !== 'object' || !state.prefillPrompt) return;
+
+        const targetMode = state.prefillMode === 'full' ? 'full' : 'draft';
+        const isFirstMountConsume = !hasHandledInitialPrefillRef.current;
+        hasHandledInitialPrefillRef.current = true;
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        navigate('/engine', { replace: true, state: null });
+
+        if (targetMode === 'full' && Number(user?.generation_tokens ?? 0) < 1) {
+            promptPurchaseTokens(1, 'Creating a Full Masterpiece Recipe');
+        }
+
+        if (!isFirstMountConsume) {
+            const timer = setTimeout(() => {
+                handleLaunchIdeaInForge({
+                    mode: targetMode,
+                    prompt: state.prefillPrompt,
+                });
+            }, 0);
+            return () => clearTimeout(timer);
+        }
+        return undefined;
+    }, [location.state, navigate, promptPurchaseTokens, user?.generation_tokens, handleLaunchIdeaInForge]);
 
     const handleLoadSession = (session) => {
         setCurrentSessionId(session.id);
@@ -706,12 +769,15 @@ const EmmasRecipeEngine = () => {
                     </div>
 
                     <RecipeForm 
+                        key={prefillKey}
                         onGenerate={handleInitialGenerate} 
                         isLoading={isLoading} 
                         isBroke={isBroke && engineMode === 'full'} 
                         engineMode={engineMode}
                         onToggleLiveChat={engineMode === 'chat' ? handleToggleInlineLiveChat : null}
                         showLiveChat={showInlineLiveChat}
+                        initialPrompt={prefillPrompt}
+                        shouldFocusPrompt={prefillKey > 0}
                     />
 
                     {showInlineLiveChat && engineMode === 'chat' && (
@@ -893,12 +959,22 @@ const EmmasRecipeEngine = () => {
                             </div>
                         );
                     } else {
-                        const commentary = msg.displayParts?.commentary;
-                        const recipeText = msg.displayParts?.recipe || msg.parts?.[0]?.text || '';
+                        const rawCommentary = msg.displayParts?.commentary;
+                        const rawRecipeText = msg.displayParts?.recipe || msg.parts?.[0]?.text || '';
+                        const { cleanText: cleanCommentary, ideas: commentaryIdeas } = rawCommentary
+                            ? extractRecipeIdeas(rawCommentary)
+                            : { cleanText: '', ideas: [] };
+                        const { cleanText: cleanRecipeText, ideas: recipeIdeas } = extractRecipeIdeas(rawRecipeText);
+                        const mergedIdeas = [...recipeIdeas, ...commentaryIdeas].filter(
+                            (idea, idx, arr) =>
+                                arr.findIndex(
+                                    (other) => other.title.toLowerCase() === idea.title.toLowerCase()
+                                ) === idx
+                        );
 
                         return (
                             <React.Fragment key={index}>
-                                {commentary && (
+                                {cleanCommentary && (
                                     <div className="emma-banter-bubble" style={{ 
                                         backgroundColor: '#faf5ff', 
                                         padding: '1.2rem', 
@@ -911,7 +987,7 @@ const EmmasRecipeEngine = () => {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <strong>Emma:</strong> 
                                             <button
-                                                onClick={() => handleSpeak(commentary)}
+                                                onClick={() => handleSpeak(cleanCommentary)}
                                                 style={{
                                                     background: 'transparent',
                                                     border: 'none',
@@ -929,13 +1005,13 @@ const EmmasRecipeEngine = () => {
                                             </button>
                                         </div>
                                         <div style={{ marginTop: '0.5rem', lineHeight: '1.5' }}>
-                                            <EmmaMarkdown>{commentary}</EmmaMarkdown>
+                                            <EmmaMarkdown>{cleanCommentary}</EmmaMarkdown>
                                         </div>
                                     </div>
                                 )}
                                 
                                 <RecipeResult 
-                                    recipeMarkdown={recipeText} 
+                                    recipeMarkdown={cleanRecipeText} 
                                     imageUrl={index === 1 ? recipeImage : null} 
                                     isDraft={engineMode === 'draft'} 
                                     isChat={engineMode === 'chat'}
@@ -948,6 +1024,12 @@ const EmmasRecipeEngine = () => {
                                     onToggleLiveChat={handleToggleInlineLiveChat}
                                     externalShowLiveChat={showInlineLiveChat}
                                 />
+                                {mergedIdeas.length > 0 && (
+                                    <RecipeIdeaActions
+                                        ideas={mergedIdeas}
+                                        onSelectIdea={handleLaunchIdeaInForge}
+                                    />
+                                )}
                             </React.Fragment>
                         );
                     }

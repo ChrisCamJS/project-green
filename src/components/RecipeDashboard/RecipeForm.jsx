@@ -16,8 +16,10 @@ const RecipeForm = ({
   engineMode,
   onToggleLiveChat = null,
   showLiveChat = false,
+  initialPrompt = '',
+  shouldFocusPrompt = false,
 }) => {
-  const [userRequest, setUserRequest] = useState('');
+  const [userRequest, setUserRequest] = useState(() => String(initialPrompt || ''));
 
   const baseTextRef = useRef('');
   const requestTextareaRef = useRef(null);
@@ -29,6 +31,20 @@ const RecipeForm = ({
     el.style.height = 'auto';
     el.style.height = `${el.scrollHeight}px`;
   }, [userRequest]);
+
+  useEffect(() => {
+    if (!shouldFocusPrompt) return;
+    const timer = setTimeout(() => {
+      const el = requestTextareaRef.current;
+      if (!el) return;
+      el.focus();
+      const len = el.value.length;
+      if (typeof el.setSelectionRange === 'function') {
+        el.setSelectionRange(len, len);
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [shouldFocusPrompt]);
 
   const [prefs, setPrefs] = useState({
     oilFree: true,

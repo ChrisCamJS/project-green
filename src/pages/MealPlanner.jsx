@@ -6,7 +6,9 @@ import { useAuth } from '../context/AuthContext';
 import { useEmmaVoice } from '../hooks/useEmmaVoice';
 import SEOHead from '../components/SEOHead';
 import EmmaMarkdown from '../components/EmmaMarkdown';
+import RecipeIdeaActions from '../components/RecipeIdeaActions';
 import VoiceDictationButton from '../components/VoiceDictationButton';
+import { extractRecipeIdeas } from '../utils/recipeIdeas';
 import FitnessTrackerPanel from '../components/FitnessTrackerPanel';
 import LiveChat from '../components/LiveChat';
 import {
@@ -852,7 +854,8 @@ export default function MealPlanner() {
 
       const apiHistory = nextHistory.map(({ role, parts }) => ({ role, parts }));
       const rawReply = await sendChatMessage(apiHistory, systemInstructions);
-      const { cleanText, actions } = extractMealPlanActions(rawReply);
+      const { cleanText: afterActionsText, actions } = extractMealPlanActions(rawReply);
+      const { cleanText, ideas: recipeIdeas } = extractRecipeIdeas(afterActionsText);
 
       let executionResult = { appliedCount: 0, summaries: [], errors: [] };
       if (actions.length > 0) {
@@ -878,6 +881,7 @@ export default function MealPlanner() {
             (executionResult.appliedCount > 0
               ? 'Sorted! I have updated your meal plan calendar.'
               : rawReply),
+          recipeIdeas,
           appliedActions: executionResult.summaries,
           actionErrors: executionResult.errors,
         },
@@ -1012,6 +1016,11 @@ export default function MealPlanner() {
                       );
                     }
 
+                    const parsedIdeas =
+                      Array.isArray(msg.recipeIdeas)
+                        ? msg.recipeIdeas
+                        : extractRecipeIdeas(msg.displayText).ideas;
+
                     return (
                       <div key={idx} className="mp-emma-msg model">
                         <div className="mp-emma-msg-bubble model">
@@ -1029,6 +1038,7 @@ export default function MealPlanner() {
                           <div className="mp-emma-msg-markdown">
                             <EmmaMarkdown>{msg.displayText}</EmmaMarkdown>
                           </div>
+                          <RecipeIdeaActions ideas={parsedIdeas} compact />
                           {Array.isArray(msg.appliedActions) && msg.appliedActions.length > 0 && (
                             <div className="mp-emma-applied-actions">
                               <strong>📅 Calendar Updated:</strong>

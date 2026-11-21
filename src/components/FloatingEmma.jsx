@@ -14,8 +14,10 @@ import {
   buildFloatingEmmaPageContext,
 } from '../utils/emmaSiteContext';
 import EmmaMarkdown from './EmmaMarkdown';
+import RecipeIdeaActions from './RecipeIdeaActions';
 import VoiceDictationButton from './VoiceDictationButton';
 import LiveChat from './LiveChat';
+import { extractRecipeIdeas } from '../utils/recipeIdeas';
 import { useEmmaVoice } from '../hooks/useEmmaVoice';
 import './FloatingEmma.css';
 
@@ -431,6 +433,7 @@ export default function FloatingEmma() {
             }
 
             const replyText = msg.parts?.[0]?.text || '';
+            const { cleanText, ideas } = extractRecipeIdeas(replyText);
             const msgSpeechKey = `floating-msg-${idx}`;
             const isSpeakingThis = speechState === 'playing' && activeKey === msgSpeechKey;
             return (
@@ -444,14 +447,22 @@ export default function FloatingEmma() {
                   <button
                     type="button"
                     className={`floating-emma-speak-btn ${isSpeakingThis ? 'playing' : ''}`}
-                    onClick={() => handleSpeak(replyText, msgSpeechKey)}
+                    onClick={() => handleSpeak(cleanText, msgSpeechKey)}
                     title={isSpeakingThis ? 'Pause Emma' : 'Listen to Emma'}
                     aria-label={isSpeakingThis ? 'Pause Emma' : 'Listen to Emma'}
                   >
                     {isSpeakingThis ? '⏸️' : '🔊'}
                   </button>
                 </div>
-                <EmmaMarkdown>{replyText}</EmmaMarkdown>
+                <EmmaMarkdown>{cleanText}</EmmaMarkdown>
+                <RecipeIdeaActions
+                  ideas={ideas}
+                  compact
+                  onBeforeNavigate={() => {
+                    stopSpeech();
+                    setUiState('minimized');
+                  }}
+                />
               </div>
             );
           })

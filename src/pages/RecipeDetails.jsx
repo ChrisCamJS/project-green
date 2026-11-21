@@ -21,6 +21,11 @@ import {
   fetchPublishedRecipesCatalog,
   buildPublishedRecipesPromptSection,
 } from '../utils/emmaRecipeContext';
+import {
+  RECIPE_IDEAS_PROMPT_PROTOCOL,
+  extractRecipeIdeas,
+} from '../utils/recipeIdeas';
+import RecipeIdeaActions from '../components/RecipeIdeaActions';
 import NutritionPanel from '../components/NutritionPanel';
 import StarRating from '../components/StarRating';
 import CommentSection from '../components/CommentSection';
@@ -365,7 +370,9 @@ const RecipeDetails = () => {
           2. CRITICAL: Be concise (1-3 sentences maximum), but NEVER sacrifice accuracy for brevity.
           3. Do not write introductory greetings. Just give the answer with a dash of sass.
           4. If the user asks for the amount of a specific nutrient (e.g., Sodium, Vitamin C, Iron), you MUST perform the mathematical calculation based on the ingredients provided and give a precise numerical estimate (e.g., "roughly 45mg" or "about 12g"). Do NOT give vague answers like "a modest amount" or "a touch". Put your calculator to work!
-          5. If they ask for other recipe examples, side dishes, or variations from The Veggie Vault, recommend real published recipes from the catalog below and link to them using [Recipe Title](/recipe/<id>).${publishedSection}`;
+          5. If they ask for other recipe examples, side dishes, or variations from The Veggie Vault, recommend real published recipes from the catalog below and link to them using [Recipe Title](/recipe/<id>).${publishedSection}
+
+${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
 
           const reply = await sendChatMessage(updatedHistory, systemPrompt);
           setChatHistory([...updatedHistory, { role: 'model', parts: [{ text: reply }] }]);
@@ -1383,23 +1390,32 @@ const RecipeDetails = () => {
 
                     {chatHistory.length > 0 && (
                         <div className="chat-history-window" style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '1rem', paddingRight: '0.5rem' }}>
-                            {chatHistory.map((msg, idx) => (
-                                <div key={idx} style={{ marginBottom: '1rem', textAlign: msg.role === 'user' ? 'right' : 'left' }}>
-                                    <div style={{
-                                        display: 'inline-block',
-                                        padding: '0.75rem 1rem',
-                                        borderRadius: '12px',
-                                        backgroundColor: msg.role === 'user' ? '#9333ea' : '#f3e8ff',
-                                        color: msg.role === 'user' ? '#ffffff' : '#374151',
-                                        maxWidth: '85%',
-                                        textAlign: 'left',
-                                        borderBottomRightRadius: msg.role === 'user' ? '2px' : '12px',
-                                        borderBottomLeftRadius: msg.role === 'model' ? '2px' : '12px'
-                                    }}>
-                                        <EmmaMarkdown>{msg.parts[0].text}</EmmaMarkdown>
+                            {chatHistory.map((msg, idx) => {
+                                const rawText = msg.parts?.[0]?.text || '';
+                                const isModel = msg.role === 'model';
+                                const { cleanText, ideas } = isModel
+                                    ? extractRecipeIdeas(rawText)
+                                    : { cleanText: rawText, ideas: [] };
+
+                                return (
+                                    <div key={idx} style={{ marginBottom: '1rem', textAlign: msg.role === 'user' ? 'right' : 'left' }}>
+                                        <div style={{
+                                            display: 'inline-block',
+                                            padding: '0.75rem 1rem',
+                                            borderRadius: '12px',
+                                            backgroundColor: msg.role === 'user' ? '#9333ea' : '#f3e8ff',
+                                            color: msg.role === 'user' ? '#ffffff' : '#374151',
+                                            maxWidth: '85%',
+                                            textAlign: 'left',
+                                            borderBottomRightRadius: msg.role === 'user' ? '2px' : '12px',
+                                            borderBottomLeftRadius: isModel ? '2px' : '12px'
+                                        }}>
+                                            <EmmaMarkdown>{cleanText}</EmmaMarkdown>
+                                            {isModel && <RecipeIdeaActions ideas={ideas} compact />}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
 

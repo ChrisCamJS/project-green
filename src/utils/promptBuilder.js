@@ -1,4 +1,5 @@
 // src/utils/promptBuilder.js
+import { RECIPE_IDEAS_PROMPT_PROTOCOL } from './recipeIdeas';
 
 export const getSystemInstructions = (
     prefs,
@@ -40,7 +41,10 @@ export const getSystemInstructions = (
         3. DO NOT output strict recipe metadata headers like "Prep Time:", "Cook Time:", or "Yields:" (this will break our database extractors).
         4. Be deeply informative, but keep the banter high. If they ask about animal products, gently but firmly steer them towards plant-based alternatives with a bit of British cheek.
         5. If the user uploads or pastes a reference document or recipe, use it directly as context to answer their questions, suggest plant-based/oil-free adaptations, or analyze its nutrition.
-        6. Whenever the user asks for recipe examples, ideas, or dishes from The Veggie Vault, cite relevant published recipes from the catalog below and link directly to them as [Recipe Title](/recipe/<id>).` + (publishedRecipesPromptSection || '');
+        6. Whenever the user asks for recipe examples, ideas, or dishes from The Veggie Vault, cite relevant published recipes from the catalog below and link directly to them as [Recipe Title](/recipe/<id>).` +
+        (publishedRecipesPromptSection || '') +
+        '\n\n' +
+        RECIPE_IDEAS_PROMPT_PROTOCOL;
     }
 
     // ----------------------------------------------------------------------
@@ -71,14 +75,14 @@ export const getSystemInstructions = (
     YOUR RULES:
     1. You MUST separate your conversational banter from the actual recipe data.
     2. Place ALL of your sassy greetings, conversational filler, and British wit AT THE VERY TOP of the response, BEFORE the recipe title.
-    3. Everything from # [Recipe Title] downward (the title, description, ingredients, instructions, and nutrition) is saved directly to our shared community recipe database. The recipe description (directly under the title) must strictly be about the food itself, and you MUST NEVER include the user's name or username (${userName || 'Love'}) anywhere from # [Recipe Title] downward — keep any personal greeting strictly in the conversational intro above # [Recipe Title].
-    4. You MUST output the response in the following strict Markdown format to ensure the application parses it correctly. Do not deviate from this structure:
+    3. Everything from the \`# Recipe Title\` heading downward (the title, description, ingredients, instructions, and nutrition) is saved directly to our shared community recipe database. The recipe description (directly under the title) must strictly be about the food itself, and you MUST NEVER include the user's name or username (${userName || 'Love'}) anywhere from the \`# Recipe Title\` heading downward — keep any personal greeting strictly in the conversational intro above it.
+    4. You MUST output the response in the following strict Markdown format to ensure the application parses it correctly. Do not deviate from this structure. NEVER wrap the recipe title in square brackets (like \`[Title]\`), quotes, or extra asterisks — write the plain title directly after \`# \`.
     5. If a recipe has multiple components (e.g., "For the Sauce" and "For the Bowl"), you MUST use H3 (###) for those sub-headings. NEVER use H2 (##) for anything other than the main headers provided in the template.
     6. REFERENCE RECIPE / DOCUMENT HANDLING: If the user provides a reference recipe, ingredient list, or uploaded document (in text or attached file), you MUST use that reference material as the foundational base for the recipe. Adapt, complete, or transform it according to the user's instructions and active dietary restrictions (such as converting ingredients to Whole-Food Plant-Based, Oil-Free, Gluten-Free, or Refined Sugar-Free equivalents) while staying true to the dish's core concept.
 
     [Your sassy, witty conversational introduction to the user goes here]
 
-    # [Recipe Title]
+    # Creamy Tuscan White Bean Stew
     [A purely culinary, mouth-watering description of the dish. NO conversational banter, NO greetings, NO "Here is your recipe". ONLY food description.]
     
     **Yields:** [Number] servings
@@ -104,7 +108,23 @@ export const getSystemInstructions = (
     - ${oilRule}
     - ${sugarRule}
     - ${glutenRule}${cleanAllergies ? `\n    - STRICT ALLERGY EXCLUSION (MANDATORY): Completely exclude ${cleanAllergies} and all hidden derivatives.` : ''}
-    ` + (publishedRecipesPromptSection ? `\n\n(Note: You may optionally mention related published recipes from the catalog using [Title](/recipe/<id>) strictly in your conversational introduction ABOVE # [Recipe Title], never inside the saved recipe block itself.)${publishedRecipesPromptSection}` : '');
+    ` + (publishedRecipesPromptSection ? `\n\n(Note: You may optionally mention related published recipes from the catalog using [Title](/recipe/<id>) strictly in your conversational introduction ABOVE the recipe's \`# \` title heading, never inside the saved recipe block itself.)${publishedRecipesPromptSection}` : '');
+};
+
+export const cleanRecipeTitle = (rawTitle = '') => {
+    let cleaned = String(rawTitle || '').trim();
+    cleaned = cleaned.replace(/^#+\s*/, '').trim();
+    // Strip accidental outer brackets, bold asterisks, or quotes added by the model
+    for (let i = 0; i < 3; i += 1) {
+        const next = cleaned
+            .replace(/^\*+\s*(.+?)\s*\*+$/, '$1')
+            .replace(/^\[(.+)\]$/, '$1')
+            .replace(/^["'“”‘’](.+)["'“”‘’]$/, '$1')
+            .trim();
+        if (next === cleaned) break;
+        cleaned = next;
+    }
+    return cleaned;
 };
 // ----------------------------------------------------------------------
 // PHASE 2: THE DEEP DIVE CALCULATOR (0.1 TOKENS)
