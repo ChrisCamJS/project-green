@@ -30,14 +30,15 @@ export const MICRONUTRIENT_SPECS = [
   { key: 'vitamin e', label: 'Vitamin E', unit: 'mg', dvTarget: 15, aliases: ['vitamin e', 'vit e', 'alpha-tocopherol'], priority: 11 },
   { key: 'vitamin k', label: 'Vitamin K', unit: 'mcg', dvTarget: 120, aliases: ['vitamin k', 'vit k', 'phylloquinone'], priority: 12 },
   { key: 'sodium', label: 'Sodium', unit: 'mg', dvTarget: 2300, aliases: ['sodium', 'na'], priority: 13 },
-  { key: 'vitamin b6', label: 'Vitamin B6', unit: 'mg', dvTarget: 1.7, aliases: ['vitamin b6', 'b6', 'pyridoxine'], priority: 14 },
-  { key: 'thiamin', label: 'Thiamin (B1)', unit: 'mg', dvTarget: 1.2, aliases: ['thiamin', 'thiamine', 'vitamin b1', 'thiamin (b1)'], priority: 15 },
-  { key: 'riboflavin', label: 'Riboflavin (B2)', unit: 'mg', dvTarget: 1.3, aliases: ['riboflavin', 'vitamin b2', 'riboflavin (b2)'], priority: 16 },
-  { key: 'niacin', label: 'Niacin (B3)', unit: 'mg', dvTarget: 16, aliases: ['niacin', 'vitamin b3', 'niacin (b3)'], priority: 17 },
-  { key: 'phosphorus', label: 'Phosphorus', unit: 'mg', dvTarget: 1250, aliases: ['phosphorus', 'p'], priority: 18 },
-  { key: 'copper', label: 'Copper', unit: 'mg', dvTarget: 0.9, aliases: ['copper', 'cu'], priority: 19 },
-  { key: 'manganese', label: 'Manganese', unit: 'mg', dvTarget: 2.3, aliases: ['manganese', 'mn'], priority: 20 },
-  { key: 'selenium', label: 'Selenium', unit: 'mcg', dvTarget: 55, aliases: ['selenium', 'se'], priority: 21 },
+  { key: 'saturated fat', label: 'Saturated Fat', unit: 'g', dvTarget: 20, aliases: ['saturated fat', 'sat fat', 'saturated fats', 'saturated fatty acids'], priority: 14 },
+  { key: 'vitamin b6', label: 'Vitamin B6', unit: 'mg', dvTarget: 1.7, aliases: ['vitamin b6', 'b6', 'pyridoxine'], priority: 15 },
+  { key: 'thiamin', label: 'Thiamin (B1)', unit: 'mg', dvTarget: 1.2, aliases: ['thiamin', 'thiamine', 'vitamin b1', 'thiamin (b1)'], priority: 16 },
+  { key: 'riboflavin', label: 'Riboflavin (B2)', unit: 'mg', dvTarget: 1.3, aliases: ['riboflavin', 'vitamin b2', 'riboflavin (b2)'], priority: 17 },
+  { key: 'niacin', label: 'Niacin (B3)', unit: 'mg', dvTarget: 16, aliases: ['niacin', 'vitamin b3', 'niacin (b3)'], priority: 18 },
+  { key: 'phosphorus', label: 'Phosphorus', unit: 'mg', dvTarget: 1250, aliases: ['phosphorus', 'p'], priority: 19 },
+  { key: 'copper', label: 'Copper', unit: 'mg', dvTarget: 0.9, aliases: ['copper', 'cu'], priority: 20 },
+  { key: 'manganese', label: 'Manganese', unit: 'mg', dvTarget: 2.3, aliases: ['manganese', 'mn'], priority: 21 },
+  { key: 'selenium', label: 'Selenium', unit: 'mcg', dvTarget: 55, aliases: ['selenium', 'se'], priority: 22 },
 ];
 
 const MICRO_ALIAS_MAP = MICRONUTRIENT_SPECS.reduce((acc, spec) => {
@@ -473,6 +474,8 @@ export const buildMealPlannerEmmaSystemPrompt = ({
   const userWeight = wellnessProfile?.weight_lbs;
   const userAllergies = String(wellnessProfile?.allergies || '').trim();
 
+  const effectiveCalTarget = userCalTarget > 0 ? userCalTarget : 2000;
+
   let wellnessSection = '';
   if (userCalTarget > 0 || userBmi || userTdee > 0 || userProteinTarget > 0) {
     const heightStr = userHeightFt ? `${userHeightFt}ft ${userHeightIn || 0}in` : '';
@@ -481,17 +484,18 @@ export const buildMealPlannerEmmaSystemPrompt = ({
 
     wellnessSection = `\n\nUSER PERSONAL WELLNESS & NUTRITION TARGETS:
 ${userName}'s personal profile has the following saved calculations from the Wellness Tools:
-- Daily Calorie Target: ${userCalTarget > 0 ? `${userCalTarget} kcal/day` : '2000 kcal/day'}${userTdee > 0 ? ` (Maintenance TDEE: ${userTdee} kcal, BMR: ${userBmr || 'N/A'} kcal)` : ''}
+- Daily Calorie Target: ${effectiveCalTarget} kcal/day${userTdee > 0 ? ` (Maintenance TDEE: ${userTdee} kcal, BMR: ${userBmr || 'N/A'} kcal)` : ''}
 - Daily Macro Targets: ${userProteinTarget > 0 ? `${userProteinTarget}g Protein` : '50g Protein'}, ${userCarbsTarget > 0 ? `${userCarbsTarget}g Carbs` : '275g Carbs'}, ${userFatTarget > 0 ? `${userFatTarget}g Fat` : '78g Fat'} (Dietary Plan: ${userMacroPlan || 'Balanced'})
 ${bodyStr ? `- Physical Baseline: ${bodyStr}` : ''}
 
-NUTRITION & MACRO GUIDELINES FOR EMMA:
-1. When recommending meals, populating calendar days, or reviewing daily totals, directly evaluate choices against ${userName}'s personal target of ${userCalTarget > 0 ? `${userCalTarget} kcal` : '2,000 kcal'}, ${userProteinTarget > 0 ? `${userProteinTarget}g Protein` : '50g Protein'}, ${userCarbsTarget > 0 ? `${userCarbsTarget}g Carbs` : '275g Carbs'}, and ${userFatTarget > 0 ? `${userFatTarget}g Fat` : '78g Fat'}!
-2. If ${userName} asks you to plan a day of meals or fill their week, aim to get reasonably close to their daily calorie and protein/carb/fat targets with wholesome plant-based recipes. Celebrate when the totals hit the mark!
-3. If they ask about their BMI or caloric needs, you have full context of their saved calculations right here.`;
+NUTRITION, MACRO & SERVING-SCALING GUIDELINES FOR EMMA:
+1. When recommending meals, populating calendar days, or reviewing daily totals, directly evaluate choices against ${userName}'s personal target of ${effectiveCalTarget} kcal, ${userProteinTarget > 0 ? `${userProteinTarget}g Protein` : '50g Protein'}, ${userCarbsTarget > 0 ? `${userCarbsTarget}g Carbs` : '275g Carbs'}, and ${userFatTarget > 0 ? `${userFatTarget}g Fat` : '78g Fat'}!
+2. SERVING-SIZE SCALING POWER (CRITICAL): You have full authority to choose and adjust \`servings\` (in practical \`0.25\` increments from \`0.25\` to \`20\`, such as \`0.5\`, \`0.75\`, \`1\`, \`1.25\`, \`1.5\`, \`1.75\`, \`2\`, \`2.5\`) both when adding new meals AND when updating already-scheduled meals so each day's total calorie intake lands closely on ${effectiveCalTarget} kcal/day (ideally within ±5% / ±75 kcal) and aligns with their macro targets.
+3. HOW TO BALANCE EXISTING OR NEW DAYS: Look at each scheduled entry's \`base=<X> kcal/serving\` and \`entry_id\`, plus the \`DAILY CALORIE TOTALS VS TARGET\` summary. When asked to match or adjust portions for a user's calorie target (or when planning meals for a day), calculate realistic \`servings\` across meals (using \`update\` actions in Text Chat or \`update_meal_plan_entries\` / \`update_meal_plan_entry\` in Live Audio for existing entries, and scaled \`servings\` on \`add\` for new entries), and report both the adjusted serving amounts and the resulting daily calorie total.
+4. If they ask about their BMI or caloric needs, you have full context of their saved calculations right here.`;
   } else {
     wellnessSection = `\n\nUSER NUTRITION PROFILE:
-${userName} has not set custom wellness targets in their profile yet (using standard baseline: 2,000 kcal/day, 50g protein, 275g carbs, 78g fat, 28g fiber). If appropriate, you can warmly remind them that they can calculate and save their personal BMI, TDEE, and macro targets anytime in the Wellness Tools page (/wellness) to give you their exact targets!`;
+${userName} has not set custom wellness targets in their profile yet (using standard baseline: 2,000 kcal/day, 50g protein, 275g carbs, 78g fat, 28g fiber). If appropriate, you can warmly remind them that they can calculate and save their personal BMI, TDEE, and macro targets anytime in the Wellness Tools page (/wellness) to give you their exact targets! You can still scale \`servings\` in \`0.25\` increments (0.25 to 20) whenever asked.`;
   }
 
   if (userAllergies) {
@@ -500,13 +504,48 @@ ${userName} has the following food allergies/sensitivities saved in their profil
 NEVER recommend or schedule any recipe whose title or ingredients contain ${userAllergies} (or hidden derivatives). Always prioritize safe recipes and warn them if a recipe they ask about contains one of their allergens.`;
   }
 
+  const dayTotalsMap = new Map();
+  entries.forEach((e) => {
+    if (!e?.planDate) return;
+    const baseCal = Number(e.calories) || 0;
+    const serv = Number(e.servings || 1);
+    const prev = dayTotalsMap.get(e.planDate) || { kcal: 0, count: 0 };
+    dayTotalsMap.set(e.planDate, {
+      kcal: prev.kcal + baseCal * serv,
+      count: prev.count + 1,
+    });
+  });
+
+  const dayCalorieTotals =
+    dayTotalsMap.size === 0
+      ? 'No days currently have scheduled meals.'
+      : Array.from(dayTotalsMap.entries())
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([dateKey, info]) => {
+            const totalKcal = Math.round(info.kcal);
+            const diff = totalKcal - effectiveCalTarget;
+            const status =
+              Math.abs(diff) <= 50
+                ? '(on target)'
+                : diff < 0
+                  ? `(${diff} kcal under target)`
+                  : `(+${diff} kcal over target)`;
+            return `- ${dateKey}: ${totalKcal} / ${effectiveCalTarget} kcal ${status}`;
+          })
+          .join('\n');
+
   const scheduleLines =
     entries.length === 0
       ? 'No meals are currently scheduled in the visible calendar window.'
       : entries
           .map((e) => {
-            const cal = e.calories ? `${Math.round(e.calories * (e.servings || 1))} kcal` : 'kcal N/A';
-            return `- entry_id=${e.id} | ${e.planDate} | ${e.mealSlot} | "${e.title}" (recipe_id=${e.recipeId}, servings=${e.servings}, ${cal}${e.isDraft ? ', DRAFT' : ''})`;
+            const baseCal = Number(e.calories) || 0;
+            const serv = Number(e.servings || 1);
+            const calStr =
+              baseCal > 0
+                ? `base=${Math.round(baseCal)} kcal/serving, total=${Math.round(baseCal * serv)} kcal`
+                : 'kcal N/A';
+            return `- entry_id=${e.id} | ${e.planDate} | ${e.mealSlot} | "${e.title}" (recipe_id=${e.recipeId}, servings=${serv}, ${calStr}${e.isDraft ? ', DRAFT' : ''})`;
           })
           .join('\n');
 
@@ -542,32 +581,34 @@ NEVER recommend or schedule any recipe whose title or ingredients contain ${user
     ? `LIVE AUDIO MEAL PLANNER CAPABILITIES (CRITICAL):
 1. THIS IS A LIVE VOICE SESSION. Do NOT speak or output Markdown syntax, asterisks, URLs, or XML tags.
 2. You have FULL permission to schedule, update, or remove meals on ${userName}'s Meal Planner calendar using your tool calls:
-   - Call \`schedule_meal_plan_entries\` when the user asks you to add, fill in, or populate one or more meals/days on the calendar.
-   - Call \`update_meal_plan_entry\` to move/change an existing scheduled entry (using its \`entry_id\`).
+   - Call \`schedule_meal_plan_entries\` when the user asks you to add, fill in, or populate one or more meals/days on the calendar (set \`servings\` in 0.25 increments from 0.25 to 20 to match their daily calorie target).
+   - Call \`update_meal_plan_entry\` to move/change an existing scheduled entry (using its \`entry_id\`, including adjusting \`servings\`).
+   - Call \`update_meal_plan_entries\` to adjust servings (or other fields) on multiple existing scheduled entries at once (e.g., scaling a whole day to match the user's daily calorie target).
    - Call \`remove_meal_plan_entries\` to remove specific \`entry_id\` entries or clear a date/slot.
 3. Match dietary preferences accurately (e.g. only pick Gluten-Free recipes if they ask for gluten-free).
-4. Always use exact \`recipe_id\` integers from the Plannable Recipe Catalog and exact \`YYYY-MM-DD\` dates from the Calendar Date Reference. After calling a tool, confirm warmly out loud which recipes you scheduled on which days.`
+4. Always use exact \`recipe_id\` integers from the Plannable Recipe Catalog and exact \`YYYY-MM-DD\` dates from the Calendar Date Reference. After calling a tool, confirm warmly out loud which recipes and serving sizes you scheduled or adjusted on which days.`
     : `MEAL PLANNER TEXT CHAT & CALENDAR PERMISSIONS:
 1. You have FULL access to ${userName}'s Meal Planner calendar and all plannable recipes (published recipes + their own private drafts).
 2. Format your conversational reply cleanly in Markdown. Whenever you mention or recommend a recipe from the catalog, ALWAYS link to it using [Recipe Title](/recipe/<recipe_id>) so ${userName} can click straight through!
 3. CALENDAR MODIFICATION PROTOCOL:
-   Whenever the user asks you to add, schedule, fill in, plan, populate, move, update, swap, or remove meals on their calendar, perform a conversational response explaining your choices AND append ONE XML action block at the very end of your message:
+   Whenever the user asks you to add, schedule, fill in, plan, populate, move, update, swap, adjust servings/calories, or remove meals on their calendar, perform a conversational response explaining your choices AND append ONE XML action block at the very end of your message:
    <MEAL_PLAN_ACTIONS>
    [
-     { "action": "add", "recipe_id": 123, "plan_date": "YYYY-MM-DD", "meal_slot": "breakfast", "servings": 1, "notes": "Optional short note" }
+     { "action": "add", "recipe_id": 123, "plan_date": "YYYY-MM-DD", "meal_slot": "breakfast", "servings": 1.5, "notes": "Optional short note" }
    ]
    </MEAL_PLAN_ACTIONS>
 
    Supported action schemas inside the JSON array:
-   - Add a meal: { "action": "add", "recipe_id": <int>, "plan_date": "YYYY-MM-DD", "meal_slot": "breakfast"|"lunch"|"dinner"|"snack", "servings": 1, "notes": "optional" }
-   - Update/move an existing meal: { "action": "update", "entry_id": <int>, "recipe_id": <optional int>, "plan_date": "YYYY-MM-DD", "meal_slot": "breakfast"|"lunch"|"dinner"|"snack", "servings": 1, "notes": "optional" }
+   - Add a meal: { "action": "add", "recipe_id": <int>, "plan_date": "YYYY-MM-DD", "meal_slot": "breakfast"|"lunch"|"dinner"|"snack", "servings": <number in 0.25 increments from 0.25 to 20, e.g. 0.75, 1, 1.25, 1.5, 2>, "notes": "optional" }
+   - Update/move or rescale servings on an existing meal (only \`entry_id\` plus the changed fields such as \`servings\` are required—omitted fields keep their existing values): { "action": "update", "entry_id": <int>, "recipe_id": <optional int>, "plan_date": <optional "YYYY-MM-DD">, "meal_slot": <optional "breakfast"|"lunch"|"dinner"|"snack">, "servings": <optional number in 0.25 increments from 0.25 to 20>, "notes": <optional string> }
    - Remove one entry: { "action": "remove", "entry_id": <int> }
    - Clear a day (or one slot on a day): { "action": "clear_day", "plan_date": "YYYY-MM-DD", "meal_slot": "optional slot or omit for whole day" }
 
 4. RULES FOR ACTIONS:
    - ONLY use real \`recipe_id\` integers from the Plannable Recipe Catalog below, and valid \`YYYY-MM-DD\` dates from the Calendar Date Reference.
    - Check each recipe's \`Diet\` tags and ingredients before scheduling if the user specifies Gluten-Free, Oil-Free, high-protein, high-iron, etc.
-   - If the user is ONLY asking a question (e.g., "give me links to gluten-free dinners" or "what nutrients am I low on?"), do NOT output \`<MEAL_PLAN_ACTIONS>\`. Only emit \`<MEAL_PLAN_ACTIONS>\` when they want the calendar modified or filled in.`;
+   - \`servings\` supports \`0.25\` increments from \`0.25\` to \`20\` (e.g., \`0.5\`, \`0.75\`, \`1\`, \`1.25\`, \`1.5\`, \`1.75\`, \`2\`).
+   - If the user is ONLY asking a question (e.g., "give me links to gluten-free dinners" or "what nutrients am I low on?"), do NOT output \`<MEAL_PLAN_ACTIONS>\`. Only emit \`<MEAL_PLAN_ACTIONS>\` when they want the calendar modified, rescaled, or filled in.`;
 
   return `You are Emma Advanced, a sassy, warm, fiercely intelligent British culinary partner and WFPB nutrition scientist, co-host of The Chris and Emma Show. You are helping ${userName} manage their Meal Planner on The Veggie Vault.
 
@@ -582,6 +623,9 @@ ${dateMapText}
 
 CURRENTLY SCHEDULED MEALS:
 ${scheduleLines}
+
+DAILY CALORIE TOTALS VS TARGET (${effectiveCalTarget} kcal/day):
+${dayCalorieTotals}
 
 ${focusedMicroSummary}
 
@@ -691,7 +735,8 @@ export const MEAL_PLANNER_LIVE_TOOLS = [
                   },
                   servings: {
                     type: 'NUMBER',
-                    description: 'Number of servings (default 1).',
+                    description:
+                      'Number of servings in 0.25 increments (0.25 to 20, e.g., 0.75, 1, 1.25, 1.5, 2) to match the user daily calorie target.',
                   },
                   notes: {
                     type: 'STRING',
@@ -729,7 +774,8 @@ export const MEAL_PLANNER_LIVE_TOOLS = [
             },
             servings: {
               type: 'NUMBER',
-              description: 'Updated servings count.',
+              description:
+                'Number of servings in 0.25 increments (0.25 to 20, e.g., 0.75, 1, 1.25, 1.5, 2) to match the user daily calorie target.',
             },
             notes: {
               type: 'STRING',
@@ -737,6 +783,52 @@ export const MEAL_PLANNER_LIVE_TOOLS = [
             },
           },
           required: ['entry_id'],
+        },
+      },
+      {
+        name: 'update_meal_plan_entries',
+        description:
+          'Batch update servings or details across multiple existing meal plan entries at once (e.g. scaling portions across a day to match daily calorie targets).',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            entries: {
+              type: 'ARRAY',
+              description: 'List of existing meal entries to update.',
+              items: {
+                type: 'OBJECT',
+                properties: {
+                  entry_id: {
+                    type: 'INTEGER',
+                    description: 'Existing meal plan entry ID to update.',
+                  },
+                  servings: {
+                    type: 'NUMBER',
+                    description:
+                      'Number of servings in 0.25 increments (0.25 to 20, e.g., 0.75, 1, 1.25, 1.5, 2) to match the user daily calorie target.',
+                  },
+                  recipe_id: {
+                    type: 'INTEGER',
+                    description: 'Optional new recipe ID to swap into this entry.',
+                  },
+                  plan_date: {
+                    type: 'STRING',
+                    description: 'Optional updated date in YYYY-MM-DD format.',
+                  },
+                  meal_slot: {
+                    type: 'STRING',
+                    description: 'Optional updated slot: breakfast, lunch, dinner, or snack.',
+                  },
+                  notes: {
+                    type: 'STRING',
+                    description: 'Optional updated notes.',
+                  },
+                },
+                required: ['entry_id'],
+              },
+            },
+          },
+          required: ['entries'],
         },
       },
       {

@@ -117,14 +117,15 @@ export const getMicroCalculationInstructions = () => {
     YOUR RULES:
     1. Provide a witty, educational 1-2 paragraph Deep Dive analysis of the nutritional benefits of the dish.
     2. CRITICAL PRIVACY RULE: Because this analysis is saved to the public recipe database for everyone to read, NEVER include any user's name or username anywhere in your response. Do not address a specific person by name.
-    3. Then, provide a list of exactly 12 key nutrients and micronutrients per serving.
-    4. MANDATORY INCLUSIONS: Every single recipe MUST ALWAYS include **Dietary Fiber** (in g, based on 28g DV) and **Sodium** (in mg, based on 2300mg DV) as the FIRST TWO items in this list, followed by 10 additional key micronutrients (such as Potassium, Iron, Calcium, Magnesium, Vitamin C, Vitamin A, Folate, Vitamin K, Zinc, Vitamin B6). Never omit Dietary Fiber or Sodium.
+    3. Then, provide a list of exactly 13 key nutrients and micronutrients per serving.
+    4. MANDATORY INCLUSIONS: Every single recipe MUST ALWAYS include **Dietary Fiber** (in g, based on 28g DV), **Sodium** (in mg, based on 2300mg DV), and **Saturated Fat** (in g, based on 20g DV — output \`0g (0% DV)\` if negligible or zero) as the FIRST THREE items in this list, followed by 10 additional key micronutrients (such as Potassium, Iron, Calcium, Magnesium, Vitamin C, Vitamin A, Folate, Vitamin K, Zinc, Vitamin B6). Never omit Dietary Fiber, Sodium, or Saturated Fat.
     5. You MUST format EACH item exactly like this bullet point:
     * NutrientName: [Amount][Unit] ([DV]% DV)
 
     Example:
     * Dietary Fiber: 9.5g (34% DV)
     * Sodium: 280mg (12% DV)
+    * Saturated Fat: 1.2g (6% DV)
     * Potassium: 450mg (10% DV)
     * Iron: 2.1mg (12% DV)
 

@@ -515,6 +515,12 @@ export default function MealPlanner() {
         return ['breakfast', 'lunch', 'dinner', 'snack'].includes(s) ? s : 'dinner';
       };
 
+      const normalizeMealServings = (raw, fallback = 1) => {
+        const num = Number(raw);
+        if (!Number.isFinite(num) || num <= 0) return fallback;
+        return Math.round(Math.max(0.25, Math.min(20, num)) * 4) / 4;
+      };
+
       const isValidYmd = (val) => /^\d{4}-\d{2}-\d{2}$/.test(String(val || '').trim());
 
       const resolveRecipe = (act) => {
@@ -540,7 +546,7 @@ export default function MealPlanner() {
           const matchedRecipe = resolveRecipe(act);
           const planDate = String(act?.plan_date || '').trim();
           const mealSlot = normalizeSlot(act?.meal_slot);
-          const servings = Math.max(0.5, Math.min(20, Number(act?.servings) || 1));
+          const servings = normalizeMealServings(act?.servings, 1);
           const notes = String(act?.notes || '').trim().slice(0, 200);
 
           if (!matchedRecipe || !isValidYmd(planDate)) {
@@ -559,7 +565,9 @@ export default function MealPlanner() {
             if (res?.success) {
               appliedCount += 1;
               const slotMeta = getMealSlotMeta(mealSlot);
-              summaries.push(`Added "${matchedRecipe.title}" to ${slotMeta.label} on ${planDate}`);
+              summaries.push(
+                `Added "${matchedRecipe.title}" (${servings} ${servings === 1 ? 'serving' : 'servings'}) to ${slotMeta.label} on ${planDate}`
+              );
             } else {
               errors.push(res?.message || `Could not add "${matchedRecipe.title}" on ${planDate}`);
             }
@@ -582,20 +590,25 @@ export default function MealPlanner() {
             meal_slot: act?.meal_slot ? normalizeSlot(act.meal_slot) : existing?.mealSlot || 'dinner',
             servings:
               act?.servings !== undefined
-                ? Math.max(0.5, Math.min(20, Number(act.servings) || 1))
+                ? normalizeMealServings(act.servings, Number(existing?.servings || 1))
                 : Number(existing?.servings || 1),
             notes: act?.notes !== undefined ? String(act.notes || '').trim().slice(0, 200) : existing?.notes || '',
           };
+          let matchedRecipe = null;
           if (act?.recipe_id) {
-            const matched = resolveRecipe(act);
-            if (matched) payload.recipe_id = Number(matched.id);
+            matchedRecipe = resolveRecipe(act);
+            if (matchedRecipe) payload.recipe_id = Number(matchedRecipe.id);
           }
 
           try {
             const res = await api.updateMealPlanEntry(payload);
             if (res?.success) {
               appliedCount += 1;
-              summaries.push(`Updated meal #${entryId} (${payload.meal_slot} on ${payload.plan_date})`);
+              const updatedTitle = matchedRecipe?.title || existing?.title || `meal #${entryId}`;
+              const slotMeta = getMealSlotMeta(payload.meal_slot);
+              summaries.push(
+                `Updated "${updatedTitle}" to ${payload.servings} ${payload.servings === 1 ? 'serving' : 'servings'} (${slotMeta.label} on ${payload.plan_date})`
+              );
             } else {
               errors.push(res?.message || `Could not update entry #${entryId}`);
             }
@@ -692,6 +705,21 @@ export default function MealPlanner() {
 
       if (name === 'update_meal_plan_entry') {
         const result = await executeMealPlanActions([{ action: 'update', ...args }]);
+        if (result.summaries.length > 0) {
+          setLiveActionLog((prev) => [...result.summaries, ...prev].slice(0, 12));
+        }
+        return {
+          success: result.appliedCount > 0,
+          updatedCount: result.appliedCount,
+          details: result.summaries,
+          errors: result.errors,
+        };
+      }
+
+      if (name === 'update_meal_plan_entries') {
+        const requested = Array.isArray(args.entries) ? args.entries : [];
+        const actions = requested.map((e) => ({ action: 'update', ...e }));
+        const result = await executeMealPlanActions(actions);
         if (result.summaries.length > 0) {
           setLiveActionLog((prev) => [...result.summaries, ...prev].slice(0, 12));
         }
@@ -955,6 +983,20 @@ export default function MealPlanner() {
                     ✨ {suggestion}
                   </button>
                 ))}
+                {hasCustomWellnessTargets && (
+                  <button
+                    type="button"
+                    className="mp-emma-chip-btn"
+                    onClick={() =>
+                      sendConciergeMessage(
+                        "Adjust today's meal servings to match my daily calorie target"
+                      )
+                    }
+                    disabled={emmaBusy}
+                  >
+                    ⚖️ Scale servings to match daily calories
+                  </button>
+                )}
               </div>
 
               {emmaChatHistory.length > 0 && (
@@ -1752,9 +1794,9 @@ export default function MealPlanner() {
                   <span>Servings</span>
                   <input
                     type="number"
-                    min="0.5"
+                    min="0.25"
                     max="20"
-                    step="0.5"
+                    step="0.25"
                     value={pickerServings}
                     onChange={(e) => setPickerServings(e.target.value)}
                   />
@@ -1866,9 +1908,9 @@ export default function MealPlanner() {
                   <span>Servings</span>
                   <input
                     type="number"
-                    min="0.5"
+                    min="0.25"
                     max="20"
-                    step="0.5"
+                    step="0.25"
                     value={editServings}
                     onChange={(e) => setEditServings(e.target.value)}
                   />
