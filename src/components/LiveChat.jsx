@@ -217,6 +217,9 @@ const LiveChat = ({
         if (chatContext) {
           finalInstructions += `\n\nCURRENT CHAT CONVERSATION CONTEXT:\nYou and the user have been having the following conversation in text chat. Use this entire context (including any recipes, ingredients, nutritional questions, or reference documents discussed) to seamlessly continue the conversation out loud:\n${chatContext}`;
         }
+        if (tokenRes?.adminContext) {
+          finalInstructions += `\n\n${tokenRes.adminContext}`;
+        }
 
         const setupConfig = {
           model: 'models/gemini-3.1-flash-live-preview',

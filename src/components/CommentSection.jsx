@@ -36,10 +36,13 @@ const CommentForm = ({ recipeId, parentId = null, onCommentAdded, onCancel, curr
     reader.readAsDataURL(file);
   };
 
+  const [submitError, setSubmitError] = useState(null);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!body.trim() || !activeUser) return;
     setIsSubmitting(true);
+    setSubmitError(null);
 
     try {
       const response = await api.addComment({
@@ -56,6 +59,7 @@ const CommentForm = ({ recipeId, parentId = null, onCommentAdded, onCancel, curr
       }
     } catch (error) {
       console.error('Failed to post comment:', error);
+      setSubmitError(error?.message || 'Could not post comment. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -70,10 +74,30 @@ const CommentForm = ({ recipeId, parentId = null, onCommentAdded, onCancel, curr
         ref={textareaRef}
         placeholder={parentId ? 'Write a reply...' : 'Share your thoughts or variations...'}
         value={body}
-        onChange={(e) => setBody(e.target.value)}
+        onChange={(e) => {
+          setBody(e.target.value);
+          if (submitError) setSubmitError(null);
+        }}
         className="comment-textarea"
         required
       />
+      {submitError && (
+        <p
+          className="comment-error-msg"
+          role="alert"
+          style={{
+            color: '#b91c1c',
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '6px',
+            padding: '0.5rem 0.75rem',
+            fontSize: '0.88rem',
+            margin: '0.5rem 0 0',
+          }}
+        >
+          {submitError}
+        </p>
+      )}
       <div className="comment-actions">
         <label className="image-upload-btn">
           📷 Attach Photo

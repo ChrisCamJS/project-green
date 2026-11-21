@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import styles from './AdminDashboard.module.css';
 import { useToast } from '../context/ToastContext';
 import AdminEmmaChat from '../components/AdminEmmaChat';
+import AdminEmmaContextPanel from '../components/AdminEmmaContextPanel';
 import { RecipeViewControls, EndlessScrollSentinel } from '../components/RecipeViewControls';
 
 /**
@@ -34,6 +35,32 @@ const AdminDashboard = () => {
   // --- Invite Codes State ---
   const [inviteCodes, setInviteCodes] = useState([]);
   const [newInviteInput, setNewInviteInput] = useState('');
+  const recipesLoadedRef = useRef(false);
+  const invitesLoadedRef = useRef(false);
+
+  const loadRecipes = useCallback(async () => {
+    try {
+      const response = await api.getRecipes();
+      setRecipes(response);
+      recipesLoadedRef.current = true;
+    } catch (err) {
+      addToast('Failed to load the recipes', err, 'error');
+    }
+  }, [addToast]);
+
+  const loadInvites = useCallback(async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/invites`, {
+        method: 'GET',
+        credentials: 'include', // <-- Hand over the session cookie!
+      });
+      const data = await response.json();
+      if (data.success) setInviteCodes(data.codes);
+      invitesLoadedRef.current = true;
+    } catch {
+      addToast('Failed to load invite codes', 'error');
+    }
+  }, [addToast]);
 
   // ----------------------------------------------------
   // RECIPE PARSING & ADDING LOGIC
@@ -123,21 +150,37 @@ const AdminDashboard = () => {
   // MANAGE RECIPES LOGIC
   // ----------------------------------------------------
   useEffect(() => {
-    if (activeTab === 'manage' && recipes.length === 0) {
-      loadRecipes();
-    } else if (activeTab === 'invites' && inviteCodes.length === 0) {
-      loadInvites();
+    let active = true;
+    if (activeTab === 'manage' && !recipesLoadedRef.current) {
+      api
+        .getRecipes()
+        .then((response) => {
+          if (!active) return;
+          setRecipes(response);
+          recipesLoadedRef.current = true;
+        })
+        .catch((err) => {
+          if (active) addToast('Failed to load the recipes', err, 'error');
+        });
+    } else if (activeTab === 'invites' && !invitesLoadedRef.current) {
+      fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/invites`, {
+        method: 'GET',
+        credentials: 'include',
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (!active) return;
+          if (data.success) setInviteCodes(data.codes);
+          invitesLoadedRef.current = true;
+        })
+        .catch(() => {
+          if (active) addToast('Failed to load invite codes', 'error');
+        });
     }
-  }, [activeTab]);
-
-  const loadRecipes = async () => {
-    try {
-      const response = await api.getRecipes();
-      setRecipes(response);
-    } catch (err) {
-      addToast("Failed to load the recipes", err, 'error');
-    }
-  }
+    return () => {
+      active = false;
+    };
+  }, [activeTab, addToast]);
 
   const handleEdit = (id) => navigate(`/admin/edit/${id}`);
 
@@ -197,22 +240,9 @@ const AdminDashboard = () => {
     : sortedRecipes.slice(indexOfFirstRecipe, indexOfLastRecipe);
   const totalPages = Math.ceil(recipes.length / itemsPerPage);
 
-// ----------------------------------------------------
+  // ----------------------------------------------------
   // VIP INVITE CODE LOGIC
   // ----------------------------------------------------
-  const loadInvites = async () => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/invites`, {
-        method: 'GET',
-        credentials: 'include' // <-- Hand over the session cookie!
-      });
-      const data = await response.json();
-      if (data.success) setInviteCodes(data.codes);
-    } catch (err) {
-      addToast("Failed to load invite codes", 'error');
-    }
-  };
-
   const handleGenerateInvite = async (e) => {
     e.preventDefault();
     try {
@@ -231,7 +261,7 @@ const AdminDashboard = () => {
       } else {
         addToast(data.message, 'error');
       }
-    } catch (err) {
+    } catch {
       addToast("Failed to generate code.", 'error');
     }
   };
@@ -252,7 +282,7 @@ const AdminDashboard = () => {
         ));
         addToast(data.message, 'success');
       }
-    } catch (err) {
+    } catch {
       addToast("Failed to toggle code.", 'error');
     }
   };
@@ -285,6 +315,12 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('emma')}
           >
             🤖 Emma DB Assistant
+          </button>
+          <button 
+            className={activeTab === 'context' ? styles.active : ''} 
+            onClick={() => setActiveTab('context')}
+          >
+            🧠 Emma Context
           </button>
         </div>
       </header>
@@ -508,6 +544,10 @@ const AdminDashboard = () => {
         {/* TAB 4: EMMA DB ASSISTANT (FREE ADMIN ACCESS) */}
         {activeTab === 'emma' && (
           <AdminEmmaChat onRecipesUpdated={loadRecipes} />
+        )}
+        {/* TAB 5: EMMA ADMIN PERSONAL CONTEXT DOCUMENT */}
+        {activeTab === 'context' && (
+          <AdminEmmaContextPanel />
         )}
       </main>
     </div>

@@ -465,5 +465,26 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ recipe_id: recipeId }),
         });
+    },
+
+    // ADMIN EMMA CONTEXT DOCUMENT
+    getAdminEmmaContext: () => {
+        return fetchWrapper('/admin/emma-context', {
+            method: 'GET',
+            cache: 'no-store',
+        });
+    },
+
+    saveAdminEmmaContext: (payload) => {
+        return fetchWrapper('/admin/emma-context', {
+            method: 'PUT',
+            body: JSON.stringify(payload),
+        });
+    },
+
+    deleteAdminEmmaContext: () => {
+        return fetchWrapper('/admin/emma-context', {
+            method: 'DELETE',
+        });
     }
 };
