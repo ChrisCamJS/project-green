@@ -16,6 +16,7 @@ import {
 import EmmaMarkdown from './EmmaMarkdown';
 import VoiceDictationButton from './VoiceDictationButton';
 import LiveChat from './LiveChat';
+import { useEmmaVoice } from '../hooks/useEmmaVoice';
 import './FloatingEmma.css';
 
 const STORAGE_UI_STATE_KEY = 'vault_floating_emma_ui_state';
@@ -38,6 +39,7 @@ const DEFAULT_PREFS = {
 export default function FloatingEmma() {
   const { user } = useAuth();
   const { pathname } = useLocation();
+  const { speechState, activeKey, handleSpeak, stopSpeech } = useEmmaVoice();
 
   const [uiState, setUiState] = useState(() => {
     try {
@@ -59,7 +61,8 @@ export default function FloatingEmma() {
   const [currentRecipe, setCurrentRecipe] = useState(null);
 
   const inputRef = useRef(null);
-  const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const latestModelMsgRef = useRef(null);
 
   const shouldHideWidget =
     !user || HIDE_ON_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -122,9 +125,20 @@ export default function FloatingEmma() {
   }, [inputText, uiState]);
 
   useEffect(() => {
-    if (uiState === 'open') {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (uiState !== 'open') return;
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const lastMsg = chatHistory[chatHistory.length - 1];
+    if (lastMsg?.role === 'model' && !isLoading && latestModelMsgRef.current) {
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = latestModelMsgRef.current.getBoundingClientRect();
+      const targetTop = container.scrollTop + (targetRect.top - containerRect.top) - 10;
+      container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+      return;
     }
+
+    container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
   }, [chatHistory, isLoading, showLiveAudio, uiState]);
 
   const quickPrompts = useMemo(() => {
@@ -272,6 +286,7 @@ export default function FloatingEmma() {
   };
 
   const handleResetChat = () => {
+    stopSpeech();
     setShowLiveAudio(false);
     setChatHistory([]);
     setError(null);
@@ -308,6 +323,7 @@ export default function FloatingEmma() {
           type="button"
           className="floating-emma-hide-pill-btn"
           onClick={() => {
+            stopSpeech();
             setShowLiveAudio(false);
             setUiState('hidden');
           }}
@@ -368,6 +384,7 @@ export default function FloatingEmma() {
             type="button"
             className="floating-emma-icon-btn"
             onClick={() => {
+              stopSpeech();
               setShowLiveAudio(false);
               setUiState('hidden');
             }}
@@ -378,7 +395,7 @@ export default function FloatingEmma() {
         </div>
       </div>
 
-      <div className="floating-emma-messages">
+      <div ref={messagesContainerRef} className="floating-emma-messages">
         {chatHistory.length === 0 ? (
           <div className="floating-emma-empty">
             <strong>Hi {currentUserName}!</strong> I can see you’re on{' '}
@@ -414,14 +431,31 @@ export default function FloatingEmma() {
             }
 
             const replyText = msg.parts?.[0]?.text || '';
+            const msgSpeechKey = `floating-msg-${idx}`;
+            const isSpeakingThis = speechState === 'playing' && activeKey === msgSpeechKey;
             return (
-              <div key={idx} className="floating-emma-msg-model">
+              <div
+                key={idx}
+                ref={idx === chatHistory.length - 1 ? latestModelMsgRef : null}
+                className="floating-emma-msg-model"
+              >
+                <div className="floating-emma-msg-model-header">
+                  <span className="floating-emma-msg-sender">Emma</span>
+                  <button
+                    type="button"
+                    className={`floating-emma-speak-btn ${isSpeakingThis ? 'playing' : ''}`}
+                    onClick={() => handleSpeak(replyText, msgSpeechKey)}
+                    title={isSpeakingThis ? 'Pause Emma' : 'Listen to Emma'}
+                    aria-label={isSpeakingThis ? 'Pause Emma' : 'Listen to Emma'}
+                  >
+                    {isSpeakingThis ? '⏸️' : '🔊'}
+                  </button>
+                </div>
                 <EmmaMarkdown>{replyText}</EmmaMarkdown>
               </div>
             );
           })
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {showLiveAudio && (
@@ -478,7 +512,10 @@ export default function FloatingEmma() {
           <button
             type="button"
             className={`floating-emma-live-toggle ${showLiveAudio ? 'active' : ''}`}
-            onClick={() => setShowLiveAudio((prev) => !prev)}
+            onClick={() => {
+              if (!showLiveAudio) stopSpeech();
+              setShowLiveAudio((prev) => !prev);
+            }}
             title="Toggle Live Audio in this chat (0.10 Tokens/min)"
           >
             {showLiveAudio ? '🛑 Stop' : '🎙️ Live'}

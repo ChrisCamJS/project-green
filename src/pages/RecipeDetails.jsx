@@ -89,7 +89,7 @@ const RecipeDetails = () => {
     setPhotoActionMsg(null);
   }, [id]);
 
-  const { speechState, handleSpeak } = useEmmaVoice();
+  const { speechState, activeKey, handleSpeak } = useEmmaVoice();
   const [chatMessage, setChatMessage] = useState('');
   const chatInputRef = useRef(null);
 
@@ -1229,26 +1229,25 @@ const RecipeDetails = () => {
                     type="button"
                     className="recipe-section-speak-btn no-print"
                     onClick={() => {
-                      const spoken = `Ingredients for ${recipe.title || 'this recipe'}. ` +
-                        recipe.ingredients
-                          .map((ing) => {
-                            const hasQty = Number(ing.quantity) !== 0 && Number(ing.quantity) !== 1;
-                            const hasUnit = ing.unit && ing.unit !== 'serving' && ing.unit !== '';
-                            return [
-                              hasQty ? Number(ing.quantity) : '',
-                              hasUnit ? ing.unit : '',
-                              ing.ingredient_name || '',
-                            ]
-                              .filter(Boolean)
-                              .join(' ');
-                          })
-                          .join('. ');
-                      handleSpeak(spoken);
+                      const spoken = recipe.ingredients
+                        .map((ing) => {
+                          const hasQty = Number(ing.quantity) !== 0 && Number(ing.quantity) !== 1;
+                          const hasUnit = ing.unit && ing.unit !== 'serving' && ing.unit !== '';
+                          return [
+                            hasQty ? Number(ing.quantity) : '',
+                            hasUnit ? ing.unit : '',
+                            ing.ingredient_name || '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ');
+                        })
+                        .join('\n');
+                      handleSpeak(spoken, 'ingredients');
                     }}
                     title="Listen to Ingredients"
                     aria-label="Listen to Ingredients"
                   >
-                    {speechState === 'playing' ? '⏸️' : '🔊'}
+                    {speechState === 'playing' && activeKey === 'ingredients' ? '⏸️' : '🔊'}
                   </button>
                 )}
               </div>
@@ -1280,16 +1279,15 @@ const RecipeDetails = () => {
                     type="button"
                     className="recipe-section-speak-btn no-print"
                     onClick={() => {
-                      const spoken = `Instructions for ${recipe.title || 'this recipe'}. ` +
-                        recipe.instructions
-                          .map((step) => `Step ${step.step_number}. ${step.instruction_text}`)
-                          .join('. ');
-                      handleSpeak(spoken);
+                      const spoken = recipe.instructions
+                        .map((step) => `Step ${step.step_number}. ${step.instruction_text}`)
+                        .join('\n');
+                      handleSpeak(spoken, 'instructions');
                     }}
                     title="Listen to Instructions"
                     aria-label="Listen to Instructions"
                   >
-                    {speechState === 'playing' ? '⏸️' : '🔊'}
+                    {speechState === 'playing' && activeKey === 'instructions' ? '⏸️' : '🔊'}
                   </button>
                 )}
               </div>
@@ -1323,13 +1321,13 @@ const RecipeDetails = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e9d5ff', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
                     <h3 style={{ margin: 0, color: '#6b21a8', fontSize: '1.25rem', fontWeight: 'bold' }}>🔬 Emma's Deep Dive Analysis</h3>
                     <button
-                        onClick={() => handleSpeak(displayNotes)}
+                        onClick={() => handleSpeak(displayNotes, 'deepDive')}
                         style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', opacity: '0.6', padding: '0', transition: 'opacity 0.2s ease' }}
                         title="Listen to Emma's Deep Dive"
                         onMouseEnter={(e) => e.target.style.opacity = '1'}
                         onMouseLeave={(e) => e.target.style.opacity = '0.6'}
                     >
-                        {speechState === 'playing' ? '⏸️' : '🔊'}
+                        {speechState === 'playing' && activeKey === 'deepDive' ? '⏸️' : '🔊'}
                     </button>
                 </div>
                 <ReactMarkdown>{displayNotes}</ReactMarkdown>
