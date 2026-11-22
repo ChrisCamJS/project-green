@@ -9,12 +9,72 @@ import {
   generateRecipeImage,
   DEFAULT_IMAGE_STYLE_OPTIONS,
 } from '../../services/geminiApi';
-import { getMicroCalculationInstructions, parseMicrosFromDeepDive, cleanRecipeTitle } from '../../utils/promptBuilder';
+import {
+  getMicroCalculationInstructions,
+  parseMicrosFromDeepDive,
+  cleanRecipeTitle,
+  stripDuplicateMicroLines,
+} from '../../utils/promptBuilder';
 import { useEmmaVoice } from '../../hooks/useEmmaVoice';
 import LiveChat from '../LiveChat'; // Bringing in Live Mode
 import { copyRichRecipeToClipboard } from '../../utils/recipeClipboard';
 import ImageStyleOptions from './ImageStyleOptions';
 import './RecipeResult.css';
+
+const extractMarkdownNutritionInputs = (markdown = '') => {
+  const titleMatch = markdown.match(/^#\s+(.+)$/m);
+  const title = titleMatch && titleMatch[1]
+    ? cleanRecipeTitle(titleMatch[1]) || 'Untitled Emma Masterpiece'
+    : 'Untitled Emma Masterpiece';
+  const yieldMatch = markdown.match(/yields?:?\s*(.+?)(?:\n|$)/i);
+  const yields = yieldMatch ? yieldMatch[1].trim() : '';
+  const ingredientsMatch = markdown.match(
+    /##\s*Ingredients([\s\S]*?)(?=\n##\s*(?:Instructions|Directions|Method|Nutrition Information|Chef's?\s*Notes)|$)/i
+  );
+  const ingredients = ingredientsMatch
+    ? ingredientsMatch[1]
+        .split('\n')
+        .filter((line) => line.trim().match(/^[-*•]/))
+        .map((line) => line.replace(/^[-*•]\s*/, '').trim())
+        .filter(Boolean)
+    : [];
+
+  return { title, yields, ingredients };
+};
+
+const fetchDeepDiveUsdaFirst = async (markdown) => {
+  const { title, yields, ingredients } = extractMarkdownNutritionInputs(markdown);
+  if (ingredients.length > 0) {
+    try {
+      const usdaRes = await api.calculateNutritionFromIngredients(
+        ingredients,
+        yields || '4 servings',
+        title
+      );
+      if (usdaRes?.success && usdaRes?.deep_dive) {
+        return {
+          deepDive: usdaRes.deep_dive,
+          micros: Array.isArray(usdaRes.micros) ? usdaRes.micros : [],
+        };
+      }
+    } catch (usdaErr) {
+      console.warn('USDA nutrition calculation unavailable, falling back to Emma Deep Dive:', usdaErr);
+    }
+  }
+
+  const instructions = getMicroCalculationInstructions();
+  const chatPayload = [
+    {
+      role: 'user',
+      parts: [{ text: `Here is the recipe I need you to deeply analyze:\n\n${markdown}` }],
+    },
+  ];
+  const fallbackText = await sendChatMessage(chatPayload, instructions);
+  return {
+    deepDive: fallbackText,
+    micros: parseMicrosFromDeepDive(fallbackText),
+  };
+};
 
 const RecipeResult = ({
   recipeMarkdown,
@@ -53,6 +113,7 @@ const RecipeResult = ({
   });
 
   const [advancedMicros, setAdvancedMicros] = useState(null);
+  const [usdaMicros, setUsdaMicros] = useState([]);
   const [isCalculatingMicros, setIsCalculatingMicros] = useState(false);
   
   const [showDeepDive, setShowDeepDive] = useState(false);
@@ -73,11 +134,9 @@ const RecipeResult = ({
         const fetchBackgroundMicros = async () => {
             setIsCalculatingMicros(true);
             try {
-                const instructions = getMicroCalculationInstructions();
-                const chatHistory = [{ role: 'user', parts: [{ text: `Here is the recipe I need you to deeply analyze:\n\n${recipeMarkdown}` }] }];
-                
-                const mathResult = await sendChatMessage(chatHistory, instructions);
-                setAdvancedMicros(mathResult);
+                const { deepDive, micros } = await fetchDeepDiveUsdaFirst(recipeMarkdown);
+                setAdvancedMicros(deepDive);
+                setUsdaMicros(Array.isArray(micros) ? micros : []);
             } catch (err) {
                 console.error("Stealth Math API threw a pear:", err);
                 setAdvancedMicros("Nutrition data temporarily unavailable.");
@@ -94,8 +153,9 @@ const RecipeResult = ({
 
   const handleCopyRecipe = async () => {
     if (!recipeMarkdown) return;
-    const finalOutput = advancedMicros
-      ? `${recipeMarkdown}\n\n## Advanced Analysis\n${advancedMicros}`
+    const cleanDeepDive = stripDuplicateMicroLines(advancedMicros || '');
+    const finalOutput = cleanDeepDive
+      ? `${recipeMarkdown}\n\n## Advanced Analysis\n${cleanDeepDive}`
       : recipeMarkdown;
     const html = `<div style="font-family: system-ui, -apple-system, sans-serif; color: #1f2937; white-space: pre-wrap; line-height: 1.55;">${finalOutput
       .replace(/&/g, '&amp;')
@@ -114,25 +174,16 @@ const RecipeResult = ({
       if (!recipeMarkdown) return;
       setIsSaving(true);
       
-      let recipeTitle = 'Untitled Emma Masterpiece';
-      const titleMatch = recipeMarkdown.match(/^#\s+(.+)$/m);
-      if (titleMatch && titleMatch[1]) {
-          recipeTitle = cleanRecipeTitle(titleMatch[1]) || recipeTitle;
-      }
+      const { title: recipeTitle, yields, ingredients } = extractMarkdownNutritionInputs(recipeMarkdown);
 
       const descMatch = recipeMarkdown.match(/^#\s+[^\n]+\n+([\s\S]*?)(?=\n\*\*|\n##)/);
       const description = descMatch ? descMatch[1].trim() : 'A glorious AI-generated WFPB meal.';
 
-      let prepTime = 0; let cookTime = 0; let yields = '';
+      let prepTime = 0; let cookTime = 0;
       const prepMatch = recipeMarkdown.match(/prep(?:aration)?\s*time.*?(?:(\d+)\s*min)/i);
       if (prepMatch) prepTime = parseInt(prepMatch[1], 10);
       const cookMatch = recipeMarkdown.match(/cook\s*time.*?(?:(\d+)\s*min)/i);
       if (cookMatch) cookTime = parseInt(cookMatch[1], 10);
-      const yieldMatch = recipeMarkdown.match(/yields?:?\s*(.+?)(?:\n|$)/i);
-      if (yieldMatch) yields = yieldMatch[1].trim();
-
-      const ingredientsMatch = recipeMarkdown.match(/##\s*Ingredients([\s\S]*?)(?=\n##\s*(?:Instructions|Nutrition Information|Chef's Notes)|$)/i);
-      const ingredients = ingredientsMatch ? ingredientsMatch[1].split('\n').filter(line => line.trim().match(/^[-*]/)).map(line => line.replace(/^[-*]\s*/, '').trim()) : [];
 
       const instructionsMatch = recipeMarkdown.match(/##\s*Instructions([\s\S]*?)(?=\n##\s*(?:Nutrition Information|Chef's Notes)|$)/i);
       const instructions = instructionsMatch ? instructionsMatch[1].split('\n').filter(line => line.trim().match(/^\d+\./)).map(line => line.replace(/^\d+\.\s*/, '').trim()) : [];
@@ -140,8 +191,9 @@ const RecipeResult = ({
       const notesMatch = recipeMarkdown.match(/##\s*Chef's?\s*Notes([\s\S]*?)(?=##|$)/i);
       let notes = notesMatch ? notesMatch[1].trim() : '';
 
-      if (advancedMicros) {
-          notes = notes ? `${notes}\n\n### Advanced Nutritional Analysis\n${advancedMicros}` : `### Advanced Nutritional Analysis\n${advancedMicros}`;
+      const cleanDeepDive = stripDuplicateMicroLines(advancedMicros || '');
+      if (cleanDeepDive) {
+          notes = notes ? `${notes}\n\n### Advanced Nutritional Analysis\n${cleanDeepDive}` : `### Advanced Nutritional Analysis\n${cleanDeepDive}`;
       }
 
       const nutritionSectionMatch = recipeMarkdown.match(/##\s*Nutrition Information[^\n]*\n([\s\S]*?)(?=\n##|$)/i);
@@ -163,7 +215,7 @@ const RecipeResult = ({
       const fiberMatch = macroSearchScope.match(/^[-*\s]*(?:\*\*|__)?(?:Dietary\s+)?Fiber(?:\*\*|__)?\s*:?(?:\*\*|__)?\s*(\d+(?:\.\d+)?)/im);
       if (fiberMatch) fiber_g = Math.round(parseFloat(fiberMatch[1]) * 10) / 10;
 
-      const parsedMicros = parseMicrosFromDeepDive(advancedMicros || '');
+      const parsedMicros = usdaMicros.length > 0 ? usdaMicros : parseMicrosFromDeepDive(advancedMicros || '');
 
       try {
           const res = await api.saveGeneratedRecipe({
@@ -351,13 +403,22 @@ const RecipeResult = ({
         return;
       }
 
-      const instructions = getMicroCalculationInstructions();
-      const chatPayload = [{ role: 'user', parts: [{ text: `Here is the recipe I need you to deeply analyze:\n\n${recipeMarkdown}` }] }];
-      const mathResult = await sendChatMessage(chatPayload, instructions);
-      const parsedMicros = parseMicrosFromDeepDive(mathResult);
+      let res = null;
+      let fallbackMathResult = '';
+      let parsedFallbackMicros = [];
+      try {
+        res = await api.upgradeRecipeNutrition(savedRecipeId, '', []);
+      } catch (usdaErr) {
+        console.warn('USDA nutrition unavailable for saved draft upgrade, falling back to Emma Deep Dive:', usdaErr);
+        const instructions = getMicroCalculationInstructions();
+        const chatPayload = [{ role: 'user', parts: [{ text: `Here is the recipe I need you to deeply analyze:\n\n${recipeMarkdown}` }] }];
+        fallbackMathResult = await sendChatMessage(chatPayload, instructions);
+        parsedFallbackMicros = parseMicrosFromDeepDive(fallbackMathResult);
+        res = await api.upgradeRecipeNutrition(savedRecipeId, fallbackMathResult, parsedFallbackMicros);
+      }
 
-      const res = await api.upgradeRecipeNutrition(savedRecipeId, mathResult, parsedMicros);
-      setAdvancedMicros(mathResult);
+      setAdvancedMicros(res?.deep_dive || fallbackMathResult || '');
+      setUsdaMicros(Array.isArray(res?.micros) ? res.micros : parsedFallbackMicros);
       setShowDeepDive(true);
       if (res?.isPublic) {
         setIsPublishedMasterpiece(true);
@@ -432,15 +493,9 @@ const RecipeResult = ({
 
     const nutritionPromise = (async () => {
       try {
-        const instructions = getMicroCalculationInstructions();
-        const chatPayload = [
-          {
-            role: 'user',
-            parts: [{ text: `Here is the recipe I need you to deeply analyze:\n\n${recipeMarkdown}` }],
-          },
-        ];
-        const mathResult = await sendChatMessage(chatPayload, instructions);
-        setAdvancedMicros(mathResult);
+        const { deepDive, micros } = await fetchDeepDiveUsdaFirst(recipeMarkdown);
+        setAdvancedMicros(deepDive);
+        setUsdaMicros(Array.isArray(micros) ? micros : []);
       } catch (err) {
         console.error('Failed to calculate upgraded Masterpiece nutrition:', err);
         setAdvancedMicros('Nutrition data temporarily unavailable.');
@@ -770,7 +825,10 @@ const RecipeResult = ({
           <div className="recipe-content-speak-row">
             <button
               type="button"
-              onClick={() => handleSpeak(advancedMicros ? `${recipeMarkdown}\n\n${advancedMicros}` : recipeMarkdown)}
+              onClick={() => {
+                const cleanDeepDive = stripDuplicateMicroLines(advancedMicros || '');
+                handleSpeak(cleanDeepDive ? `${recipeMarkdown}\n\n${cleanDeepDive}` : recipeMarkdown);
+              }}
               className={`recipe-content-speak-icon ${speakBtnClass}`}
               aria-label={speakAriaLabel}
               title={speakAriaLabel}
@@ -797,7 +855,7 @@ const RecipeResult = ({
       {showDeepDive && advancedMicros && (
           <div className="advanced-micros-content">
               <h3>Emma's Deep Dive Analysis</h3>
-              <EmmaMarkdown>{advancedMicros}</EmmaMarkdown>
+              <EmmaMarkdown>{stripDuplicateMicroLines(advancedMicros)}</EmmaMarkdown>
           </div>
       )}
       

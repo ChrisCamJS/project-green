@@ -172,7 +172,7 @@ export const api = {
         });
     },
 
-    upgradeRecipeNutrition: (recipeId, deepDive, micros, publish = null) => {
+    upgradeRecipeNutrition: (recipeId, deepDive = '', micros = [], publish = null) => {
         return fetchWrapper('/recipes/upgrade-nutrition', {
             method: 'POST',
             body: JSON.stringify({ recipe_id: recipeId, deep_dive: deepDive, micros, publish }),
@@ -464,6 +464,13 @@ export const api = {
         return fetchWrapper('/recipes/calculate-nutrition', {
             method: 'POST',
             body: JSON.stringify({ recipe_id: recipeId }),
+        });
+    },
+
+    calculateNutritionFromIngredients: (ingredients, yields = '4 servings', title = '') => {
+        return fetchWrapper('/recipes/calculate-nutrition', {
+            method: 'POST',
+            body: JSON.stringify({ ingredients, yields, title }),
         });
     },
 

@@ -135,11 +135,15 @@ export const getMicroCalculationInstructions = () => {
     The user has just provided you with a recipe. Your task is to provide a nutritional deep-dive that will be stored with the recipe for all readers.
 
     YOUR RULES:
-    1. Provide a witty, educational 1-2 paragraph Deep Dive analysis of the nutritional benefits of the dish.
+    1. Write 2–3 witty, warm, educational paragraphs focusing on:
+       - **Health Aspects:** Why this whole-food plant-based dish nourishes the body (such as fiber richness, heart-friendly lightness, antioxidants, and gentle digestion).
+       - **Ingredient Benefits:** Spotlight the key whole ingredients in the recipe and what nutritional superpowers they bring.
+       - **Pairing & Serving Advice:** Suggest 1–2 thoughtful plant-based pairings to balance flavor, satiety, or nutrient absorption (such as vitamin-C-rich citrus with leafy greens, or unsweetened soy/oat milk or berries with baked treats).
+       IMPORTANT: Do NOT repeat calorie counts, macro numbers, or micronutrient figures inside your written paragraphs — the app displays the exact numeric nutrition table separately above your commentary.
     2. CRITICAL PRIVACY RULE: Because this analysis is saved to the public recipe database for everyone to read, NEVER include any user's name or username anywhere in your response. Do not address a specific person by name.
-    3. Then, provide a list of exactly 13 key nutrients and micronutrients per serving.
-    4. MANDATORY INCLUSIONS: Every single recipe MUST ALWAYS include **Dietary Fiber** (in g, based on 28g DV), **Sodium** (in mg, based on 2300mg DV), and **Saturated Fat** (in g, based on 20g DV — output \`0g (0% DV)\` if negligible or zero) as the FIRST THREE items in this list, followed by 10 additional key micronutrients (such as Potassium, Iron, Calcium, Magnesium, Vitamin C, Vitamin A, Folate, Vitamin K, Zinc, Vitamin B6). Never omit Dietary Fiber, Sodium, or Saturated Fat.
-    5. You MUST format EACH item exactly like this bullet point:
+    3. At the very end of your response (below a blank line), include the machine-readable list of 13 key nutrients per serving for the nutrition table parser.
+    4. MANDATORY INCLUSIONS in that bottom list: Always include **Dietary Fiber** (g, 28g DV), **Sodium** (mg, 2300mg DV), and **Saturated Fat** (g, 20g DV — output \`0g (0% DV)\` if negligible or zero) first, followed by 10 additional key micronutrients (Potassium, Iron, Calcium, Magnesium, Vitamin C, Vitamin A, Folate, Vitamin K, Zinc, Vitamin B6).
+    5. Format EACH item in that bottom list exactly as:
     * NutrientName: [Amount][Unit] ([DV]% DV)
 
     Example:
@@ -149,8 +153,44 @@ export const getMicroCalculationInstructions = () => {
     * Potassium: 450mg (10% DV)
     * Iron: 2.1mg (12% DV)
 
-    6. DO NOT show any mathematical formulas or work.
-    7. Keep the banter witty in your introduction, but keep the data clean and strictly formatted.`;
+    6. DO NOT show any mathematical formulas or work.`;
+};
+
+export const stripDuplicateMicroLines = (text = '') => {
+    if (!text) return '';
+    const microStatRegex = /^\s*[-*•]\s+\*?\*?[A-Za-z0-9\s\-()]+?\*?\*?:\s*\*?\*?[\d.]+\s*[a-zA-Zµμ]+\*?\*?.*?\(\d+(?:\.\d+)?%\s*DV\)\*?\*?\s*$/i;
+    const orphanHeadingRegex = /^#{0,4}\s*\*?\*?(?:Key\s+)?(?:Nutrients?|Micronutrients?|Vitamins?\s*(?:&|and)\s*Minerals?)(?:\s+(?:Breakdown|Profile|List|Summary))?(?:\s*\(Per\s+Serving\))?\*?\*?:?\s*$/i;
+
+    const lines = String(text).split(/\r?\n/);
+    const filtered = [];
+    for (let i = 0; i < lines.length; i += 1) {
+        const line = lines[i];
+        if (microStatRegex.test(line)) {
+            let k = filtered.length - 1;
+            while (k >= 0 && filtered[k].trim() === '') {
+                k -= 1;
+            }
+            if (k >= 0 && orphanHeadingRegex.test(filtered[k].trim())) {
+                filtered.length = k;
+            }
+            continue;
+        }
+        filtered.push(line);
+    }
+
+    while (filtered.length > 0) {
+        const last = filtered[filtered.length - 1].trim();
+        if (last === '' || orphanHeadingRegex.test(last)) {
+            filtered.pop();
+        } else {
+            break;
+        }
+    }
+
+    return filtered
+        .join('\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
 };
 
 export const parseMicrosFromDeepDive = (deepDiveText = '') => {

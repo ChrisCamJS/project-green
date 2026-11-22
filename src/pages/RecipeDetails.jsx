@@ -6,7 +6,7 @@ import {
   generateRecipeImage,
   DEFAULT_IMAGE_STYLE_OPTIONS,
 } from '../services/geminiApi';
-import { getMicroCalculationInstructions, parseMicrosFromDeepDive } from '../utils/promptBuilder';
+import { getMicroCalculationInstructions, parseMicrosFromDeepDive, stripDuplicateMicroLines } from '../utils/promptBuilder';
 import { useEmmaVoice } from '../hooks/useEmmaVoice';
 import { useAuth } from '../context/AuthContext';
 import SEOHead from '../components/SEOHead';
@@ -665,8 +665,11 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
   if (displayDescription && displayDescription.includes("### Emma's Deep Dive")) {
       const parts = displayDescription.split("### Emma's Deep Dive");
       displayDescription = parts[0].trim();
-      displayNotes = "### Emma's Deep Dive" + parts[1]; 
+      if (!displayNotes || !displayNotes.includes('Advanced Nutritional Analysis')) {
+          displayNotes = "### Emma's Deep Dive" + parts[1];
+      }
   }
+  displayNotes = stripDuplicateMicroLines(displayNotes);
 
   const handleRateRecipe = async (id, newRating) => {
     try {
@@ -790,35 +793,43 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
         return;
       }
 
-      const ingredientsText = (recipe.ingredients || [])
-        .map((ing) => `* ${ing.quantity && Number(ing.quantity) !== 0 ? `${ing.quantity} ` : ''}${ing.unit ? `${ing.unit} ` : ''}${ing.ingredient_name}`)
-        .join('\n');
-      const instructionsText = (recipe.instructions || [])
-        .map((step, idx) => `${step.step_number || idx + 1}. ${step.instruction_text}`)
-        .join('\n');
+      let res = null;
+      try {
+        // Attempt deterministic USDA FoodData Central calculation first (zero extra AI calls)
+        res = await api.upgradeRecipeNutrition(recipe.id, '', []);
+      } catch (usdaErr) {
+        console.warn('USDA nutrition unavailable during recipe upgrade, falling back to Emma Deep Dive:', usdaErr);
+        const ingredientsText = (recipe.ingredients || [])
+          .map((ing) => `* ${ing.quantity && Number(ing.quantity) !== 0 ? `${ing.quantity} ` : ''}${ing.unit ? `${ing.unit} ` : ''}${ing.ingredient_name}`)
+          .join('\n');
+        const instructionsText = (recipe.instructions || [])
+          .map((step, idx) => `${step.step_number || idx + 1}. ${step.instruction_text}`)
+          .join('\n');
 
-      const recipeSummary = [
-        `# ${recipe.title}`,
-        recipe.description || '',
-        `Yields: ${recipe.yields || '4 servings'}`,
-        '## Ingredients',
-        ingredientsText,
-        '## Instructions',
-        instructionsText,
-        mappedMacros?.calories ? `Calories: ${mappedMacros.calories}` : '',
-        mappedMacros?.protein_g ? `Protein: ${mappedMacros.protein_g}g` : '',
-        mappedMacros?.carbs_g ? `Carbs: ${mappedMacros.carbs_g}g` : '',
-        mappedMacros?.fat_g ? `Fat: ${mappedMacros.fat_g}g` : '',
-      ].filter(Boolean).join('\n\n');
+        const recipeSummary = [
+          `# ${recipe.title}`,
+          recipe.description || '',
+          `Yields: ${recipe.yields || '4 servings'}`,
+          '## Ingredients',
+          ingredientsText,
+          '## Instructions',
+          instructionsText,
+          mappedMacros?.calories ? `Calories: ${mappedMacros.calories}` : '',
+          mappedMacros?.protein_g ? `Protein: ${mappedMacros.protein_g}g` : '',
+          mappedMacros?.carbs_g ? `Carbs: ${mappedMacros.carbs_g}g` : '',
+          mappedMacros?.fat_g ? `Fat: ${mappedMacros.fat_g}g` : '',
+        ].filter(Boolean).join('\n\n');
 
-      const instructions = getMicroCalculationInstructions();
-      const mathResult = await sendChatMessage(
-        [{ role: 'user', parts: [{ text: `Here is the recipe I need you to deeply analyze:\n\n${recipeSummary}` }] }],
-        instructions
-      );
-      const parsedMicros = parseMicrosFromDeepDive(mathResult);
+        const instructions = getMicroCalculationInstructions();
+        const mathResult = await sendChatMessage(
+          [{ role: 'user', parts: [{ text: `Here is the recipe I need you to deeply analyze:\n\n${recipeSummary}` }] }],
+          instructions
+        );
+        const parsedMicros = parseMicrosFromDeepDive(mathResult);
 
-      const res = await api.upgradeRecipeNutrition(recipe.id, mathResult, parsedMicros);
+        res = await api.upgradeRecipeNutrition(recipe.id, mathResult, parsedMicros);
+      }
+
       if (res?.success) {
         setRecipe((prev) => ({
           ...prev,
@@ -848,6 +859,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
       if (res?.success) {
         setRecipe((prev) => ({
           ...prev,
+          notes: res.notes ?? prev.notes,
           macros: res.macros || prev.macros,
           micros: res.micros || prev.micros,
         }));

@@ -1081,6 +1081,25 @@
   cursor: not-allowed;
 }
 
+@media (max-width: 639px) {
+  .recipe-chat-form {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.6rem;
+  }
+
+  .recipe-chat-input {
+    flex: 1 1 100%;
+    min-height: 112px;
+    padding: 0.85rem 0.95rem;
+    overflow-y: auto;
+  }
+
+  .recipe-chat-submit-btn {
+    padding: 0.65rem 1.35rem;
+  }
+}
+
 /* --- Share & Print Recipe Actions --- */
 .recipe-share-wrapper {
   position: relative;
