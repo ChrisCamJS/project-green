@@ -1,9 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import RecipeCard from '../components/RecipeCard';
+import StoryCard from '../components/StoryCard';
+import StoryEditorModal from '../components/StoryEditorModal';
 import RecipeFilterToolbar from '../components/RecipeFilterToolbar';
 import { filterRecipesList } from '../utils/recipeFilterUtils';
+import { resolveRecipeImageUrl } from '../utils/mealPlanUtils';
 import './Favorites.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -15,10 +19,11 @@ const resolveAssetUrl = (path) => {
 };
 
 export default function Favorites() {
+  const { user } = useAuth();
   const [favorites, setFavorites] = useState([]);
   const [followingList, setFollowingList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // 'all', 'public', 'drafts', 'following'
+  const [filter, setFilter] = useState('all'); // 'all', 'public', 'drafts', 'stories', 'following'
   const [unfollowingId, setUnfollowingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState({
@@ -27,6 +32,24 @@ export default function Favorites() {
     sugarFree: false,
   });
   const [minRating, setMinRating] = useState(0);
+
+  // My Stories & Story Starter state
+  const [myStories, setMyStories] = useState([]);
+  const [storiesLoading, setStoriesLoading] = useState(false);
+  const [storyStatusFilter, setStoryStatusFilter] = useState('all'); // 'all' | 'published' | 'draft'
+  const [storySearchQuery, setStorySearchQuery] = useState('');
+  const [deletingStoryId, setDeletingStoryId] = useState(null);
+  const [editingLoadingId, setEditingLoadingId] = useState(null);
+
+  const [showRecipePicker, setShowRecipePicker] = useState(false);
+  const [pickerScope, setPickerScope] = useState('all'); // 'all' | 'saved'
+  const [pickerQuery, setPickerQuery] = useState('');
+  const [catalogRecipes, setCatalogRecipes] = useState([]);
+  const [loadingCatalog, setLoadingCatalog] = useState(false);
+
+  const [isStoryEditorOpen, setIsStoryEditorOpen] = useState(false);
+  const [editorRecipe, setEditorRecipe] = useState(null);
+  const [editingStory, setEditingStory] = useState(null);
 
   const loadVaultData = async () => {
     try {
@@ -44,9 +67,31 @@ export default function Favorites() {
     }
   };
 
+  const loadMyStories = useCallback(async () => {
+    if (!user?.id) return;
+    setStoriesLoading(true);
+    try {
+      const res = await api.getStories({
+        userId: user.id,
+        page: 1,
+        perPage: 24,
+        includeDrafts: true,
+      });
+      setMyStories(Array.isArray(res?.stories) ? res.stories : []);
+    } catch (err) {
+      console.error('Failed to load user stories:', err);
+    } finally {
+      setStoriesLoading(false);
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     loadVaultData();
   }, []);
+
+  useEffect(() => {
+    loadMyStories();
+  }, [loadMyStories]);
 
   const handleFavoriteToggle = (recipeId, isFavorited) => {
     if (!isFavorited) {
@@ -77,6 +122,125 @@ export default function Favorites() {
     }
   };
 
+  const handleOpenRecipePicker = async () => {
+    setPickerQuery('');
+    setShowRecipePicker(true);
+    if (catalogRecipes.length === 0 && !loadingCatalog) {
+      setLoadingCatalog(true);
+      try {
+        const data = await api.getRecipes();
+        const list = Array.isArray(data)
+          ? data
+          : (Array.isArray(data?.recipes) ? data.recipes : []);
+        setCatalogRecipes(list);
+      } catch (err) {
+        console.error('Failed to load recipes for story picker:', err);
+      } finally {
+        setLoadingCatalog(false);
+      }
+    }
+  };
+
+  const handleSelectRecipeForStory = (recipeItem) => {
+    if (!recipeItem?.id) return;
+    setShowRecipePicker(false);
+    setEditingStory(null);
+    setEditorRecipe({
+      id: recipeItem.id,
+      title: recipeItem.title,
+      imageUrl: recipeItem.imageUrl || recipeItem.image_url || '',
+    });
+    setIsStoryEditorOpen(true);
+  };
+
+  const handleEditStory = async (storyItem) => {
+    if (!storyItem?.slug || editingLoadingId) return;
+    setEditingLoadingId(storyItem.id);
+    try {
+      const res = await api.getStoryBySlug(storyItem.slug);
+      const fullStory = res?.story || storyItem;
+      setEditingStory(fullStory);
+      setEditorRecipe({
+        id: fullStory.recipeId || fullStory.recipe_id || storyItem.recipeId,
+        title: fullStory.recipeTitle || fullStory.recipe_title || storyItem.recipeTitle || 'Recipe',
+        imageUrl: fullStory.recipeImageUrl || storyItem.recipeImageUrl || '',
+      });
+      setIsStoryEditorOpen(true);
+    } catch (err) {
+      console.error('Failed to load story for editing:', err);
+      alert(err.message || 'Could not load story details for editing.');
+    } finally {
+      setEditingLoadingId(null);
+    }
+  };
+
+  const handleDeleteStory = async (storyItem) => {
+    if (!storyItem?.id || deletingStoryId) return;
+    if (!window.confirm(`Delete "${storyItem.title}" permanently? This cannot be undone.`)) {
+      return;
+    }
+    setDeletingStoryId(storyItem.id);
+    try {
+      await api.deleteStory(storyItem.id);
+      setMyStories((prev) => prev.filter((s) => s.id !== storyItem.id));
+    } catch (err) {
+      console.error('Failed to delete story:', err);
+      alert(err.message || 'Could not delete story.');
+    } finally {
+      setDeletingStoryId(null);
+    }
+  };
+
+  const handleStorySaved = async () => {
+    setIsStoryEditorOpen(false);
+    setEditingStory(null);
+    setEditorRecipe(null);
+    setFilter('stories');
+    await loadMyStories();
+  };
+
+  const filteredStories = useMemo(() => {
+    const q = storySearchQuery.trim().toLowerCase();
+    return myStories.filter((story) => {
+      const status = (story.status || 'published').toLowerCase();
+      if (storyStatusFilter === 'published' && status !== 'published') return false;
+      if (storyStatusFilter === 'draft' && status !== 'draft') return false;
+      if (!q) return true;
+      const t = String(story.title || '').toLowerCase();
+      const ex = String(story.excerpt || '').toLowerCase();
+      const rec = String(story.recipeTitle || story.recipe_title || '').toLowerCase();
+      return t.includes(q) || ex.includes(q) || rec.includes(q);
+    });
+  }, [myStories, storyStatusFilter, storySearchQuery]);
+
+  const pickerRecipeCandidates = useMemo(() => {
+    const map = new Map();
+    favorites.forEach((r) => {
+      if (r?.id) {
+        map.set(Number(r.id), { ...r, isSavedInVault: true });
+      }
+    });
+    if (pickerScope === 'all') {
+      catalogRecipes.forEach((r) => {
+        if (r?.id) {
+          const idNum = Number(r.id);
+          if (!map.has(idNum)) {
+            map.set(idNum, { ...r, isSavedInVault: false });
+          }
+        }
+      });
+    }
+    const baseList = Array.from(map.values());
+    const q = pickerQuery.trim().toLowerCase();
+    if (!q) return baseList;
+    return baseList.filter((r) => {
+      const title = String(r.title || '').toLowerCase();
+      const desc = String(r.description || '').toLowerCase();
+      const author = String(r.authorName || r.username || '').toLowerCase();
+      return title.includes(q) || desc.includes(q) || author.includes(q);
+    });
+  }, [favorites, catalogRecipes, pickerScope, pickerQuery]);
+
   const tabScopedRecipes = useMemo(() => {
     return favorites.filter((recipe) => {
       if (filter === 'public') return recipe.isPublic;
@@ -105,14 +269,25 @@ export default function Favorites() {
     setMinRating(0);
   };
 
+  const showRecipeControls = filter !== 'following' && filter !== 'stories';
+
   return (
     <div className="favorites-page">
       <div className="favorites-header">
         <h1>My Vault Collection</h1>
-        <p>Saved community masterpieces, private kitchen drafts, and chefs you follow.</p>
-        <Link to="/meal-planner" className="browse-recipes-btn" style={{ display: 'inline-block', marginBottom: '1rem' }}>
-          📅 Open Meal Planner Calendar &rarr;
-        </Link>
+        <p>Saved community masterpieces, private kitchen drafts, your recipe stories, and chefs you follow.</p>
+        <div className="vault-header-cta-row">
+          <Link to="/meal-planner" className="browse-recipes-btn">
+            📅 Open Meal Planner Calendar &rarr;
+          </Link>
+          <button
+            type="button"
+            className="start-story-cta-btn"
+            onClick={handleOpenRecipePicker}
+          >
+            ✍️ Start a New Story
+          </button>
+        </div>
 
         <div className="favorites-filters">
           <button 
@@ -134,6 +309,12 @@ export default function Favorites() {
             Private Drafts ({favorites.filter((r) => r.isDraft).length})
           </button>
           <button
+            className={`filter-btn ${filter === 'stories' ? 'active' : ''}`}
+            onClick={() => setFilter('stories')}
+          >
+            📖 My Stories ({myStories.length})
+          </button>
+          <button
             className={`filter-btn ${filter === 'following' ? 'active' : ''}`}
             onClick={() => setFilter('following')}
           >
@@ -141,7 +322,7 @@ export default function Favorites() {
           </button>
         </div>
 
-        {filter !== 'following' && (
+        {showRecipeControls && (
           <RecipeFilterToolbar
             recipes={tabScopedRecipes}
             filteredCount={filteredList.length}
@@ -156,7 +337,7 @@ export default function Favorites() {
           />
         )}
 
-        {filter !== 'following' && (
+        {showRecipeControls && (
           <div className="vault-following-summary">
             <span>
               Following <strong>{followingList.length}</strong> {followingList.length === 1 ? 'chef' : 'chefs'} (their recipes appear first in your Home feed)
@@ -248,6 +429,135 @@ export default function Favorites() {
             </div>
           )}
         </section>
+      ) : filter === 'stories' ? (
+        <section className="vault-stories-section" aria-label="Manage your recipe stories">
+          <div className="vault-stories-header">
+            <div>
+              <h2>📖 My Recipe Stories</h2>
+              <p>Manage your published articles and private drafts, or pick any recipe to start a new story.</p>
+            </div>
+            <button
+              type="button"
+              className="start-story-cta-btn"
+              onClick={handleOpenRecipePicker}
+            >
+              ✍️ Start a New Story
+            </button>
+          </div>
+
+          <div className="vault-stories-toolbar">
+            <input
+              type="search"
+              className="vault-story-search-input"
+              value={storySearchQuery}
+              onChange={(e) => setStorySearchQuery(e.target.value)}
+              placeholder="Search your stories by title or linked recipe..."
+              aria-label="Search your stories"
+            />
+            <div className="vault-story-status-pills" role="group" aria-label="Filter stories by status">
+              <button
+                type="button"
+                className={`vault-story-pill ${storyStatusFilter === 'all' ? 'active' : ''}`}
+                onClick={() => setStoryStatusFilter('all')}
+              >
+                All ({myStories.length})
+              </button>
+              <button
+                type="button"
+                className={`vault-story-pill ${storyStatusFilter === 'published' ? 'active' : ''}`}
+                onClick={() => setStoryStatusFilter('published')}
+              >
+                Published ({myStories.filter((s) => (s.status || 'published') === 'published').length})
+              </button>
+              <button
+                type="button"
+                className={`vault-story-pill ${storyStatusFilter === 'draft' ? 'active' : ''}`}
+                onClick={() => setStoryStatusFilter('draft')}
+              >
+                Drafts ({myStories.filter((s) => (s.status || 'published') === 'draft').length})
+              </button>
+            </div>
+          </div>
+
+          {storiesLoading ? (
+            <div className="favorites-loading">
+              <p className="loading-text">Loading your stories...</p>
+            </div>
+          ) : filteredStories.length > 0 ? (
+            <div className="vault-stories-grid">
+              {filteredStories.map((story) => {
+                const isDraftStory = (story.status || 'published') === 'draft';
+                const isDeletingThis = deletingStoryId === story.id;
+                const isLoadingEdit = editingLoadingId === story.id;
+
+                return (
+                  <div key={story.id} className="vault-story-manage-card">
+                    <StoryCard story={story} showRecipeTag={true} />
+                    <div className="vault-story-manage-bar">
+                      <span className={`vault-story-status-badge ${isDraftStory ? 'draft' : 'published'}`}>
+                        {isDraftStory ? '🔒 Draft' : '🌟 Published'}
+                      </span>
+                      <div className="vault-story-actions">
+                        <Link
+                          to={`/stories/${encodeURIComponent(story.slug)}`}
+                          className="vault-story-action-btn read-btn"
+                        >
+                          Read
+                        </Link>
+                        <button
+                          type="button"
+                          className="vault-story-action-btn edit-btn"
+                          onClick={() => handleEditStory(story)}
+                          disabled={isLoadingEdit || isDeletingThis}
+                        >
+                          {isLoadingEdit ? 'Loading...' : '✏️ Edit'}
+                        </button>
+                        <button
+                          type="button"
+                          className="vault-story-action-btn delete-btn"
+                          onClick={() => handleDeleteStory(story)}
+                          disabled={isDeletingThis || isLoadingEdit}
+                        >
+                          {isDeletingThis ? 'Deleting...' : '🗑️ Delete'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="no-favorites-card">
+              {myStories.length === 0 ? (
+                <>
+                  <p>You haven&apos;t written any recipe stories yet. Pick any recipe from your Vault or the community feed to write your first story!</p>
+                  <button
+                    type="button"
+                    className="start-story-cta-btn"
+                    onClick={handleOpenRecipePicker}
+                  >
+                    ✍️ Start Your First Story
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p>No stories match your current search or status filter.</p>
+                  <button
+                    type="button"
+                    className="browse-recipes-btn"
+                    style={{ border: 'none', cursor: 'pointer' }}
+                    onClick={() => {
+                      setStorySearchQuery('');
+                      setStoryStatusFilter('all');
+                    }}
+                  >
+                    Reset Story Filters
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </section>
       ) : filteredList.length > 0 ? (
         <div className="favorites-grid-container">
           <div className="recipe-grid">
@@ -267,6 +577,124 @@ export default function Favorites() {
           <Link to="/" className="browse-recipes-btn">Explore Masterpieces</Link>
         </div>
       )}
+
+      {showRecipePicker && (
+        <div
+          className="vault-story-picker-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="vault-story-picker-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowRecipePicker(false);
+            }
+          }}
+        >
+          <div className="vault-story-picker-modal">
+            <div className="vault-story-picker-header">
+              <div>
+                <h2 id="vault-story-picker-title">Start a New Story</h2>
+                <p>Choose a recipe to base your story on</p>
+              </div>
+              <button
+                type="button"
+                className="vault-story-picker-close"
+                onClick={() => setShowRecipePicker(false)}
+                aria-label="Close recipe selector"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="vault-story-picker-controls">
+              <input
+                type="search"
+                className="vault-story-picker-search"
+                value={pickerQuery}
+                onChange={(e) => setPickerQuery(e.target.value)}
+                placeholder="Search recipes by title, description, or chef..."
+                autoFocus
+                aria-label="Search recipes for your story"
+              />
+              <div className="vault-story-picker-scopes" role="group" aria-label="Recipe source">
+                <button
+                  type="button"
+                  className={`vault-story-pill ${pickerScope === 'all' ? 'active' : ''}`}
+                  onClick={() => setPickerScope('all')}
+                >
+                  All Vault Recipes
+                </button>
+                <button
+                  type="button"
+                  className={`vault-story-pill ${pickerScope === 'saved' ? 'active' : ''}`}
+                  onClick={() => setPickerScope('saved')}
+                >
+                  My Saved Recipes ({favorites.length})
+                </button>
+              </div>
+            </div>
+
+            <div className="vault-picker-list">
+              {loadingCatalog && pickerScope === 'all' && catalogRecipes.length === 0 ? (
+                <p className="vault-picker-empty">Loading community recipes...</p>
+              ) : pickerRecipeCandidates.length > 0 ? (
+                pickerRecipeCandidates.map((r) => {
+                  const thumbUrl = resolveRecipeImageUrl(r);
+                  const isDraftRecipe = Boolean(r.isDraft || r.is_draft || r.is_public === 0 || r.is_public === false);
+                  const chefName = r.authorName || r.username || 'Emma (AI)';
+
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      className="vault-picker-item"
+                      onClick={() => handleSelectRecipeForStory(r)}
+                    >
+                      <img
+                        src={thumbUrl}
+                        alt={r.title}
+                        className="vault-picker-thumb"
+                        onError={(e) => {
+                          e.currentTarget.src = '/og-vault-preview.jpeg';
+                        }}
+                      />
+                      <div className="vault-picker-meta">
+                        <strong className="vault-picker-title">{r.title}</strong>
+                        <div className="vault-picker-subrow">
+                          <span>By {chefName}</span>
+                          {r.isSavedInVault && (
+                            <span className="vault-picker-badge saved">In My Vault</span>
+                          )}
+                          {isDraftRecipe && (
+                            <span className="vault-picker-badge draft">Draft</span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="vault-picker-select-label">Select &rarr;</span>
+                    </button>
+                  );
+                })
+              ) : (
+                <p className="vault-picker-empty">
+                  No matching recipes found. Try a different search or switch between Saved and All Vault Recipes.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <StoryEditorModal
+        isOpen={isStoryEditorOpen}
+        onClose={() => {
+          setIsStoryEditorOpen(false);
+          setEditingStory(null);
+          setEditorRecipe(null);
+        }}
+        recipe={editorRecipe}
+        initialStory={editingStory}
+        onSaved={handleStorySaved}
+      />
     </div>
   );
 }

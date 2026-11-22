@@ -65,6 +65,9 @@ const RecipeForm = ({
   const [uploadedDoc, setUploadedDoc] = useState(null);
   const [isParsingFile, setIsParsingFile] = useState(false);
   const [fileError, setFileError] = useState(null);
+  const [showMobileContextPrompt, setShowMobileContextPrompt] = useState(false);
+  const [showMobileContextInput, setShowMobileContextInput] = useState(false);
+  const [mobileContextDraft, setMobileContextDraft] = useState('');
 
   // Masterpiece image style & kitchen customization state
   const [imageOptions, setImageOptions] = useState({ ...DEFAULT_IMAGE_STYLE_OPTIONS });
@@ -92,26 +95,37 @@ const RecipeForm = ({
     setPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
+  const processSelectedFile = async (file, inputEl, { openReferenceDrawer = true } = {}) => {
     if (!file) return;
 
     setIsParsingFile(true);
     setFileError(null);
-    setShowReferenceBox(true);
+    if (openReferenceDrawer) {
+      setShowReferenceBox(true);
+    }
     try {
       const parsed = await parseReferenceFile(file);
       setUploadedDoc(parsed);
+      if (!openReferenceDrawer) {
+        setShowMobileContextInput(false);
+        setMobileContextDraft(pastedReference || '');
+        setShowMobileContextPrompt(true);
+      }
     } catch (err) {
       setFileError(err.message || 'Could not read the selected file.');
       setUploadedDoc(null);
     } finally {
       setIsParsingFile(false);
-      if (e.target) {
-        e.target.value = '';
+      if (inputEl) {
+        inputEl.value = '';
       }
     }
   };
+
+  const handleFileChange = (e) => processSelectedFile(e.target.files?.[0], e.target, { openReferenceDrawer: true });
+
+  const handleMobilePaperclipFileChange = (e) =>
+    processSelectedFile(e.target.files?.[0], e.target, { openReferenceDrawer: false });
 
   const hasReference = Boolean(pastedReference.trim() || uploadedDoc);
   const canSubmit = Boolean(userRequest.trim() || hasReference);
@@ -157,11 +171,12 @@ const RecipeForm = ({
     : 0;
 
   return (
+    <>
     <form className="recipe-form" onSubmit={handleSubmit}>
       <div className="input-group">
         <label htmlFor="recipe-request">{getLabel()}</label>
 
-        {/* We wrap the textarea and mic button in a container for styling */}
+        {/* We wrap the textarea and action icons in a container for styling */}
         <div className="textarea-wrapper">
           <textarea
             ref={requestTextareaRef}
@@ -175,21 +190,87 @@ const RecipeForm = ({
             required={!hasReference}
           />
 
-          {/* Only render the mic button if their browser supports it! */}
-          {isSupported && (
+          <div className="textarea-action-icons">
+            <label
+              className={`mobile-attach-paperclip-btn ${hasReference ? 'has-ref' : ''} ${(isLoading || isParsingFile) ? 'disabled' : ''}`}
+              title="Attach a file or image for Emma"
+              aria-label="Attach a file or image for Emma"
+            >
+              <span aria-hidden="true">{isParsingFile ? '⏳' : '📎'}</span>
+              {hasReference && <span className="mobile-attach-dot" aria-hidden="true" />}
+              <input
+                type="file"
+                accept={ACCEPTED_REFERENCE_EXTENSIONS}
+                onChange={handleMobilePaperclipFileChange}
+                disabled={isLoading || isParsingFile}
+                hidden
+              />
+            </label>
+
+            {/* Only render the mic button if their browser supports it! */}
+            {isSupported && (
+              <button
+                type="button"
+                className={`mic-btn ${isListening ? 'listening' : ''}`}
+                onClick={handleMicClick}
+                disabled={isLoading}
+                title={isListening ? 'Stop listening' : 'Click to speak'}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="mic-icon">
+                  <path d="M12 14C10.3431 14 9 12.6569 9 11V5C9 3.34315 10.3431 2 12 2C13.6569 2 15 3.34315 15 5V11C15 12.6569 13.6569 14 12 14ZM12 16C14.7614 16 17 13.7614 17 11H19C19 14.4447 16.5126 17.3113 13 17.8926V21H11V17.8926C7.48743 17.3113 5 14.4447 5 11H7C7 13.7614 9.23858 16 12 16Z"></path>
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {(uploadedDoc || pastedReference.trim()) && (
+          <div className="mobile-attached-bar">
+            {uploadedDoc && (
+              <span className="reference-summary-pill">
+                📄 {uploadedDoc.fileName}
+              </span>
+            )}
+            {pastedReference.trim() && (
+              <span className="reference-summary-pill">
+                📋 {pastedWordCount} {pastedWordCount === 1 ? 'word' : 'words'} context
+              </span>
+            )}
             <button
               type="button"
-              className={`mic-btn ${isListening ? 'listening' : ''}`}
-              onClick={handleMicClick}
+              className="mobile-attached-action-btn"
+              onClick={() => {
+                setMobileContextDraft(pastedReference || '');
+                setShowMobileContextInput(true);
+                setShowMobileContextPrompt(true);
+              }}
               disabled={isLoading}
-              title={isListening ? 'Stop listening' : 'Click to speak'}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="mic-icon">
-                <path d="M12 14C10.3431 14 9 12.6569 9 11V5C9 3.34315 10.3431 2 12 2C13.6569 2 15 3.34315 15 5V11C15 12.6569 13.6569 14 12 14ZM12 16C14.7614 16 17 13.7614 17 11H19C19 14.4447 16.5126 17.3113 13 17.8926V21H11V17.8926C7.48743 17.3113 5 14.4447 5 11H7C7 13.7614 9.23858 16 12 16Z"></path>
-              </svg>
+              {pastedReference.trim() ? 'Edit Context' : '+ Add Context'}
             </button>
-          )}
-        </div>
+            <button
+              type="button"
+              className="mobile-attached-remove-btn"
+              onClick={() => {
+                setUploadedDoc(null);
+                setPastedReference('');
+                setFileError(null);
+              }}
+              disabled={isLoading}
+              aria-label="Remove attached file and context"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {fileError && (
+          <div className="mobile-file-error-wrap">
+            <div className="reference-error-msg" role="alert">
+              {fileError}
+            </div>
+          </div>
+        )}
       </div>
 
       {engineMode !== 'chat' && (
@@ -298,8 +379,12 @@ const RecipeForm = ({
           )}
         </div>
 
-        {showReferenceBox && (
-          <div className="reference-drawer">
+        <div
+          className={`collapsible-drawer-shell ${showReferenceBox ? 'is-open' : ''}`}
+          aria-hidden={!showReferenceBox}
+        >
+          <div className="collapsible-drawer-inner">
+            <div className="reference-drawer">
             <p className="reference-help-text">
               Upload an existing recipe file or paste your base recipe/notes below. Emma will use it as the foundation and adapt it to your prompt and dietary preferences.
             </p>
@@ -377,10 +462,90 @@ const RecipeForm = ({
                 disabled={isLoading}
               />
             </div>
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </form>
+
+    {showMobileContextPrompt && uploadedDoc && (
+      <div
+        className="mobile-context-modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="mobile-context-modal-title"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowMobileContextPrompt(false);
+          }
+        }}
+      >
+        <div className="mobile-context-modal-card">
+          <div className="mobile-context-modal-header">
+            <h3 id="mobile-context-modal-title">File Attached</h3>
+            <span className="mobile-context-file-badge">
+              📄 {uploadedDoc.fileName} ({formatFileSize(uploadedDoc.fileSize)})
+            </span>
+          </div>
+          <p className="mobile-context-modal-question">
+            Would you like to give Emma extra context about this image or document?
+          </p>
+
+          {!showMobileContextInput ? (
+            <div className="mobile-context-actions">
+              <button
+                type="button"
+                className="mobile-context-btn-primary"
+                onClick={() => setShowMobileContextInput(true)}
+              >
+                Add Extra Context
+              </button>
+              <button
+                type="button"
+                className="mobile-context-btn-secondary"
+                onClick={() => setShowMobileContextPrompt(false)}
+              >
+                Continue Without Extra Context
+              </button>
+            </div>
+          ) : (
+            <div className="mobile-context-input-panel">
+              <textarea
+                rows={4}
+                className="mobile-context-textarea"
+                value={mobileContextDraft}
+                onChange={(e) => setMobileContextDraft(e.target.value)}
+                placeholder="E.g., Make this oil-free, swap out dairy, or adapt for 6 servings..."
+                autoFocus
+              />
+              <div className="mobile-context-actions">
+                <button
+                  type="button"
+                  className="mobile-context-btn-primary"
+                  onClick={() => {
+                    setPastedReference(mobileContextDraft.trim());
+                    setShowMobileContextPrompt(false);
+                  }}
+                >
+                  Save Context
+                </button>
+                <button
+                  type="button"
+                  className="mobile-context-btn-secondary"
+                  onClick={() => {
+                    setPastedReference('');
+                    setShowMobileContextPrompt(false);
+                  }}
+                >
+                  Continue Without
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+    </>
   );
 };
 

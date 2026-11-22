@@ -119,7 +119,7 @@ const RecipeResult = ({
   const [showDeepDive, setShowDeepDive] = useState(false);
   const [showLiveChat, setShowLiveChat] = useState(false); // Live chat state
 
-  const { speechState, handleSpeak } = useEmmaVoice();
+  const { speechState, activeKey, handleSpeak } = useEmmaVoice();
 
   const displayImageUrl = localImageUrl || imageUrl;
   const effectiveIsDraft = isDraft && !isUpgradedToMasterpiece;
@@ -827,13 +827,13 @@ const RecipeResult = ({
               type="button"
               onClick={() => {
                 const cleanDeepDive = stripDuplicateMicroLines(advancedMicros || '');
-                handleSpeak(cleanDeepDive ? `${recipeMarkdown}\n\n${cleanDeepDive}` : recipeMarkdown);
+                handleSpeak(cleanDeepDive ? `${recipeMarkdown}\n\n${cleanDeepDive}` : recipeMarkdown, 'recipe');
               }}
-              className={`recipe-content-speak-icon ${speakBtnClass}`}
-              aria-label={speakAriaLabel}
-              title={speakAriaLabel}
+              className={`recipe-content-speak-icon ${(activeKey === 'recipe' || !activeKey) ? speakBtnClass : 'speak-btn-idle'}`}
+              aria-label={(activeKey === 'recipe' || !activeKey) ? speakAriaLabel : 'Read Aloud'}
+              title={(activeKey === 'recipe' || !activeKey) ? speakAriaLabel : 'Read Aloud'}
             >
-              {speakIcon}
+              {(activeKey === 'recipe' || !activeKey) ? speakIcon : '🔊'}
             </button>
           </div>
         )}
@@ -854,7 +854,18 @@ const RecipeResult = ({
 
       {showDeepDive && advancedMicros && (
           <div className="advanced-micros-content">
-              <h3>Emma's Deep Dive Analysis</h3>
+              <div className="advanced-micros-header">
+                  <h3>Emma's Deep Dive Analysis</h3>
+                  <button
+                    type="button"
+                    onClick={() => handleSpeak(stripDuplicateMicroLines(advancedMicros), 'deepDive')}
+                    className={`recipe-content-speak-icon ${activeKey === 'deepDive' ? speakBtnClass : 'speak-btn-idle'}`}
+                    aria-label={activeKey === 'deepDive' && speechState === 'playing' ? "Pause Emma's Deep Dive" : (activeKey === 'deepDive' && speechState === 'paused' ? "Resume Emma's Deep Dive" : "Listen to Emma's Deep Dive")}
+                    title="Listen to Emma's Deep Dive"
+                  >
+                    {activeKey === 'deepDive' && speechState === 'playing' ? '⏸️' : (activeKey === 'deepDive' && speechState === 'paused' ? '▶️' : '🔊')}
+                  </button>
+              </div>
               <EmmaMarkdown>{stripDuplicateMicroLines(advancedMicros)}</EmmaMarkdown>
           </div>
       )}

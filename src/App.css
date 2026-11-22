@@ -1,0 +1,27 @@
+.collapsible-drawer-shell {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    grid-template-rows 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s ease,
+    visibility 0s linear 0.24s;
+}
+
+.collapsible-drawer-shell.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    grid-template-rows 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.22s ease,
+    visibility 0s linear 0s;
+}
+
+.collapsible-drawer-inner {
+  overflow: hidden;
+  min-height: 0;
+}

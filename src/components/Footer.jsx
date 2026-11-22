@@ -33,12 +33,6 @@ const Footer = () => {
                 <li><Link to="/">Home Recipe Feed</Link></li>
                 <li><Link to="/engine">Emma&apos;s AI Recipe Engine</Link></li>
                 <li><Link to="/wellness">Wellness &amp; Macro Calculators</Link></li>
-                <li><Link to="/sitemap">Full HTML Site Map</Link></li>
-                <li>
-                  <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer">
-                    XML Sitemap
-                  </a>
-                </li>
               </ul>
             </div>
 
@@ -48,7 +42,6 @@ const Footer = () => {
                 <li><Link to="/meal-planner">Meal Planner Calendar</Link></li>
                 <li><Link to="/favorites">My Vault &amp; Saved Drafts</Link></li>
                 <li><Link to="/profile">Chef Profile</Link></li>
-                <li><Link to="/buy-tokens">Buy Generation Tokens</Link></li>
               </ul>
             </div>
 

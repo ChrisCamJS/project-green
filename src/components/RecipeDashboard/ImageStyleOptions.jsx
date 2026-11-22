@@ -88,7 +88,7 @@ const ImageStyleOptions = ({
           disabled={disabled}
           aria-expanded={isExpanded}
         >
-          <span>🎨 Customize Kitchen &amp; Photo Style (Optional)</span>
+          <span>Customize Photo (Optional)</span>
           {activeCount > 0 && (
             <span className="style-active-badge">
               {activeCount} {activeCount === 1 ? 'custom setting' : 'custom settings'}
@@ -111,8 +111,12 @@ const ImageStyleOptions = ({
         )}
       </div>
 
-      {isExpanded && (
-        <div className="style-studio-body">
+      <div
+        className={`collapsible-drawer-shell ${isExpanded ? 'is-open' : ''}`}
+        aria-hidden={!isExpanded}
+      >
+        <div className="collapsible-drawer-inner">
+          <div className="style-studio-body">
           <div className="style-field-block">
             <label htmlFor={`${uid}-color`}>Kitchen Color Scheme</label>
             <div className="color-preset-pills">
@@ -209,8 +213,9 @@ const ImageStyleOptions = ({
               disabled={disabled}
             />
           </div>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

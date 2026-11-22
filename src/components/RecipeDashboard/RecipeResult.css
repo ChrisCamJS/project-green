@@ -108,7 +108,7 @@
 .recipe-content-speak-row {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: -0.25rem;
+  margin-bottom: 0.45rem;
 }
 
 .recipe-content-speak-icon {
@@ -159,6 +159,19 @@
   background-color: #faf5ff;
   border-radius: 12px;
   border: 1px solid #d6bcfa;
+}
+
+.advanced-micros-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #e9d5ff;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.advanced-micros-header h3 {
+  margin: 0;
 }
 
 .advanced-micros-content h3 {

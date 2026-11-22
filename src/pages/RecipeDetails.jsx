@@ -68,6 +68,8 @@ const RecipeDetails = () => {
   const [shareCopied, setShareCopied] = useState(false);
   const [recipeCopied, setRecipeCopied] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showMoreActionsMenu, setShowMoreActionsMenu] = useState(false);
+  const moreActionsRef = useRef(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imageStyleOptions, setImageStyleOptions] = useState({ ...DEFAULT_IMAGE_STYLE_OPTIONS });
   const [selectedPreviewPath, setSelectedPreviewPath] = useState(null);
@@ -98,6 +100,21 @@ const RecipeDetails = () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isImageModalOpen]);
+
+  useEffect(() => {
+    if (!showMoreActionsMenu) return undefined;
+    const handleOutsideClick = (event) => {
+      if (moreActionsRef.current && !moreActionsRef.current.contains(event.target)) {
+        setShowMoreActionsMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
+  }, [showMoreActionsMenu]);
   const currentUserName = user?.username || 'Love';
   
   const [recipe, setRecipe] = useState(null);
@@ -341,6 +358,7 @@ const RecipeDetails = () => {
     setUpgradeFeedback(null);
     setShareCopied(false);
     setShowShareMenu(false);
+    setShowMoreActionsMenu(false);
     const fetchRecipe = async () => {
       try {
         setLoading(true);
@@ -949,6 +967,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
     const nextOpen = !showShareMenu;
     setShowShareMenu(nextOpen);
     if (nextOpen) {
+      setShowMoreActionsMenu(false);
       await handleCopyShareLink();
     }
   };
@@ -1107,7 +1126,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
               {isRecipeOwner && (
                 <button
                   type="button"
-                  className="recipe-title-edit-btn no-print"
+                  className="recipe-title-edit-btn recipe-desktop-only-action no-print"
                   onClick={handleStartEditTitle}
                   title="Edit recipe name"
                 >
@@ -1222,7 +1241,13 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
                 disabled={followBusy}
                 className={`recipe-follow-btn ${recipe.isFollowedAuthor ? 'following' : ''}`}
               >
-                {followBusy ? 'Updating...' : (recipe.isFollowedAuthor ? '✓ Following Chef' : '➕ Follow Chef')}
+                {followBusy ? 'Updating...' : (
+                  recipe.isFollowedAuthor ? (
+                    <>✓ Following<span className="recipe-btn-desktop-only"> Chef</span></>
+                  ) : (
+                    <>➕ Follow<span className="recipe-btn-desktop-only"> Chef</span></>
+                  )
+                )}
               </button>
             )}
           </div>
@@ -1231,7 +1256,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
             {isAdmin && (
               <Link
                 to={`/admin/edit/${recipe.id}`}
-                className="recipe-details-action-btn"
+                className="recipe-details-action-btn recipe-desktop-only-action"
                 style={{ textDecoration: 'none', backgroundColor: '#fef3c7', color: '#92400e', borderColor: '#f59e0b' }}
               >
                 ✏️ Edit Recipe
@@ -1250,12 +1275,12 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
               }}
               title="Fork this recipe with Emma's Variant Studio"
             >
-              Create Variant
+              <span className="recipe-btn-desktop-only">Create </span>Variant
             </button>
 
             <button
               type="button"
-              className="recipe-details-story-btn no-print"
+              className="recipe-details-story-btn recipe-desktop-only-action no-print"
               onClick={() => {
                 if (!user) {
                   navigate('/login');
@@ -1277,7 +1302,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
                 )
               }
             >
-              Add to Meal Plan
+              <span className="recipe-btn-desktop-only">Add to </span>Meal Plan
             </button>
 
             <div className="recipe-share-wrapper">
@@ -1355,7 +1380,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
 
             <button
               type="button"
-              className="recipe-details-action-btn print-btn"
+              className="recipe-details-action-btn print-btn recipe-desktop-only-action"
               onClick={handleCopyFullRecipe}
             >
               {recipeCopied ? '✓ Recipe Copied!' : 'Copy Recipe'}
@@ -1363,11 +1388,94 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
 
             <button
               type="button"
-              className="recipe-details-action-btn print-btn"
+              className="recipe-details-action-btn print-btn recipe-desktop-only-action"
               onClick={handlePrintRecipe}
             >
               🖨️ Print
             </button>
+
+            <div className="recipe-more-actions-wrapper no-print" ref={moreActionsRef}>
+              <button
+                type="button"
+                className="recipe-details-action-btn recipe-more-btn"
+                onClick={() =>
+                  setShowMoreActionsMenu((prev) => {
+                    if (!prev) setShowShareMenu(false);
+                    return !prev;
+                  })
+                }
+                aria-expanded={showMoreActionsMenu}
+                aria-haspopup="true"
+                aria-label="More recipe actions"
+              >
+                ••• More
+              </button>
+
+              {showMoreActionsMenu && (
+                <div className="recipe-more-popover" role="menu">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="recipe-more-option"
+                    onClick={() => {
+                      setShowMoreActionsMenu(false);
+                      if (!user) {
+                        navigate('/login');
+                        return;
+                      }
+                      setIsStoryModalOpen(true);
+                    }}
+                  >
+                    Write a Story
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="recipe-more-option"
+                    onClick={() => {
+                      setShowMoreActionsMenu(false);
+                      handleCopyFullRecipe();
+                    }}
+                  >
+                    {recipeCopied ? '✓ Recipe Copied!' : '📋 Copy Recipe'}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="recipe-more-option"
+                    onClick={() => {
+                      setShowMoreActionsMenu(false);
+                      handlePrintRecipe();
+                    }}
+                  >
+                    🖨️ Print Recipe
+                  </button>
+                  {isRecipeOwner && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="recipe-more-option"
+                      onClick={() => {
+                        setShowMoreActionsMenu(false);
+                        handleStartEditTitle();
+                      }}
+                    >
+                      ✏️ Edit Name
+                    </button>
+                  )}
+                  {isAdmin && (
+                    <Link
+                      to={`/admin/edit/${recipe.id}`}
+                      role="menuitem"
+                      className="recipe-more-option"
+                      onClick={() => setShowMoreActionsMenu(false)}
+                    >
+                      ✏️ Edit Recipe
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1600,13 +1708,15 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e9d5ff', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
                     <h3 style={{ margin: 0, color: '#6b21a8', fontSize: '1.25rem', fontWeight: 'bold' }}>🔬 Emma's Deep Dive Analysis</h3>
                     <button
+                        type="button"
                         onClick={() => handleSpeak(displayNotes, 'deepDive')}
                         style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', opacity: '0.6', padding: '0', transition: 'opacity 0.2s ease' }}
+                        aria-label={speechState === 'playing' && activeKey === 'deepDive' ? "Pause Emma's Deep Dive" : (speechState === 'paused' && activeKey === 'deepDive' ? "Resume Emma's Deep Dive" : "Listen to Emma's Deep Dive")}
                         title="Listen to Emma's Deep Dive"
                         onMouseEnter={(e) => e.target.style.opacity = '1'}
                         onMouseLeave={(e) => e.target.style.opacity = '0.6'}
                     >
-                        {speechState === 'playing' && activeKey === 'deepDive' ? '⏸️' : '🔊'}
+                        {speechState === 'playing' && activeKey === 'deepDive' ? '⏸️' : (speechState === 'paused' && activeKey === 'deepDive' ? '▶️' : '🔊')}
                     </button>
                 </div>
                 <ReactMarkdown>{displayNotes}</ReactMarkdown>
