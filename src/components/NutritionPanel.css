@@ -137,36 +137,269 @@
   font-weight: 600;
 }
 
-.macro-proofs p {
-  margin: 0.5rem 0;
-  font-size: 1.05rem;
+.macro-proofs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
 }
 
-.macro-proofs em {
-  color: #6c757d;
-  font-size: 0.95rem;
+.macro-proof-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  font-size: 0.98rem;
+}
+
+.macro-proof-label {
+  color: #1e293b;
+}
+
+.macro-proof-math {
+  color: #64748b;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.macro-proof-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.35rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #cbd5e1;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.usda-calc-card {
+  margin-top: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+}
+
+.usda-calc-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+}
+
+.usda-calc-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.usda-badge {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #166534;
+}
+
+.usda-meta {
+  font-size: 0.76rem;
+  color: #15803d;
+}
+
+.usda-toggle-btn {
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid #86efac;
+  background-color: #ffffff;
+  color: #166534;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.usda-toggle-btn:hover {
+  background-color: #dcfce7;
+}
+
+.usda-breakdown-list {
+  list-style: none;
+  margin: 0.65rem 0 0;
+  padding: 0.6rem 0 0;
+  border-top: 1px dashed #bbf7d0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.usda-breakdown-item {
+  background: #ffffff;
+  border: 1px solid #dcfce7;
+  border-radius: 6px;
+  padding: 0.42rem 0.6rem;
+}
+
+.usda-breakdown-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.usda-breakdown-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.usda-breakdown-grams {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.usda-breakdown-detail {
+  margin-top: 0.15rem;
+  font-size: 0.74rem;
+  color: #475569;
+  font-variant-numeric: tabular-nums;
+}
+
+.legacy-calc-note {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.8rem;
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.84rem;
+  color: #475569;
+}
+
+.micro-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 1.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.micro-heading {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.02rem;
+}
+
+.micro-serving-tag {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .micro-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 1rem;
+  margin-top: 0.25rem;
 }
 
-.micro-table th, .micro-table td {
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #dee2e6;
+.micro-table th {
+  padding: 0.5rem 0.35rem;
+  border-bottom: 2px solid #cbd5e1;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.micro-th-left {
+  text-align: left;
+}
+
+.micro-th-right {
+  text-align: right;
+}
+
+.micro-table td {
+  padding: 0.6rem 0.35rem;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.micro-table tbody tr:hover {
+  background-color: rgba(241, 245, 249, 0.75);
+}
+
+.micro-name-cell {
+  text-align: left;
+}
+
+.micro-name-title {
+  display: block;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+
+.micro-source-note {
+  display: block;
+  margin-top: 0.12rem;
+  font-size: 0.72rem;
+  color: #64748b;
+  line-height: 1.3;
+}
+
+.micro-num-cell {
+  text-align: right;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.micro-dv-cell {
+  text-align: right;
+  white-space: nowrap;
+  width: 76px;
+}
+
+.micro-dv-value {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #1e293b;
+  font-variant-numeric: tabular-nums;
+}
+
+.micro-dv-bar {
+  margin-top: 0.2rem;
+  height: 4px;
+  width: 100%;
+  background-color: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.micro-dv-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #7c3aed);
+  border-radius: 9999px;
 }
 
 .toggle-micros-btn {
   width: 100%;
-  margin-top: 1.5rem;
-  padding: 0.8rem;
+  margin-top: 1rem;
+  padding: 0.7rem;
   background-color: #2c3e50;
   color: white;
   border: none;
-  border-radius: 4px;
-  font-size: 1rem;
+  border-radius: 6px;
+  font-size: 0.92rem;
+  font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
