@@ -1,7 +1,7 @@
 .recipe-card {
   background: white;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 10px 20px rgba(0,0,0,0.05);
   border-top: 5px solid var(--primary-green);
   transition: transform 0.2s ease-in-out;
@@ -129,6 +129,21 @@
   gap: 0.35rem 0.75rem;
 }
 
+.recipe-card-variant-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.recipe-author-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+}
+
 .recipe-author {
   font-size: 0.85rem;
   color: #718096;
@@ -136,11 +151,24 @@
   margin: 0;
 }
 
+.recipe-inspired-author {
+  font-size: 0.78rem;
+  color: #6b46c1;
+}
+
 .recipe-author-link {
   color: #2f855a;
   font-weight: 700;
   font-style: normal;
   text-decoration: none;
+}
+
+.recipe-inspired-author-link {
+  color: #6d28d9;
+}
+
+.recipe-inspired-author-link:hover {
+  color: #4c1d95;
 }
 
 .recipe-author-link:hover {

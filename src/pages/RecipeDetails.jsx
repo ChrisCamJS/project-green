@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import {
   sendChatMessage,
@@ -32,6 +32,8 @@ import CommentSection from '../components/CommentSection';
 import FavoriteButton from '../components/FavoriteButton';
 import UserHoverFollow from '../components/UserHoverFollow';
 import RecipeCard from '../components/RecipeCard';
+import VariantBadge from '../components/VariantBadge';
+import CreateVariantModal from '../components/CreateVariantModal';
 import {
   formatStructuredRecipeForClipboard,
   copyRichRecipeToClipboard,
@@ -48,7 +50,9 @@ const API_URL = import.meta.env.VITE_API_BASE_URL;
 const RecipeDetails = () => {
   // --- STATE & ROUTING ---
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user, spendToken, confirmTokenUsage, promptPurchaseTokens } = useAuth();
+  const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isGeneratingAiImage, setIsGeneratingAiImage] = useState(false);
   const [aiImagePaid, setAiImagePaid] = useState(false);
@@ -104,6 +108,7 @@ const RecipeDetails = () => {
     setIsEditingTitle(false);
     setTitleError(null);
     setTitleFeedback(null);
+    setIsVariantModalOpen(false);
   }, [id]);
 
   useEffect(() => {
@@ -469,6 +474,19 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
     ? `/profile/${authorId}`
     : (recipe.authorName && recipe.authorName !== 'Emma (AI)' ? `/profile/${encodeURIComponent(recipe.authorName)}` : null);
   const canFollowAuthor = Boolean(user && authorId && Number(authorId) !== Number(user.id));
+
+  // --- RECIPE VARIANT LINEAGE & DUAL ATTRIBUTION ---
+  const parentRecipeId = recipe.parentRecipeId || recipe.parent_recipe_id || recipe.parentRecipe?.id || null;
+  const isVariantRecipe = Boolean(parentRecipeId);
+  const parentRecipeTitle = recipe.parentRecipe?.title || recipe.parentRecipeTitle || 'Original Recipe';
+  const parentAuthorId = recipe.parentRecipe?.authorId || recipe.parentAuthorId || null;
+  const parentAuthorName = recipe.parentRecipe?.authorName || recipe.parentAuthorName || 'Emma (AI)';
+  const parentAuthorProfileLink = parentAuthorId
+    ? `/profile/${parentAuthorId}`
+    : (parentAuthorName && parentAuthorName !== 'Emma (AI)' ? `/profile/${encodeURIComponent(parentAuthorName)}` : null);
+  const isMasterpieceVariant = Boolean(recipe.isMasterpiece || recipe.is_masterpiece || hasMicros);
+  const variantSummary = recipe.variantSummary || recipe.variant_summary || null;
+  const communityVariants = Array.isArray(recipe.variants) ? recipe.variants : [];
 
   const handleCopyFullRecipe = async () => {
     if (!recipe) return;
@@ -1045,6 +1063,15 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
       <div className="recipe-card">
         <header className="recipe-header">
           <div className="recipe-dietary-header-badges">
+            {isVariantRecipe && (
+              <VariantBadge
+                parentRecipeId={parentRecipeId}
+                parentRecipeTitle={parentRecipeTitle}
+                parentAuthorName={parentAuthorName}
+                isMasterpiece={isMasterpieceVariant}
+                variantSummary={variantSummary}
+              />
+            )}
             {getRecipeDietaryFlags(recipe).oilFree && (
               <span className="recipe-badge-oil-free">🌱 100% Oil-Free</span>
             )}
@@ -1122,11 +1149,21 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
             </form>
           )}
         </div>
+        {isVariantRecipe && variantSummary && (
+          <div className="recipe-variant-summary-bar">
+            <span className="recipe-variant-summary-text">
+              🔀 <strong>Variant Twist:</strong> {variantSummary}
+            </span>
+            <Link to={`/recipe/${parentRecipeId}`} className="recipe-variant-parent-inline-link">
+              View Original: {parentRecipeTitle} →
+            </Link>
+          </div>
+        )}
         {/* The Creator Tag & Action Toolbar */}
         <div className="author-badge">
           <div className="recipe-creator-row">
             <span className="recipe-creator-pill">
-              Recipe by:{' '}
+              Created by:{' '}
               {authorProfileLink ? (
                 <UserHoverFollow
                   userId={authorId}
@@ -1140,6 +1177,27 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
                 <strong>{recipe.authorName || 'Emma (AI)'}</strong>
               )}
             </span>
+            {isVariantRecipe && (
+              <span className="recipe-creator-pill recipe-inspired-pill">
+                Inspired by:{' '}
+                {parentAuthorProfileLink ? (
+                  <UserHoverFollow
+                    userId={parentAuthorId}
+                    username={parentAuthorName}
+                    profileLink={parentAuthorProfileLink}
+                    className="recipe-creator-link"
+                  >
+                    {parentAuthorName}
+                  </UserHoverFollow>
+                ) : (
+                  <strong>{parentAuthorName}</strong>
+                )}
+                {' · '}
+                <Link to={`/recipe/${parentRecipeId}`} className="recipe-inspired-recipe-link">
+                  {parentRecipeTitle}
+                </Link>
+              </span>
+            )}
             {canFollowAuthor && (
               <button
                 type="button"
@@ -1162,6 +1220,21 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
                 ✏️ Edit Recipe
               </Link>
             )}
+
+            <button
+              type="button"
+              className="recipe-details-variant-btn no-print"
+              onClick={() => {
+                if (!user) {
+                  navigate('/login');
+                  return;
+                }
+                setIsVariantModalOpen(true);
+              }}
+              title="Fork this recipe with Emma's Variant Studio"
+            >
+              🔀 Create Variant
+            </button>
 
             <button
               type="button"
@@ -1630,6 +1703,33 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
         <CommentSection recipeId={recipe.id} />
       </div>
 
+      {communityVariants.length > 0 && (
+        <section className="recipe-suggested-section recipe-community-variants-section no-print" aria-label="Community variants of this recipe">
+          <div className="recipe-community-variants-header">
+            <h2 className="recipe-suggested-heading">
+              🔀 Community Variants ({communityVariants.length})
+            </h2>
+            <p className="recipe-community-variants-sub">
+              Creative remixes inspired by <strong>{recipe.title}</strong> — hover or tap any variant badge to see its lineage.
+            </p>
+          </div>
+          <div className="recipe-suggested-grid">
+            {communityVariants.map((variantItem) => (
+              <RecipeCard
+                key={variantItem.id}
+                recipe={{
+                  ...variantItem,
+                  parentRecipeId: variantItem.parentRecipeId || recipe.id,
+                  parentRecipeTitle: variantItem.parentRecipeTitle || recipe.title,
+                  parentAuthorId: variantItem.parentAuthorId || authorId,
+                  parentAuthorName: variantItem.parentAuthorName || recipe.authorName || 'Emma (AI)',
+                }}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       {similarRecipes.length > 0 && (
         <section className="recipe-suggested-section no-print" aria-label="Similar and suggested recipes">
           <h2 className="recipe-suggested-heading">🍽️ Similar &amp; Suggested Recipes</h2>
@@ -1672,6 +1772,18 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
           </div>
         </div>
       )}
+
+      <CreateVariantModal
+        isOpen={isVariantModalOpen}
+        onClose={() => setIsVariantModalOpen(false)}
+        parentRecipe={recipe}
+        onVariantCreated={(res) => {
+          setIsVariantModalOpen(false);
+          if (res?.recipeId) {
+            navigate(`/recipe/${res.recipeId}`);
+          }
+        }}
+      />
     </div>
   );
 };

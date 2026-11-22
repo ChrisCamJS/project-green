@@ -467,6 +467,13 @@ export const api = {
         });
     },
 
+    createRecipeVariant: (payload) => {
+        return fetchWrapper('/recipes/create-variant', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+    },
+
     // ADMIN EMMA CONTEXT DOCUMENT
     getAdminEmmaContext: () => {
         return fetchWrapper('/admin/emma-context', {

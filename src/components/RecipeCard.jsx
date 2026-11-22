@@ -4,6 +4,7 @@ import './RecipeCard.css';
 import StarRating from './StarRating';
 import FavoriteButton from './FavoriteButton';
 import UserHoverFollow from './UserHoverFollow';
+import VariantBadge from './VariantBadge';
 import { resolveRecipeImageUrl } from '../utils/mealPlanUtils';
 import { getRecipeDietaryFlags } from '../utils/dietaryUtils';
 
@@ -37,6 +38,17 @@ const RecipeCard = ({ recipe }) => {
     const authorProfileLink = authorId
         ? `/profile/${authorId}`
         : (authorName && authorName !== 'Emma (AI)' ? `/profile/${encodeURIComponent(authorName)}` : null);
+
+    const parentRecipeId = recipe.parentRecipeId || recipe.parent_recipe_id || recipe.parentRecipe?.id || null;
+    const isVariantCard = Boolean(parentRecipeId);
+    const parentRecipeTitle = recipe.parentRecipeTitle || recipe.parentRecipe?.title || 'Original Recipe';
+    const parentAuthorId = recipe.parentAuthorId || recipe.parentRecipe?.authorId || null;
+    const parentAuthorName = recipe.parentAuthorName || recipe.parentRecipe?.authorName || 'Emma (AI)';
+    const parentAuthorProfileLink = parentAuthorId
+        ? `/profile/${parentAuthorId}`
+        : (parentAuthorName && parentAuthorName !== 'Emma (AI)' ? `/profile/${encodeURIComponent(parentAuthorName)}` : null);
+    const isMasterpieceCard = Boolean(recipe.isMasterpiece || recipe.is_masterpiece);
+    const variantSummary = recipe.variantSummary || recipe.variant_summary || null;
 
     const {
         oilFree: showOilFree,
@@ -90,25 +102,56 @@ const RecipeCard = ({ recipe }) => {
             </div>
 
             <div className='recipe-card-content'>
+                {isVariantCard && (
+                    <div className="recipe-card-variant-row">
+                        <VariantBadge
+                            compact
+                            parentRecipeId={parentRecipeId}
+                            parentRecipeTitle={parentRecipeTitle}
+                            parentAuthorName={parentAuthorName}
+                            isMasterpiece={isMasterpieceCard}
+                            variantSummary={variantSummary}
+                        />
+                    </div>
+                )}
                 <h3 className='recipe-title' title={recipe.title}>
                     {title}
                 </h3>
                 <div className="recipe-author-row">
-                    <p className="recipe-author">
-                        Created by:{' '}
-                        {authorProfileLink ? (
-                            <UserHoverFollow
-                                userId={authorId}
-                                username={authorName}
-                                profileLink={authorProfileLink}
-                                className="recipe-author-link"
-                            >
-                                {authorName}
-                            </UserHoverFollow>
-                        ) : (
-                            <span>{authorName}</span>
+                    <div className="recipe-author-stack">
+                        <p className="recipe-author">
+                            Created by:{' '}
+                            {authorProfileLink ? (
+                                <UserHoverFollow
+                                    userId={authorId}
+                                    username={authorName}
+                                    profileLink={authorProfileLink}
+                                    className="recipe-author-link"
+                                >
+                                    {authorName}
+                                </UserHoverFollow>
+                            ) : (
+                                <span>{authorName}</span>
+                            )}
+                        </p>
+                        {isVariantCard && (
+                            <p className="recipe-author recipe-inspired-author">
+                                Inspired by:{' '}
+                                {parentAuthorProfileLink ? (
+                                    <UserHoverFollow
+                                        userId={parentAuthorId}
+                                        username={parentAuthorName}
+                                        profileLink={parentAuthorProfileLink}
+                                        className="recipe-author-link recipe-inspired-author-link"
+                                    >
+                                        {parentAuthorName}
+                                    </UserHoverFollow>
+                                ) : (
+                                    <span>{parentAuthorName}</span>
+                                )}
+                            </p>
                         )}
-                    </p>
+                    </div>
                     <StarRating 
                         recipeId={recipe.id} 
                         initialRating={recipe.averageRating} 

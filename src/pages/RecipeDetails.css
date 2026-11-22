@@ -250,6 +250,7 @@
 .recipe-dietary-header-badges {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
   gap: 0.5rem;
   margin-bottom: 1rem;
@@ -1532,4 +1533,122 @@
   font-size: 0.85rem;
   font-weight: 600;
   text-align: left;
+}
+
+/* --- Recipe Variants ("Forking" Recipes) --- */
+.recipe-variant-summary-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1rem;
+  padding: 0.65rem 1rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(233, 213, 255, 0.38);
+  backdrop-filter: blur(6px);
+  color: #f3e8ff;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.recipe-variant-summary-text {
+  line-height: 1.4;
+}
+
+.recipe-variant-summary-text strong {
+  color: #fde047;
+}
+
+.recipe-variant-parent-inline-link {
+  color: #fde047;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+.recipe-variant-parent-inline-link:hover {
+  text-decoration: underline;
+  color: #fef08a;
+}
+
+.recipe-inspired-pill {
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  color: #4c1d95;
+  padding: 4px 11px;
+  border-radius: 9999px;
+  font-size: 0.84rem;
+}
+
+.recipe-inspired-recipe-link {
+  color: #6d28d9;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.recipe-inspired-recipe-link:hover {
+  text-decoration: underline;
+  color: #4c1d95;
+}
+
+.recipe-details-variant-btn {
+  grid-column: auto;
+  width: 100%;
+  justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 6px 10px;
+  border-radius: 14px;
+  border: 1.5px solid #c084fc;
+  background: linear-gradient(135deg, #7e22ce 0%, #4338ca 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(109, 40, 217, 0.28);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.recipe-details-variant-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 5px 14px rgba(109, 40, 217, 0.38);
+}
+
+@media (min-width: 640px) {
+  .recipe-details-variant-btn {
+    width: auto;
+    padding: 6px 14px;
+    font-size: 0.86rem;
+    border-radius: 16px;
+  }
+}
+
+.recipe-community-variants-section {
+  background: linear-gradient(180deg, #faf5ff 0%, #ffffff 100%);
+  border: 1.5px solid #e9d5ff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+.recipe-community-variants-header {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.recipe-community-variants-header .recipe-suggested-heading {
+  margin-bottom: 0.35rem;
+  color: #581c87;
+}
+
+.recipe-community-variants-sub {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #6b21a8;
 }
