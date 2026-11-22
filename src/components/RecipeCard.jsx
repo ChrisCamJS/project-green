@@ -115,9 +115,11 @@ const RecipeCard = ({ recipe }) => {
                         />
                     </div>
                 )}
-                <h3 className='recipe-title' title={recipe.title}>
-                    {title}
-                </h3>
+                <div className="recipe-title-slot">
+                    <h3 className='recipe-title' title={recipe.title}>
+                        {title}
+                    </h3>
+                </div>
                 <div className="recipe-author-row">
                     <div className="recipe-author-stack">
                         <p className="recipe-author">

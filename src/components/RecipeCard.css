@@ -35,6 +35,15 @@
   flex: 1;
 }
 
+.recipe-title-slot {
+  height: 3.05rem;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .recipe-card .recipe-card-content .recipe-title {
   font-size: 1.2rem;
   font-weight: 800;
@@ -47,10 +56,14 @@
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
-  min-height: 2.5em; /* Keeps card rows uniformly aligned */
+  width: 100%;
 }
 
 @media (min-width: 640px) {
+  .recipe-title-slot {
+    height: 3.45rem;
+  }
+
   .recipe-card .recipe-card-content .recipe-title {
     font-size: 1.35rem;
     font-weight: 800;
