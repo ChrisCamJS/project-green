@@ -23,6 +23,28 @@ const QUERY_TAG_PATTERNS = [
     { key: 'sugarFree', regex: /\b(?:(?:refined\s+)?sugar[-\s]?free|sugarfree|no\s+(?:refined\s+)?sugar)\b/gi },
 ];
 
+const HOME_GRID_STATE_KEY = 'veggieVault_homeGridState';
+const VALID_VIEW_MODES = ['6', '10', '15', 'endless'];
+
+const loadSavedHomeGridState = () => {
+    try {
+        const raw = window.sessionStorage.getItem(HOME_GRID_STATE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch {
+        return null;
+    }
+};
+
+const persistHomeGridState = (state) => {
+    try {
+        window.sessionStorage.setItem(HOME_GRID_STATE_KEY, JSON.stringify(state));
+    } catch {
+        // Ignore storage quota or private-mode errors
+    }
+};
+
 /**
  * Home Component
  * Fetches and displays the master list of recipes from the Veggie Vault API.
@@ -30,17 +52,23 @@ const QUERY_TAG_PATTERNS = [
 const Home = () => {
     const { user } = useAuth();
     const { isFollowingUser } = useFollow();
+    const [initialSavedState] = useState(() => loadSavedHomeGridState());
     const [recipes, setRecipes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [activeFilters, setActiveFilters] = useState({
-        glutenFree: false,
-        oilFree: false,
-        sugarFree: false,
+    const [searchQuery, setSearchQuery] = useState(() =>
+        typeof initialSavedState?.searchQuery === 'string' ? initialSavedState.searchQuery : ''
+    );
+    const [activeFilters, setActiveFilters] = useState(() => ({
+        glutenFree: Boolean(initialSavedState?.activeFilters?.glutenFree),
+        oilFree: Boolean(initialSavedState?.activeFilters?.oilFree),
+        sugarFree: Boolean(initialSavedState?.activeFilters?.sugarFree),
+    }));
+    const [minRating, setMinRating] = useState(() => {
+        const num = Number(initialSavedState?.minRating);
+        return Number.isFinite(num) && num >= 0 ? num : 0;
     });
-    const [minRating, setMinRating] = useState(0);
-    const [followingOnly, setFollowingOnly] = useState(false);
+    const [followingOnly, setFollowingOnly] = useState(() => Boolean(initialSavedState?.followingOnly));
     const [showFiltersDropdown, setShowFiltersDropdown] = useState(false);
     const filtersMenuRef = useRef(null);
 
@@ -60,9 +88,87 @@ const Home = () => {
     }, [showFiltersDropdown]);
 
     // --- Pagination / Endless Scroll State ---
-    const [currentPage, setCurrentPage] = useState(1);
-    const [viewMode, setViewMode] = useState('6');
-    const [endlessCount, setEndlessCount] = useState(10);
+    const [currentPage, setCurrentPage] = useState(() => {
+        const page = Number(initialSavedState?.currentPage);
+        return Number.isInteger(page) && page >= 1 ? page : 1;
+    });
+    const [viewMode, setViewMode] = useState(() => {
+        const mode = String(initialSavedState?.viewMode || '');
+        return VALID_VIEW_MODES.includes(mode) ? mode : '6';
+    });
+    const [endlessCount, setEndlessCount] = useState(() => {
+        const count = Number(initialSavedState?.endlessCount);
+        return Number.isInteger(count) && count >= 10 ? count : 10;
+    });
+
+    const savedScrollYRef = useRef(
+        Number.isFinite(Number(initialSavedState?.scrollY)) && Number(initialSavedState?.scrollY) > 0
+            ? Number(initialSavedState.scrollY)
+            : 0
+    );
+    const lastScrollYRef = useRef(savedScrollYRef.current);
+    const hasRestoredScrollRef = useRef(false);
+    const latestGridStateRef = useRef({
+        searchQuery,
+        activeFilters,
+        minRating,
+        followingOnly,
+        currentPage,
+        viewMode,
+        endlessCount,
+    });
+
+    useEffect(() => {
+        if (loading) return undefined;
+        const handleScroll = () => {
+            lastScrollYRef.current = window.scrollY;
+        };
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [loading]);
+
+    useEffect(() => {
+        const snapshot = {
+            searchQuery,
+            activeFilters,
+            minRating,
+            followingOnly,
+            currentPage,
+            viewMode,
+            endlessCount,
+        };
+        latestGridStateRef.current = snapshot;
+        persistHomeGridState({
+            ...snapshot,
+            scrollY: lastScrollYRef.current,
+        });
+    }, [currentPage, viewMode, endlessCount, searchQuery, activeFilters, minRating, followingOnly]);
+
+    useEffect(() => {
+        return () => {
+            persistHomeGridState({
+                ...latestGridStateRef.current,
+                scrollY: lastScrollYRef.current,
+            });
+        };
+    }, []);
+
+    useEffect(() => {
+        if (loading || hasRestoredScrollRef.current) return undefined;
+        hasRestoredScrollRef.current = true;
+        const targetY = savedScrollYRef.current;
+        if (targetY <= 0) return undefined;
+
+        lastScrollYRef.current = targetY;
+        const rafId = window.requestAnimationFrame(() => {
+            try {
+                window.scrollTo({ top: targetY, left: 0, behavior: 'instant' });
+            } catch {
+                window.scrollTo(0, targetY);
+            }
+        });
+        return () => window.cancelAnimationFrame(rafId);
+    }, [loading]);
 
 
     useEffect(() => {
@@ -272,7 +378,9 @@ const Home = () => {
 
     const isEndless = viewMode === 'endless';
     const itemsPerPage = isEndless ? filteredRecipes.length || 1 : Number(viewMode) || 6;
-    const indexOfLastRecipe = currentPage * itemsPerPage;
+    const totalPages = Math.max(1, Math.ceil(filteredRecipes.length / itemsPerPage));
+    const safeCurrentPage = Math.min(currentPage, totalPages);
+    const indexOfLastRecipe = safeCurrentPage * itemsPerPage;
     const indexOfFirstRecipe = indexOfLastRecipe - itemsPerPage;
     const currentRecipes = isEndless
         ? filteredRecipes.slice(0, endlessCount)
@@ -454,7 +562,7 @@ const Home = () => {
                     <Paginator 
                         totalItems={filteredRecipes.length} 
                         itemsPerPage={itemsPerPage} 
-                        currentPage={currentPage} 
+                        currentPage={safeCurrentPage} 
                         onPageChange={setCurrentPage} 
                     />
                 )
