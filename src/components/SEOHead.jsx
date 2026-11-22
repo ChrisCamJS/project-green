@@ -38,6 +38,8 @@ export default function SEOHead({
   image = DEFAULT_OG_IMAGE,
   noindex = false,
   jsonLd = null,
+  publishedTime = null,
+  authorName = null,
 }) {
   const serializedJsonLd = jsonLd ? JSON.stringify(jsonLd) : '';
 
@@ -71,6 +73,14 @@ export default function SEOHead({
     upsertMetaTag('property', 'og:image:secure_url', resolvedImage);
     upsertMetaTag('property', 'og:image:alt', title || DEFAULT_SITE_NAME);
 
+    if (publishedTime) {
+      upsertMetaTag('property', 'article:published_time', publishedTime);
+    }
+    if (authorName) {
+      upsertMetaTag('property', 'article:author', authorName);
+      upsertMetaTag('name', 'author', authorName);
+    }
+
     // Twitter / X Cards
     upsertMetaTag('name', 'twitter:card', 'summary_large_image');
     upsertMetaTag('name', 'twitter:site', '@VeggieVault');
@@ -101,7 +111,7 @@ export default function SEOHead({
         activeScript.remove();
       }
     };
-  }, [title, description, keywords, canonicalPath, ogType, image, noindex, serializedJsonLd]);
+  }, [title, description, keywords, canonicalPath, ogType, image, noindex, serializedJsonLd, publishedTime, authorName]);
 
   return null;
 }

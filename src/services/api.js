@@ -493,5 +493,67 @@ export const api = {
         return fetchWrapper('/admin/emma-context', {
             method: 'DELETE',
         });
+    },
+
+    // RECIPE STORIES (USER BLOG POSTS & SOCIAL SHARING)
+    getAdminStories: () => {
+        return fetchWrapper('/admin/stories', {
+            method: 'GET',
+            cache: 'no-store',
+        });
+    },
+
+    getStories: ({ recipeId, userId, page = 1, perPage = 6, includeDrafts = false } = {}) => {
+        const params = new URLSearchParams();
+        if (recipeId) params.set('recipe_id', String(recipeId));
+        if (userId) params.set('user_id', String(userId));
+        params.set('page', String(page));
+        params.set('per_page', String(perPage));
+        if (includeDrafts) params.set('include_drafts', '1');
+        return fetchWrapper(`/stories?${params.toString()}`, {
+            method: 'GET',
+            cache: 'no-store',
+        });
+    },
+
+    getStoryBySlug: (slug) => {
+        return fetchWrapper(`/stories/single?slug=${encodeURIComponent(slug)}`, {
+            method: 'GET',
+            cache: 'no-store',
+        });
+    },
+
+    createStory: (payload) => {
+        return fetchWrapper('/stories', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+    },
+
+    updateStory: (payload) => {
+        return fetchWrapper('/stories', {
+            method: 'PUT',
+            body: JSON.stringify(payload),
+        });
+    },
+
+    deleteStory: (id) => {
+        return fetchWrapper(`/stories?id=${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+        });
+    },
+
+    uploadStoryImage: (image, role = 'inline') => {
+        return fetchWrapper('/stories/upload-image', {
+            method: 'POST',
+            body: JSON.stringify({ image, role }),
+        });
+    },
+
+    toggleStoryLike: (storyId) => {
+        return fetchWrapper('/stories/like', {
+            method: 'POST',
+            body: JSON.stringify({ story_id: storyId }),
+        });
     }
 };

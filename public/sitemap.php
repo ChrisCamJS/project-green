@@ -34,6 +34,7 @@ $urls = [
 
 $recipeUrls = [];
 $chefUrls = [];
+$storyUrls = [];
 
 $dbCandidates = [
     __DIR__ . '/../src/Database.php',
@@ -88,6 +89,25 @@ foreach ($dbCandidates as $dbFile) {
                     'priority' => '0.6',
                 ];
             }
+
+            try {
+                $storyStmt = $db->query("SELECT slug, updated_at, created_at FROM recipe_stories WHERE status = 'published' ORDER BY id DESC");
+                $stories = $storyStmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                foreach ($stories as $story) {
+                    $sSlug = trim((string)($story['slug'] ?? ''));
+                    if ($sSlug === '') {
+                        continue;
+                    }
+                    $storyUrls[] = [
+                        'loc' => $baseUrl . '/stories/' . rawurlencode($sSlug),
+                        'lastmod' => $formatLastMod($story['updated_at'] ?? $story['created_at'] ?? null),
+                        'changefreq' => 'weekly',
+                        'priority' => '0.8',
+                    ];
+                }
+            } catch (\Throwable $e) {
+                // Table may not exist yet
+            }
         } catch (\Throwable $e) {
             $dbConnected = false;
         }
@@ -138,7 +158,7 @@ if (!$dbConnected && function_exists('curl_init')) {
     }
 }
 
-$allUrls = array_merge($urls, $recipeUrls, $chefUrls);
+$allUrls = array_merge($urls, $recipeUrls, $storyUrls, $chefUrls);
 
 echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";

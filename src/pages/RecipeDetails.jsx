@@ -34,6 +34,8 @@ import UserHoverFollow from '../components/UserHoverFollow';
 import RecipeCard from '../components/RecipeCard';
 import VariantBadge from '../components/VariantBadge';
 import CreateVariantModal from '../components/CreateVariantModal';
+import RecipeStoriesSection from '../components/RecipeStoriesSection';
+import StoryEditorModal from '../components/StoryEditorModal';
 import {
   formatStructuredRecipeForClipboard,
   copyRichRecipeToClipboard,
@@ -53,6 +55,8 @@ const RecipeDetails = () => {
   const navigate = useNavigate();
   const { user, spendToken, confirmTokenUsage, promptPurchaseTokens } = useAuth();
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
+  const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
+  const [storyRefreshKey, setStoryRefreshKey] = useState(0);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isGeneratingAiImage, setIsGeneratingAiImage] = useState(false);
   const [aiImagePaid, setAiImagePaid] = useState(false);
@@ -109,6 +113,7 @@ const RecipeDetails = () => {
     setTitleError(null);
     setTitleFeedback(null);
     setIsVariantModalOpen(false);
+    setIsStoryModalOpen(false);
   }, [id]);
 
   useEffect(() => {
@@ -1238,6 +1243,21 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
 
             <button
               type="button"
+              className="recipe-details-story-btn no-print"
+              onClick={() => {
+                if (!user) {
+                  navigate('/login');
+                  return;
+                }
+                setIsStoryModalOpen(true);
+              }}
+              title="Write a blog post / cooking story about this recipe"
+            >
+              ✍️ Write a Story
+            </button>
+
+            <button
+              type="button"
               className="recipe-details-plan-btn"
               onClick={() =>
                 window.dispatchEvent(
@@ -1703,6 +1723,20 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
         <CommentSection recipeId={recipe.id} />
       </div>
 
+      <RecipeStoriesSection
+        key={recipe.id}
+        recipeId={recipe.id}
+        recipeTitle={recipe.title}
+        refreshTrigger={storyRefreshKey}
+        onWriteStory={() => {
+          if (!user) {
+            navigate('/login');
+            return;
+          }
+          setIsStoryModalOpen(true);
+        }}
+      />
+
       {communityVariants.length > 0 && (
         <section className="recipe-suggested-section recipe-community-variants-section no-print" aria-label="Community variants of this recipe">
           <div className="recipe-community-variants-header">
@@ -1781,6 +1815,19 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
           setIsVariantModalOpen(false);
           if (res?.recipeId) {
             navigate(`/recipe/${res.recipeId}`);
+          }
+        }}
+      />
+
+      <StoryEditorModal
+        isOpen={isStoryModalOpen}
+        onClose={() => setIsStoryModalOpen(false)}
+        recipe={recipe}
+        onSaved={(res) => {
+          setIsStoryModalOpen(false);
+          setStoryRefreshKey((k) => k + 1);
+          if (res?.slug && res?.story?.status !== 'draft') {
+            navigate(`/stories/${res.slug}`);
           }
         }}
       />

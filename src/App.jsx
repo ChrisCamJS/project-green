@@ -19,6 +19,7 @@ import ResetPassword from './pages/ResetPassword';
 import ForgotPassword from './pages/ForgotPassword';
 import VerifyEmail from './pages/VerifyEmail';
 import Sitemap from './pages/Sitemap';
+import StoryReader from './pages/StoryReader';
 import './App.css'
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
             <Routes>
               <Route path='/' element={<Home />} />
               <Route path='/recipe/:id' element={<RecipeDetails />} />
+              <Route path='/stories/:slug' element={<StoryReader />} />
               <Route path='/wellness' element={<WellnessTools />} />
               <Route path='/sitemap' element={<Sitemap />} />
               <Route path='/profile/:identifier' element={<Profile />} />

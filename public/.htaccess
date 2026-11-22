@@ -4,9 +4,12 @@
     # 1. Serve dynamic XML sitemap directly at /sitemap.xml
     RewriteRule ^sitemap\.xml$ sitemap.php [L]
 
-    # 2. Intercept social media crawlers on /recipe/:id and serve dynamic OG/Twitter meta tags
+    # 2. Intercept social media crawlers on /recipe/:id and /stories/:slug and serve dynamic OG/Twitter meta tags
     RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|facebot|meta-externalagent|twitterbot|linkedinbot|whatsapp|discordbot|skype|slackbot|telegrambot|pinterest|applebot|redditbot|bluesky|cardyb|mastodon|embedly|iframely) [NC]
     RewriteRule ^recipe/([0-9]+)/?$ bot-handler.php?id=$1 [QSA,L]
+
+    RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|facebot|meta-externalagent|twitterbot|linkedinbot|whatsapp|discordbot|skype|slackbot|telegrambot|pinterest|applebot|redditbot|bluesky|cardyb|mastodon|embedly|iframely) [NC]
+    RewriteRule ^stories/([a-zA-Z0-9_-]+)/?$ story-meta.php?slug=$1 [QSA,L]
 
     # 3. Let API requests and existing static files/directories pass through untouched
     RewriteRule ^pantry-rebuild-api - [L]

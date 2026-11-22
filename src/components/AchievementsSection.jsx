@@ -55,7 +55,7 @@ const AchievementsSection = ({ achievements }) => {
                 </div>
             ) : (
                 <p className="achievements-empty-note">
-                    No badges earned yet — publish recipes, comment on community dishes, plan meals, or log workouts to unlock your first badge!
+                    No badges earned yet — publish recipes, create recipe variants, share cooking stories, comment on community dishes, plan meals, or log workouts to unlock your first badge!
                 </p>
             )}
 

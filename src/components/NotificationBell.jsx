@@ -81,7 +81,11 @@ const NotificationBell = ({ onNavigate }) => {
         }
         setOpen(false);
         if (onNavigate) onNavigate();
-        navigate(`/recipe/${notif.recipe_id}`);
+        if (notif.story_slug) {
+            navigate(`/stories/${notif.story_slug}`);
+        } else {
+            navigate(`/recipe/${notif.recipe_id}`);
+        }
     };
 
     const handleMarkAllRead = async (e) => {

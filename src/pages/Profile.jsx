@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import RecipeCard from '../components/RecipeCard';
+import StoryCard from '../components/StoryCard';
 import UserHoverFollow from '../components/UserHoverFollow';
 import AchievementsSection from '../components/AchievementsSection';
 import SEOHead from '../components/SEOHead';
@@ -39,6 +40,7 @@ export default function Profile() {
 
   const [profile, setProfile] = useState(null);
   const [recipes, setRecipes] = useState([]);
+  const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'edit' | 'security'
@@ -112,6 +114,7 @@ export default function Profile() {
       const p = data.profile;
       setProfile(p);
       setRecipes(Array.isArray(data.recipes) ? data.recipes : []);
+      setStories(Array.isArray(data.stories) ? data.stories : []);
 
       setProfileForm({
         username: p.username || '',
@@ -505,6 +508,10 @@ export default function Profile() {
             <strong>{recipes.length}</strong>
             <span>Published Masterpieces</span>
           </div>
+          <div className="profile-stat">
+            <strong>{stories.length}</strong>
+            <span>Recipe Stories</span>
+          </div>
           <div
             className={`profile-stat ${profile.is_own_profile ? 'clickable' : ''}`}
             onClick={profile.is_own_profile ? handleOpenFollowersSection : undefined}
@@ -552,6 +559,15 @@ export default function Profile() {
               onClick={() => setActiveTab('overview')}
             >
               🍽️ My Masterpieces ({recipes.length})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'stories'}
+              className={`profile-tab-btn ${activeTab === 'stories' ? 'active' : ''}`}
+              onClick={() => setActiveTab('stories')}
+            >
+              📖 My Stories ({stories.length})
             </button>
             <button
               type="button"
@@ -641,6 +657,28 @@ export default function Profile() {
               {profile.is_own_profile && (
                 <Link to="/engine" className="profile-cta-link">Open Emma&apos;s Flavor Forge</Link>
               )}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* TAB / SECTION: PUBLISHED STORIES */}
+      {((!profile.is_own_profile && stories.length > 0) || (profile.is_own_profile && activeTab === 'stories')) && (
+        <section className="profile-recipes-section" aria-label={`Recipe stories by ${displayTitle}`}>
+          <h2 className="profile-section-heading">
+            📖 Recipe Stories by {displayTitle} ({stories.length})
+          </h2>
+          {stories.length > 0 ? (
+            <div className="profile-recipes-grid">
+              {stories.map((story) => (
+                <StoryCard key={story.id} story={story} showRecipeTag />
+              ))}
+            </div>
+          ) : (
+            <div className="profile-empty-recipes">
+              <p>
+                You haven&apos;t written any Recipe Stories yet. Visit any recipe page and click &ldquo;Write a Story&rdquo; to share your cooking experience!
+              </p>
             </div>
           )}
         </section>
