@@ -20,7 +20,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'add');
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'manage');
 
   // --- Manage Recipes State ---
   const [recipes, setRecipes] = useState([]);
@@ -40,6 +40,8 @@ const AdminDashboard = () => {
   // --- Invite Codes State ---
   const [inviteCodes, setInviteCodes] = useState([]);
   const [newInviteInput, setNewInviteInput] = useState('');
+  const [newInviteMaxUses, setNewInviteMaxUses] = useState('');
+  const [newInviteExpiresAt, setNewInviteExpiresAt] = useState('');
   const recipesLoadedRef = useRef(false);
   const invitesLoadedRef = useRef(false);
 
@@ -499,17 +501,23 @@ const AdminDashboard = () => {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/invites`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // <-- Here too!
-        body: JSON.stringify({ code: newInviteInput })
+        credentials: 'include',
+        body: JSON.stringify({
+          code: newInviteInput,
+          max_uses: newInviteMaxUses === '' ? null : Number(newInviteMaxUses),
+          expires_at: newInviteExpiresAt || null,
+        })
       });
       const data = await response.json();
       
       if (data.success) {
         addToast(data.message, 'success');
         setNewInviteInput('');
-        loadInvites(); 
+        setNewInviteMaxUses('');
+        setNewInviteExpiresAt('');
+        loadInvites();
       } else {
-        addToast(data.message, 'error');
+        addToast(data.message || 'Failed to generate code.', 'error');
       }
     } catch {
       addToast("Failed to generate code.", 'error');
@@ -521,16 +529,16 @@ const AdminDashboard = () => {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/invites/toggle`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // <-- And here!
+        credentials: 'include',
         body: JSON.stringify({ id, is_active: !currentStatus })
       });
       const data = await response.json();
       
       if (data.success) {
-        setInviteCodes(prev => prev.map(code => 
-          code.id === id ? { ...code, is_active: !currentStatus ? 1 : 0 } : code
-        ));
         addToast(data.message, 'success');
+        await loadInvites();
+      } else {
+        addToast(data.message || 'Failed to update code status.', 'error');
       }
     } catch {
       addToast("Failed to toggle code.", 'error');
@@ -542,12 +550,6 @@ const AdminDashboard = () => {
       <header className={styles.adminHeader}>
         <h2>Admin Vault Control</h2>
         <div className={styles.adminTabs}>
-          <button 
-            className={activeTab === 'add' ? styles.active : ''} 
-            onClick={() => setActiveTab('add')}
-          >
-            Add New Recipe
-          </button>
           <button 
             className={activeTab === 'manage' ? styles.active : ''} 
             onClick={() => setActiveTab('manage')}
@@ -577,6 +579,12 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('context')}
           >
             🧠 Emma Context
+          </button>
+          <button 
+            className={activeTab === 'add' ? styles.active : ''} 
+            onClick={() => setActiveTab('add')}
+          >
+            Add New Recipe
           </button>
         </div>
       </header>
@@ -1144,17 +1152,41 @@ const AdminDashboard = () => {
             <h3>Manage Beta Access Codes</h3>
             
             <form onSubmit={handleGenerateInvite} className={styles.adminForm} style={{ marginBottom: '2rem' }}>
-                <div className={styles.formRow}>
+                <div className={styles.inviteFormGrid}>
                     <div className={styles.formGroup}>
-                        <label>Custom Invite Code (Leave blank for a random one)</label>
+                        <label htmlFor="invite-code-input">Custom Code (Optional)</label>
                         <input 
+                            id="invite-code-input"
                             type="text" 
                             value={newInviteInput} 
                             onChange={(e) => setNewInviteInput(e.target.value)} 
-                            placeholder="e.g. VIP-TESTER" 
+                            placeholder="e.g. VIP-TESTER (or blank)" 
                         />
                     </div>
-                    <button type="submit" className={styles.saveBtn} style={{ alignSelf: 'flex-end', marginBottom: '10px' }}>
+                    <div className={styles.formGroup}>
+                        <label htmlFor="invite-max-uses-input">Max Charges / Uses</label>
+                        <input 
+                            id="invite-max-uses-input"
+                            type="number" 
+                            min="1"
+                            step="1"
+                            value={newInviteMaxUses} 
+                            onChange={(e) => setNewInviteMaxUses(e.target.value)} 
+                            placeholder="Unlimited" 
+                        />
+                    </div>
+                    <div className={styles.formGroup}>
+                        <label htmlFor="invite-expires-input">Expiration Date (Optional)</label>
+                        <input 
+                            id="invite-expires-input"
+                            type="date" 
+                            value={newInviteExpiresAt} 
+                            onChange={(e) => setNewInviteExpiresAt(e.target.value)} 
+                        />
+                    </div>
+                </div>
+                <div className={styles.inviteSubmitRow}>
+                    <button type="submit" className={styles.saveBtn}>
                         Generate Code
                     </button>
                 </div>
@@ -1164,24 +1196,74 @@ const AdminDashboard = () => {
                 <p>Loading invite codes...</p>
             ) : (
                 <div className={styles.recipeList}>
-                    {inviteCodes.map(code => (
-                        <div key={code.id} className={styles.recipeListItem}>
-                            <div className={styles.recipeInfo}>
-                                <h4>{code.code}</h4>
-                                <span className={styles.recipeMeta}>
-                                    Status: {code.is_active ? 'Active' : 'Revoked'} | Created: {new Date(code.created_at).toLocaleDateString()}
-                                </span>
+                    {inviteCodes.map((code) => {
+                        const effectiveStatus = code.effective_status || (code.is_active ? 'active' : 'revoked');
+                        const statusLabelMap = {
+                            active: 'Active',
+                            exhausted: 'Depleted',
+                            expired: 'Expired',
+                            revoked: 'Revoked',
+                        };
+                        const statusClassMap = {
+                            active: styles.inviteStatusActive,
+                            exhausted: styles.inviteStatusExhausted,
+                            expired: styles.inviteStatusExpired,
+                            revoked: styles.inviteStatusRevoked,
+                        };
+                        const usesCount = Number(code.uses_count ?? 0);
+                        const hasMaxUses = code.max_uses !== null && code.max_uses !== undefined;
+                        const remainingUses = hasMaxUses
+                            ? Number(code.remaining_uses ?? Math.max(0, Number(code.max_uses) - usesCount))
+                            : null;
+                        const isLocked = effectiveStatus === 'exhausted' || effectiveStatus === 'expired';
+
+                        return (
+                            <div key={code.id} className={styles.recipeListItem}>
+                                <div className={styles.recipeInfo}>
+                                    <div className={styles.inviteCodeHeader}>
+                                        <h4>{code.code}</h4>
+                                        <span className={`${styles.inviteStatusBadge} ${statusClassMap[effectiveStatus] || styles.inviteStatusRevoked}`}>
+                                            {statusLabelMap[effectiveStatus] || 'Revoked'}
+                                        </span>
+                                    </div>
+                                    <div className={styles.recipeMetaRow}>
+                                        <span className={styles.recipeMetaChip}>
+                                            {hasMaxUses
+                                                ? `Uses: ${usesCount} / ${code.max_uses} (${remainingUses} left)`
+                                                : `Uses: ${usesCount} / Unlimited`}
+                                        </span>
+                                        <span className={styles.recipeMetaChip}>
+                                            {code.expires_at
+                                                ? `Expires: ${new Date(String(code.expires_at).replace(' ', 'T')).toLocaleDateString()}`
+                                                : 'No expiration'}
+                                        </span>
+                                        <span className={styles.recipeMetaChip}>
+                                            Created: {new Date(String(code.created_at).replace(' ', 'T')).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className={styles.recipeActions}>
+                                    {isLocked ? (
+                                        <button
+                                            type="button"
+                                            className={styles.inviteDisabledBtn}
+                                            disabled
+                                            aria-disabled="true"
+                                        >
+                                            {effectiveStatus === 'exhausted' ? 'No Charges Left' : 'Expired'}
+                                        </button>
+                                    ) : (
+                                        <button 
+                                            onClick={() => handleToggleInvite(code.id, code.is_active)}
+                                            className={code.is_active ? styles.deleteBtn : styles.publishBtn}
+                                        >
+                                            {code.is_active ? 'Revoke' : 'Activate'}
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                            <div className={styles.recipeActions}>
-                                <button 
-                                    onClick={() => handleToggleInvite(code.id, code.is_active)}
-                                    className={code.is_active ? styles.deleteBtn : styles.publishBtn}
-                                >
-                                    {code.is_active ? 'Revoke' : 'Activate'}
-                                </button>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
           </section>

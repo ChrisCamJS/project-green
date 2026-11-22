@@ -187,6 +187,8 @@
 
 .footer-bottom-links {
   display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
   gap: 0.6rem;
   font-size: 0.85rem;

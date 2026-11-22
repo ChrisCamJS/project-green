@@ -153,6 +153,10 @@
 .speak-btn-paused:hover { background-color: #38a169; }
 
 /* --- Advanced Micros Section --- */
+.result-usda-panel-wrap {
+  margin-top: 1.75rem;
+}
+
 .advanced-micros-content {
   margin-top: 2rem;
   padding: 1.5rem;

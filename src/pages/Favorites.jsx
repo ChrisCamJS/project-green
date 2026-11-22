@@ -241,13 +241,28 @@ export default function Favorites() {
     });
   }, [favorites, catalogRecipes, pickerScope, pickerQuery]);
 
+  const isUserVariant = useCallback((recipe) => {
+    const hasParent = Boolean(
+      recipe?.parentRecipeId || recipe?.parent_recipe_id || recipe?.parentRecipe?.id
+    );
+    if (!hasParent) return false;
+    if (!user?.id) return true;
+    return Number(recipe?.authorId ?? recipe?.user_id) === Number(user.id);
+  }, [user?.id]);
+
+  const myVariantsCount = useMemo(
+    () => favorites.filter((recipe) => isUserVariant(recipe)).length,
+    [favorites, isUserVariant]
+  );
+
   const tabScopedRecipes = useMemo(() => {
     return favorites.filter((recipe) => {
       if (filter === 'public') return recipe.isPublic;
       if (filter === 'drafts') return recipe.isDraft;
+      if (filter === 'variants') return isUserVariant(recipe);
       return true;
     });
-  }, [favorites, filter]);
+  }, [favorites, filter, isUserVariant]);
 
   const filteredList = useMemo(
     () =>
@@ -307,6 +322,12 @@ export default function Favorites() {
             onClick={() => setFilter('drafts')}
           >
             Private Drafts ({favorites.filter((r) => r.isDraft).length})
+          </button>
+          <button
+            className={`filter-btn ${filter === 'variants' ? 'active' : ''}`}
+            onClick={() => setFilter('variants')}
+          >
+            🔀 My Variants ({myVariantsCount})
           </button>
           <button
             className={`filter-btn ${filter === 'stories' ? 'active' : ''}`}

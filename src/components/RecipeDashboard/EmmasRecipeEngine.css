@@ -447,6 +447,10 @@
   border-radius: 14px 14px 2px 14px;
   color: #1a202c;
   max-width: 82%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   line-height: 1.6;
   box-shadow: 0 2px 6px rgba(72, 187, 120, 0.1);
 }
@@ -1149,13 +1153,22 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: 0.4rem 0.75rem;
-  border-radius: 9999px;
+  border-radius: 12px;
   background-color: #f0fff4;
   border: 1px solid #68d391;
   color: #22543d;
   font-size: 0.84rem;
   font-weight: 600;
+}
+
+.reference-chip-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .reference-chip-kind {
@@ -1239,14 +1252,22 @@
   flex-wrap: wrap;
   gap: 0.4rem;
   margin-top: 0.55rem;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .user-ref-badge {
+  display: inline-block;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   background-color: #ffffff;
   border: 1px solid #81e6d9;
   color: #234e52;
   padding: 0.18rem 0.55rem;
-  border-radius: 9999px;
+  border-radius: 12px;
   font-size: 0.78rem;
   font-weight: 600;
 }
@@ -1566,7 +1587,7 @@
 }
 
 /* --- Mobile Paperclip Attachment Inside Prompt Input --- */
-.mobile-attach-paperclip-btn,
+.textarea-action-icons .mobile-attach-paperclip-btn,
 .mobile-attached-bar,
 .mobile-file-error-wrap {
   display: none;
@@ -1582,13 +1603,16 @@
     box-sizing: border-box;
   }
 
-  .mobile-attach-paperclip-btn {
+  .textarea-action-icons .mobile-attach-paperclip-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     width: 40px;
     height: 40px;
+    margin: 0;
+    padding: 0;
+    line-height: 1;
     border-radius: 50%;
     background-color: #e2e8f0;
     border: 1.5px solid transparent;

@@ -17,9 +17,51 @@ import {
 } from '../../utils/promptBuilder';
 import { useEmmaVoice } from '../../hooks/useEmmaVoice';
 import LiveChat from '../LiveChat'; // Bringing in Live Mode
+import NutritionPanel from '../NutritionPanel';
 import { copyRichRecipeToClipboard } from '../../utils/recipeClipboard';
 import ImageStyleOptions from './ImageStyleOptions';
 import './RecipeResult.css';
+
+const normalizeMicrosForPanel = (list = []) =>
+  (Array.isArray(list) ? list : []).map((m, idx) => ({
+    ...m,
+    id: m.id ?? `${m.nutrient_name || m.name || 'micro'}-${idx}`,
+    name: m.name || m.nutrient_name || 'Nutrient',
+    nutrient_name: m.nutrient_name || m.name || 'Nutrient',
+    amount: m.amount ?? 0,
+    unit: m.unit || '',
+    dv: m.dv ?? m.daily_value_percentage ?? 0,
+    daily_value_percentage: m.daily_value_percentage ?? m.dv ?? 0,
+    math_calculations: m.math_calculations || m.math || '',
+  }));
+
+const extractMarkdownMacros = (markdown = '') => {
+  const nutritionSectionMatch = markdown.match(/##\s*Nutrition Information[^\n]*\n([\s\S]*?)(?=\n##|$)/i);
+  const macroSearchScope = nutritionSectionMatch ? nutritionSectionMatch[1] : markdown;
+
+  let calories = 0;
+  let protein_g = 0;
+  let carbs_g = 0;
+  let fat_g = 0;
+  let fiber_g = 0;
+
+  const calMatch = macroSearchScope.match(/^[-*\s]*(?:\*\*|__)?Calories(?:\*\*|__)?\s*:?(?:\*\*|__)?\s*(\d+(?:\.\d+)?)/im);
+  if (calMatch) calories = Math.round(parseFloat(calMatch[1]));
+
+  const proMatch = macroSearchScope.match(/^[-*\s]*(?:\*\*|__)?Protein(?:\*\*|__)?\s*:?(?:\*\*|__)?\s*(\d+(?:\.\d+)?)/im);
+  if (proMatch) protein_g = Math.round(parseFloat(proMatch[1]) * 10) / 10;
+
+  const carbMatch = macroSearchScope.match(/^[-*\s]*(?:\*\*|__)?(?:Total\s+)?Carb(?:ohydrate)?s?(?:\*\*|__)?\s*:?(?:\*\*|__)?\s*(\d+(?:\.\d+)?)/im);
+  if (carbMatch) carbs_g = Math.round(parseFloat(carbMatch[1]) * 10) / 10;
+
+  const fatMatch = macroSearchScope.match(/^[-*\s]*(?:\*\*|__)?(?:Total\s+)?Fat(?:\*\*|__)?\s*:?(?:\*\*|__)?\s*(\d+(?:\.\d+)?)/im);
+  if (fatMatch) fat_g = Math.round(parseFloat(fatMatch[1]) * 10) / 10;
+
+  const fiberMatch = macroSearchScope.match(/^[-*\s]*(?:\*\*|__)?(?:Dietary\s+)?Fiber(?:\*\*|__)?\s*:?(?:\*\*|__)?\s*(\d+(?:\.\d+)?)/im);
+  if (fiberMatch) fiber_g = Math.round(parseFloat(fiberMatch[1]) * 10) / 10;
+
+  return { calories, protein_g, carbs_g, fat_g, fiber_g };
+};
 
 const extractMarkdownNutritionInputs = (markdown = '') => {
   const titleMatch = markdown.match(/^#\s+(.+)$/m);
@@ -51,10 +93,11 @@ const fetchDeepDiveUsdaFirst = async (markdown) => {
         yields || '4 servings',
         title
       );
-      if (usdaRes?.success && usdaRes?.deep_dive) {
+      if (usdaRes?.success && (usdaRes?.deep_dive || Array.isArray(usdaRes?.micros))) {
         return {
-          deepDive: usdaRes.deep_dive,
-          micros: Array.isArray(usdaRes.micros) ? usdaRes.micros : [],
+          deepDive: usdaRes.deep_dive || '',
+          macros: usdaRes.macros || null,
+          micros: normalizeMicrosForPanel(usdaRes.micros),
         };
       }
     } catch (usdaErr) {
@@ -72,7 +115,8 @@ const fetchDeepDiveUsdaFirst = async (markdown) => {
   const fallbackText = await sendChatMessage(chatPayload, instructions);
   return {
     deepDive: fallbackText,
-    micros: parseMicrosFromDeepDive(fallbackText),
+    macros: null,
+    micros: normalizeMicrosForPanel(parseMicrosFromDeepDive(fallbackText)),
   };
 };
 
@@ -113,6 +157,7 @@ const RecipeResult = ({
   });
 
   const [advancedMicros, setAdvancedMicros] = useState(null);
+  const [usdaMacros, setUsdaMacros] = useState(null);
   const [usdaMicros, setUsdaMicros] = useState([]);
   const [isCalculatingMicros, setIsCalculatingMicros] = useState(false);
   
@@ -134,8 +179,9 @@ const RecipeResult = ({
         const fetchBackgroundMicros = async () => {
             setIsCalculatingMicros(true);
             try {
-                const { deepDive, micros } = await fetchDeepDiveUsdaFirst(recipeMarkdown);
+                const { deepDive, macros, micros } = await fetchDeepDiveUsdaFirst(recipeMarkdown);
                 setAdvancedMicros(deepDive);
+                setUsdaMacros(macros || null);
                 setUsdaMicros(Array.isArray(micros) ? micros : []);
             } catch (err) {
                 console.error("Stealth Math API threw a pear:", err);
@@ -148,6 +194,21 @@ const RecipeResult = ({
         fetchBackgroundMicros();
     }
   }, [recipeMarkdown, isChat, isDraft, advancedMicros, isCalculatingMicros]);
+
+  const handleRecalculateResultUsda = async () => {
+    if (!recipeMarkdown || isCalculatingMicros) return;
+    setIsCalculatingMicros(true);
+    try {
+      const { deepDive, macros, micros } = await fetchDeepDiveUsdaFirst(recipeMarkdown);
+      setAdvancedMicros(deepDive);
+      setUsdaMacros(macros || null);
+      setUsdaMicros(Array.isArray(micros) ? micros : []);
+    } catch (err) {
+      console.error('Failed to recalculate USDA nutrition:', err);
+    } finally {
+      setIsCalculatingMicros(false);
+    }
+  };
 
   const [copiedRecipe, setCopiedRecipe] = useState(false);
 
@@ -196,26 +257,17 @@ const RecipeResult = ({
           notes = notes ? `${notes}\n\n### Advanced Nutritional Analysis\n${cleanDeepDive}` : `### Advanced Nutritional Analysis\n${cleanDeepDive}`;
       }
 
-      const nutritionSectionMatch = recipeMarkdown.match(/##\s*Nutrition Information[^\n]*\n([\s\S]*?)(?=\n##|$)/i);
-      const macroSearchScope = nutritionSectionMatch ? nutritionSectionMatch[1] : recipeMarkdown;
+      const fallbackMacros = extractMarkdownMacros(recipeMarkdown);
+      const activeMacros = usdaMacros || fallbackMacros;
+      const calories = Math.round(Number(activeMacros.calories ?? fallbackMacros.calories ?? 0));
+      const protein_g = Math.round(Number(activeMacros.protein_g ?? fallbackMacros.protein_g ?? 0) * 10) / 10;
+      const carbs_g = Math.round(Number(activeMacros.carbs_g ?? fallbackMacros.carbs_g ?? 0) * 10) / 10;
+      const fat_g = Math.round(Number(activeMacros.fat_g ?? fallbackMacros.fat_g ?? 0) * 10) / 10;
+      const fiber_g = Math.round(Number(activeMacros.fiber_g ?? fallbackMacros.fiber_g ?? 0) * 10) / 10;
 
-      let calories = 0, protein_g = 0, carbs_g = 0, fat_g = 0, fiber_g = 0;
-      const calMatch = macroSearchScope.match(/^[-*\s]*(?:\*\*|__)?Calories(?:\*\*|__)?\s*:?(?:\*\*|__)?\s*(\d+(?:\.\d+)?)/im);
-      if (calMatch) calories = Math.round(parseFloat(calMatch[1]));
-      
-      const proMatch = macroSearchScope.match(/^[-*\s]*(?:\*\*|__)?Protein(?:\*\*|__)?\s*:?(?:\*\*|__)?\s*(\d+(?:\.\d+)?)/im);
-      if (proMatch) protein_g = Math.round(parseFloat(proMatch[1]) * 10) / 10;
-      
-      const carbMatch = macroSearchScope.match(/^[-*\s]*(?:\*\*|__)?(?:Total\s+)?Carb(?:ohydrate)?s?(?:\*\*|__)?\s*:?(?:\*\*|__)?\s*(\d+(?:\.\d+)?)/im);
-      if (carbMatch) carbs_g = Math.round(parseFloat(carbMatch[1]) * 10) / 10;
-      
-      const fatMatch = macroSearchScope.match(/^[-*\s]*(?:\*\*|__)?(?:Total\s+)?Fat(?:\*\*|__)?\s*:?(?:\*\*|__)?\s*(\d+(?:\.\d+)?)/im);
-      if (fatMatch) fat_g = Math.round(parseFloat(fatMatch[1]) * 10) / 10;
-
-      const fiberMatch = macroSearchScope.match(/^[-*\s]*(?:\*\*|__)?(?:Dietary\s+)?Fiber(?:\*\*|__)?\s*:?(?:\*\*|__)?\s*(\d+(?:\.\d+)?)/im);
-      if (fiberMatch) fiber_g = Math.round(parseFloat(fiberMatch[1]) * 10) / 10;
-
-      const parsedMicros = usdaMicros.length > 0 ? usdaMicros : parseMicrosFromDeepDive(advancedMicros || '');
+      const parsedMicros = normalizeMicrosForPanel(
+        usdaMicros.length > 0 ? usdaMicros : parseMicrosFromDeepDive(advancedMicros || '')
+      );
 
       try {
           const res = await api.saveGeneratedRecipe({
@@ -418,7 +470,12 @@ const RecipeResult = ({
       }
 
       setAdvancedMicros(res?.deep_dive || fallbackMathResult || '');
-      setUsdaMicros(Array.isArray(res?.micros) ? res.micros : parsedFallbackMicros);
+      if (res?.macros) {
+        setUsdaMacros(res.macros);
+      }
+      setUsdaMicros(
+        normalizeMicrosForPanel(Array.isArray(res?.micros) ? res.micros : parsedFallbackMicros)
+      );
       setShowDeepDive(true);
       if (res?.isPublic) {
         setIsPublishedMasterpiece(true);
@@ -493,8 +550,9 @@ const RecipeResult = ({
 
     const nutritionPromise = (async () => {
       try {
-        const { deepDive, micros } = await fetchDeepDiveUsdaFirst(recipeMarkdown);
+        const { deepDive, macros, micros } = await fetchDeepDiveUsdaFirst(recipeMarkdown);
         setAdvancedMicros(deepDive);
+        setUsdaMacros(macros || null);
         setUsdaMicros(Array.isArray(micros) ? micros : []);
       } catch (err) {
         console.error('Failed to calculate upgraded Masterpiece nutrition:', err);
@@ -508,17 +566,14 @@ const RecipeResult = ({
     setIsUpgradingToMasterpiece(false);
   };
 
-  let speakBtnText = "🗣️ Read Aloud";
   let speakBtnClass = "speak-btn-idle"; 
   let speakIcon = "🔊";
   let speakAriaLabel = "Read Aloud";
   if (speechState === 'playing') {
-    speakBtnText = "⏸️ Pause Emma";
     speakBtnClass = "speak-btn-playing"; 
     speakIcon = "⏸️";
     speakAriaLabel = "Pause Emma";
   } else if (speechState === 'paused') {
-    speakBtnText = "▶️ Resume";
     speakBtnClass = "speak-btn-paused"; 
     speakIcon = "▶️";
     speakAriaLabel = "Resume Emma";
@@ -563,10 +618,11 @@ const RecipeResult = ({
             <button
               type="button"
               onClick={() => handleSpeak(recipeMarkdown)}
-              className={`emma-chat-speak-btn ${speakBtnClass}`}
-              title="Listen to Emma's reply"
+              className={`recipe-content-speak-icon ${speakBtnClass}`}
+              aria-label={speakAriaLabel}
+              title={speakAriaLabel}
             >
-              {speakBtnText}
+              {speakIcon}
             </button>
           </div>
         </div>
@@ -577,6 +633,11 @@ const RecipeResult = ({
       </div>
     );
   }
+
+  const panelMacros = usdaMacros || extractMarkdownMacros(recipeMarkdown);
+  const panelMicros = normalizeMicrosForPanel(
+    usdaMicros.length > 0 ? usdaMicros : parseMicrosFromDeepDive(advancedMicros || '')
+  );
 
   return (
     <div className="recipe-result-card">
@@ -839,6 +900,18 @@ const RecipeResult = ({
         )}
         <EmmaMarkdown>{recipeMarkdown}</EmmaMarkdown>
       </div>
+
+      {!isChat && (!effectiveIsDraft || advancedMicros || usdaMicros.length > 0) && (panelMicros.length > 0 || Boolean(usdaMacros)) && (
+        <div className="result-usda-panel-wrap">
+          <NutritionPanel
+            macros={panelMacros}
+            micros={panelMicros}
+            canRecalculate={!isCalculatingMicros}
+            isRecalculating={isCalculatingMicros}
+            onRecalculate={handleRecalculateResultUsda}
+          />
+        </div>
+      )}
 
       {!isChat && (!effectiveIsDraft || advancedMicros || isCalculatingMicros) && (
           <div className="calc-micros-container">

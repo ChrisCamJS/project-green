@@ -55,8 +55,10 @@
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
+  left: auto;
   z-index: 60;
-  width: min(88vw, 270px);
+  width: min(calc(100vw - 2rem), 270px);
+  box-sizing: border-box;
   background: #ffffff;
   border: 1px solid #d5e2d7;
   border-radius: 12px;
@@ -68,9 +70,23 @@
 }
 
 @media (max-width: 600px) {
+  .rft-row {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+  }
+
+  .rft-search-slot {
+    flex: 1 1 0%;
+    min-width: 0;
+  }
+
+  .rft-dropdown-btn {
+    padding: 0.58rem 0.85rem;
+  }
+
   .rft-dropdown-menu {
-    left: 0;
-    right: auto;
+    right: 0;
+    left: auto;
   }
 }
 

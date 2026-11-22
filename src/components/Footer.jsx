@@ -89,6 +89,10 @@ const Footer = () => {
             </a>
           </p>
           <div className="footer-bottom-links">
+            <Link to="/privacy-policy">Privacy Policy</Link>
+            <span aria-hidden="true">&middot;</span>
+            <Link to="/contact">Contact Us</Link>
+            <span aria-hidden="true">&middot;</span>
             <Link to="/sitemap">Site Map</Link>
             <span aria-hidden="true">&middot;</span>
             <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer">

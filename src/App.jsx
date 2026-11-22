@@ -20,6 +20,8 @@ import ForgotPassword from './pages/ForgotPassword';
 import VerifyEmail from './pages/VerifyEmail';
 import Sitemap from './pages/Sitemap';
 import StoryReader from './pages/StoryReader';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import Contact from './pages/Contact';
 import './App.css'
 
 function App() {
@@ -34,6 +36,8 @@ function App() {
               <Route path='/stories/:slug' element={<StoryReader />} />
               <Route path='/wellness' element={<WellnessTools />} />
               <Route path='/sitemap' element={<Sitemap />} />
+              <Route path='/privacy-policy' element={<PrivacyPolicy />} />
+              <Route path='/contact' element={<Contact />} />
               <Route path='/profile/:identifier' element={<Profile />} />
               <Route path='/register' element={<Register />} />
               <Route path='/verify-email' element={<VerifyEmail />} />

@@ -562,5 +562,12 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ story_id: storyId }),
         });
+    },
+
+    submitContactForm: (payload) => {
+        return fetchWrapper('/contact', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
     }
 };
