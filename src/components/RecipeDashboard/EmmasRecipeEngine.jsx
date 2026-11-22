@@ -167,6 +167,15 @@ const EmmasRecipeEngine = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    const handleFocusFollowUpInput = () => {
+        const el = followUpInputRef.current;
+        if (!el) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+            el.focus({ preventScroll: true });
+        }, 300);
+    };
+
     const triggerMasterpieceImageGeneration = async (promptText, styleOpts = imageStyleOptions) => {
         setIsGeneratingImage(true);
         setImageGenFailed(false);
@@ -693,7 +702,7 @@ const EmmasRecipeEngine = () => {
             {showMasterpieceSaveModal && (
                 <div className="welcome-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="masterpiece-save-title">
                     <div className="welcome-modal-content">
-                        <h3 id="masterpiece-save-title">Save Your Masterpiece! 📸</h3>
+                        <h3 id="masterpiece-save-title">Save Your Masterpiece!</h3>
                         <p>
                             Your Masterpiece recipe is ready! Be sure to click <strong>Save Full Recipe</strong> below the recipe card to publish it to The Veggie Vault and keep it permanently.
                         </p>
@@ -1023,6 +1032,7 @@ const EmmasRecipeEngine = () => {
                                     onUpdateImageStyleOptions={setImageStyleOptions}
                                     onToggleLiveChat={handleToggleInlineLiveChat}
                                     externalShowLiveChat={showInlineLiveChat}
+                                    onEditRecipe={handleFocusFollowUpInput}
                                 />
                                 {mergedIdeas.length > 0 && (
                                     <RecipeIdeaActions

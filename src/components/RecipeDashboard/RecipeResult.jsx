@@ -29,6 +29,7 @@ const RecipeResult = ({
   onUpdateImageStyleOptions = null,
   onToggleLiveChat = null,
   externalShowLiveChat = false,
+  onEditRecipe = null,
 }) => {
   const navigate = useNavigate();
   const { user, spendToken, confirmTokenUsage, promptPurchaseTokens } = useAuth(); 
@@ -42,6 +43,9 @@ const RecipeResult = ({
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isPublishingDraft, setIsPublishingDraft] = useState(false);
   const [isPublishedMasterpiece, setIsPublishedMasterpiece] = useState(false);
+  const [isUpgradedToMasterpiece, setIsUpgradedToMasterpiece] = useState(false);
+  const [isUpgradingToMasterpiece, setIsUpgradingToMasterpiece] = useState(false);
+  const [upgradeImageFailed, setUpgradeImageFailed] = useState(false);
   const [upgradeStatusMsg, setUpgradeStatusMsg] = useState(null);
   const [workshopImageOptions, setWorkshopImageOptions] = useState({
     ...DEFAULT_IMAGE_STYLE_OPTIONS,
@@ -57,6 +61,9 @@ const RecipeResult = ({
   const { speechState, handleSpeak } = useEmmaVoice();
 
   const displayImageUrl = localImageUrl || imageUrl;
+  const effectiveIsDraft = isDraft && !isUpgradedToMasterpiece;
+  const effectiveGeneratingImage = isGeneratingImage || isGeneratingAiImage;
+  const effectiveImageGenFailed = imageGenFailed || upgradeImageFailed;
   const isOilFree = Boolean(dietaryPrefs?.oilFree ?? true);
   const isGlutenFree = Boolean(dietaryPrefs?.glutenFree || /gluten[-\s]?free/i.test(recipeMarkdown || ''));
   const isSugarFree = Boolean(dietaryPrefs?.sugarFree ?? true);
@@ -182,10 +189,10 @@ const RecipeResult = ({
         if (res?.recipeId) {
           setSavedRecipeId(res.recipeId);
         }
-        if (!isDraft && displayImageUrl) {
+        if (!effectiveIsDraft && displayImageUrl) {
           setIsPublishedMasterpiece(true);
         }
-        const successMsg = isDraft
+        const successMsg = effectiveIsDraft
           ? 'Smashing! Your recipe draft has been locked in the Veggie Vault.'
           : (displayImageUrl
               ? 'Brilliant! The full recipe and image have been safely vaulted.'
@@ -259,9 +266,33 @@ const RecipeResult = ({
   };
 
   const handleMasterpieceImageRetry = async () => {
-    if (!onRetryImage || isGeneratingImage) return;
+    if (isGeneratingImage || isGeneratingAiImage) return;
     setUpgradeStatusMsg(null);
-    const generatedDataUrl = await onRetryImage(extractRecipeTitle(), activeRetryStyleOptions);
+    let generatedDataUrl = null;
+    if (isUpgradedToMasterpiece) {
+      setIsGeneratingAiImage(true);
+      setUpgradeImageFailed(false);
+      try {
+        const base64Data = await generateRecipeImage(extractRecipeTitle(), activeRetryStyleOptions);
+        if (base64Data) {
+          generatedDataUrl = `data:image/jpeg;base64,${base64Data}`;
+          setLocalImageUrl(generatedDataUrl);
+          setImageSource('ai');
+          setUpgradeImageFailed(false);
+        } else {
+          setUpgradeImageFailed(true);
+        }
+      } catch (err) {
+        console.error('Failed to retry upgraded Masterpiece image:', err);
+        setUpgradeImageFailed(true);
+      } finally {
+        setIsGeneratingAiImage(false);
+      }
+    } else {
+      if (!onRetryImage) return;
+      generatedDataUrl = await onRetryImage(extractRecipeTitle(), activeRetryStyleOptions);
+    }
+
     if (generatedDataUrl && savedRecipeId) {
       try {
         const res = await api.publishWithPhoto(savedRecipeId, generatedDataUrl, 'ai');
@@ -360,14 +391,82 @@ const RecipeResult = ({
     }
   };
 
+  const handleUpgradeToMasterpiece = async () => {
+    if (!recipeMarkdown || isUpgradingToMasterpiece || isUpgradedToMasterpiece || savedRecipeId) return;
+    if (Number(user?.generation_tokens ?? 0) < 1) {
+      await promptPurchaseTokens(1, 'Upgrading Recipe to a Full Masterpiece');
+      return;
+    }
+
+    const tokenRes = await spendToken(1, 'Upgrading Recipe to a Full Masterpiece');
+    if (tokenRes?.cancelled) return;
+    if (!tokenRes?.success) {
+      alert(tokenRes?.message || 'Unable to deduct 1 token.');
+      return;
+    }
+
+    setIsUpgradingToMasterpiece(true);
+    setIsUpgradedToMasterpiece(true);
+    setIsGeneratingAiImage(true);
+    setUpgradeImageFailed(false);
+    setIsCalculatingMicros(true);
+    setUpgradeStatusMsg(null);
+
+    const imagePromise = (async () => {
+      try {
+        const base64Data = await generateRecipeImage(extractRecipeTitle(), activeRetryStyleOptions);
+        if (base64Data) {
+          setLocalImageUrl(`data:image/jpeg;base64,${base64Data}`);
+          setImageSource('ai');
+          setUpgradeImageFailed(false);
+        } else {
+          setUpgradeImageFailed(true);
+        }
+      } catch (err) {
+        console.error('Failed to generate upgraded Masterpiece image:', err);
+        setUpgradeImageFailed(true);
+      } finally {
+        setIsGeneratingAiImage(false);
+      }
+    })();
+
+    const nutritionPromise = (async () => {
+      try {
+        const instructions = getMicroCalculationInstructions();
+        const chatPayload = [
+          {
+            role: 'user',
+            parts: [{ text: `Here is the recipe I need you to deeply analyze:\n\n${recipeMarkdown}` }],
+          },
+        ];
+        const mathResult = await sendChatMessage(chatPayload, instructions);
+        setAdvancedMicros(mathResult);
+      } catch (err) {
+        console.error('Failed to calculate upgraded Masterpiece nutrition:', err);
+        setAdvancedMicros('Nutrition data temporarily unavailable.');
+      } finally {
+        setIsCalculatingMicros(false);
+      }
+    })();
+
+    await Promise.all([imagePromise, nutritionPromise]);
+    setIsUpgradingToMasterpiece(false);
+  };
+
   let speakBtnText = "🗣️ Read Aloud";
   let speakBtnClass = "speak-btn-idle"; 
+  let speakIcon = "🔊";
+  let speakAriaLabel = "Read Aloud";
   if (speechState === 'playing') {
     speakBtnText = "⏸️ Pause Emma";
     speakBtnClass = "speak-btn-playing"; 
+    speakIcon = "⏸️";
+    speakAriaLabel = "Pause Emma";
   } else if (speechState === 'paused') {
     speakBtnText = "▶️ Resume";
     speakBtnClass = "speak-btn-paused"; 
+    speakIcon = "▶️";
+    speakAriaLabel = "Resume Emma";
   }
 
   const handleToggleRecipeLiveChat = async () => {
@@ -431,35 +530,34 @@ const RecipeResult = ({
         <div className="recipe-image-container">
             <img src={displayImageUrl} alt="A glorious AI-generated WFPB meal" />
         </div>
-      ) : (!isDraft && !isChat && (
+      ) : (!effectiveIsDraft && !isChat && (
         <>
-          {isGeneratingImage && (
+          {effectiveGeneratingImage && (
             <div className="masterpiece-image-status generating">
-              <span className="status-icon">🎨</span>
               <span>Emma is painting your Masterpiece dish photo...</span>
             </div>
           )}
-          {imageGenFailed && !isGeneratingImage && (
+          {effectiveImageGenFailed && !effectiveGeneratingImage && (
             <div className="masterpiece-image-status failed">
               <div className="masterpiece-failed-top">
                 <div className="status-text">
-                  <strong>⚠️ Image Generation Failed</strong>
+                  <strong>Image Generation Failed</strong>
                   <p>Your Masterpiece recipe is ready, but the AI camera jammed while creating the photo. You won&apos;t be charged again to retry!</p>
                 </div>
                 <button
                   type="button"
                   className="retry-image-btn"
                   onClick={handleMasterpieceImageRetry}
-                  disabled={isGeneratingImage}
+                  disabled={effectiveGeneratingImage}
                 >
-                  🔄 Try Generating Image Again (Free)
+                  Try Generating Image Again (Free)
                 </button>
               </div>
               <div className="masterpiece-failed-style-box">
                 <ImageStyleOptions
                   value={activeRetryStyleOptions}
                   onChange={handleRetryStyleChange}
-                  disabled={isGeneratingImage}
+                  disabled={effectiveGeneratingImage}
                   compact
                 />
               </div>
@@ -492,9 +590,9 @@ const RecipeResult = ({
 
       {(isOilFree || isGlutenFree || isSugarFree) && (
         <div className="result-dietary-badges">
-          {isOilFree && <span className="result-dietary-pill oil-free">🌿 Oil-Free</span>}
-          {isGlutenFree && <span className="result-dietary-pill gluten-free">🌾 Gluten-Free</span>}
-          {isSugarFree && <span className="result-dietary-pill sugar-free">🍯 Refined Sugar-Free</span>}
+          {isOilFree && <span className="result-dietary-pill oil-free">Oil-Free</span>}
+          {isGlutenFree && <span className="result-dietary-pill gluten-free">Gluten-Free</span>}
+          {isSugarFree && <span className="result-dietary-pill sugar-free">Refined Sugar-Free</span>}
         </div>
       )}
 
@@ -515,33 +613,64 @@ const RecipeResult = ({
             <>
                 <button 
                 onClick={handleSaveToVault}
-                disabled={isSaving || isCalculatingMicros || Boolean(savedRecipeId)}
-                className={`action-btn vault-btn ${(isSaving || isCalculatingMicros || savedRecipeId) ? 'saving' : ''}`}
+                disabled={isSaving || isCalculatingMicros || isUpgradingToMasterpiece || isGeneratingAiImage || Boolean(savedRecipeId)}
+                className={`action-btn vault-btn ${(isSaving || isCalculatingMicros || isUpgradingToMasterpiece || isGeneratingAiImage || savedRecipeId) ? 'saving' : ''}`}
                 >
-                {isCalculatingMicros
-                  ? '⏳ Finalizing Nutrition...'
+                {(isUpgradingToMasterpiece || isGeneratingAiImage || isCalculatingMicros)
+                  ? (!effectiveIsDraft ? 'Finalizing Masterpiece...' : 'Finalizing Nutrition...')
                   : (isSaving
-                      ? '🔒 Vaulting...'
+                      ? 'Vaulting...'
                       : (savedRecipeId
-                          ? (isPublishedMasterpiece ? '🌟 Published Masterpiece' : '✅ Saved to Private Drafts')
-                          : (isDraft ? '📝 Save Draft to Vault' : '📸 Save Full Recipe')))}
+                          ? (isPublishedMasterpiece ? 'Published Masterpiece' : 'Saved to Private Drafts')
+                          : (effectiveIsDraft ? 'Save Draft' : 'Save Full Recipe')))}
                 </button>
 
                 <button type="button" onClick={handleCopyRecipe} className="action-btn download-btn">
-                {copiedRecipe ? '✓ Recipe Copied!' : '📋 Copy Full Recipe'}
+                {copiedRecipe ? '✓ Copied!' : '📋 Copy'}
                 </button>
+
+                {isDraft && !savedRecipeId && (!isUpgradedToMasterpiece || isUpgradingToMasterpiece) && (
+                  <button
+                    type="button"
+                    onClick={handleUpgradeToMasterpiece}
+                    disabled={isUpgradingToMasterpiece || isSaving}
+                    className={`action-btn masterpiece-upgrade-btn ${isUpgradingToMasterpiece ? 'upgrading' : ''}`}
+                    title="Auto-generate both an AI Dish Photo and full Masterpiece Nutritional Deep Dive (1 Token)"
+                  >
+                    {isUpgradingToMasterpiece ? 'Upgrading...' : 'Upgrade to Masterpiece'}
+                  </button>
+                )}
+
+                {!effectiveIsDraft ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isPublishedMasterpiece && savedRecipeId) {
+                        navigate(`/recipe/${savedRecipeId}`);
+                      }
+                    }}
+                    disabled={!isPublishedMasterpiece || !savedRecipeId}
+                    className={`action-btn view-live-btn ${(!isPublishedMasterpiece || !savedRecipeId) ? 'unpublished' : ''}`}
+                    title={isPublishedMasterpiece && savedRecipeId ? 'View your published Masterpiece live in the Vault' : 'Save your Masterpiece first to view it live'}
+                  >
+                    View Live
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onEditRecipe && onEditRecipe()}
+                    disabled={!onEditRecipe}
+                    className="action-btn edit-recipe-btn"
+                    title="Jump down to ask Emma to tweak or iterate on this recipe"
+                  >
+                    Edit
+                  </button>
+                )}
             </>
         )}
-
-        <button 
-          onClick={() => handleSpeak(advancedMicros ? `${recipeMarkdown}\n\n${advancedMicros}` : recipeMarkdown)} 
-          className={`action-btn speak-btn ${speakBtnClass}`}
-        >
-          {speakBtnText}
-        </button>
       </div>
 
-      {isDraft && savedRecipeId && (
+      {effectiveIsDraft && savedRecipeId && (
         <section className="draft-workshop-card" aria-label="Draft to Masterpiece Workshop">
           <div className="draft-workshop-header">
             <div>
@@ -637,24 +766,37 @@ const RecipeResult = ({
       )}
 
       <div className="recipe-content">
+        {!isChat && (
+          <div className="recipe-content-speak-row">
+            <button
+              type="button"
+              onClick={() => handleSpeak(advancedMicros ? `${recipeMarkdown}\n\n${advancedMicros}` : recipeMarkdown)}
+              className={`recipe-content-speak-icon ${speakBtnClass}`}
+              aria-label={speakAriaLabel}
+              title={speakAriaLabel}
+            >
+              {speakIcon}
+            </button>
+          </div>
+        )}
         <EmmaMarkdown>{recipeMarkdown}</EmmaMarkdown>
       </div>
 
-      {!isChat && (!isDraft || advancedMicros || isCalculatingMicros) && (
+      {!isChat && (!effectiveIsDraft || advancedMicros || isCalculatingMicros) && (
           <div className="calc-micros-container">
               <button 
                 onClick={() => setShowDeepDive(!showDeepDive)}
                 disabled={isCalculatingMicros}
                 className={`calc-micros-btn ${isCalculatingMicros ? 'calculating' : ''}`}
               >
-                  {isCalculatingMicros ? '🧮 Emma is crunching the micros in the background...' : (showDeepDive ? '🙈 Hide Emma\'s Deep Dive' : '🔬 View Emma\'s Nutritional Deep Dive')}
+                  {isCalculatingMicros ? 'Emma is crunching the micros in the background...' : (showDeepDive ? 'Hide Emma\'s Deep Dive' : 'View Emma\'s Nutritional Deep Dive')}
               </button>
           </div>
       )}
 
       {showDeepDive && advancedMicros && (
           <div className="advanced-micros-content">
-              <h3>🔬 Emma's Deep Dive Analysis</h3>
+              <h3>Emma's Deep Dive Analysis</h3>
               <EmmaMarkdown>{advancedMicros}</EmmaMarkdown>
           </div>
       )}

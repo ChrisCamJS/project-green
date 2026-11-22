@@ -61,6 +61,87 @@
 .download-btn { background-color: #2b6cb0; }
 .download-btn:hover { background-color: #2c5282; }
 
+.masterpiece-upgrade-btn {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  box-shadow: 0 3px 10px rgba(217, 119, 6, 0.28);
+}
+
+.masterpiece-upgrade-btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(217, 119, 6, 0.36);
+}
+
+.masterpiece-upgrade-btn:disabled,
+.masterpiece-upgrade-btn.upgrading {
+  opacity: 0.72;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.view-live-btn {
+  background-color: #2f855a;
+}
+
+.view-live-btn:hover:not(:disabled) {
+  background-color: #276749;
+}
+
+.view-live-btn.unpublished,
+.view-live-btn:disabled {
+  background-color: #cbd5e0;
+  color: #718096;
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.edit-recipe-btn {
+  background-color: #4a5568;
+}
+
+.edit-recipe-btn:hover:not(:disabled) {
+  background-color: #2d3748;
+}
+
+/* Floating Borderless Speak Icon Above Recipe Content */
+.recipe-content-speak-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: -0.25rem;
+}
+
+.recipe-content-speak-icon {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.recipe-content-speak-icon:hover {
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+.recipe-content-speak-icon.speak-btn-idle,
+.recipe-content-speak-icon.speak-btn-idle:hover,
+.recipe-content-speak-icon.speak-btn-playing,
+.recipe-content-speak-icon.speak-btn-playing:hover,
+.recipe-content-speak-icon.speak-btn-paused,
+.recipe-content-speak-icon.speak-btn-paused:hover {
+  background: transparent;
+}
+
+.recipe-content-speak-icon.speak-btn-playing,
+.recipe-content-speak-icon.speak-btn-paused {
+  opacity: 1;
+}
+
 /* Dynamic Speak Button States */
 .speak-btn-idle { background-color: #4a5568; }
 .speak-btn-idle:hover { background-color: #2d3748; }
