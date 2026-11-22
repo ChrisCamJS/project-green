@@ -14,6 +14,7 @@ export default function VariantBadge({
   isMasterpiece = false,
   variantSummary = null,
   compact = false,
+  hideIcon = false,
 }) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef(null);
@@ -93,9 +94,11 @@ export default function VariantBadge({
         aria-haspopup="dialog"
         title={`Variant of "${parentRecipeTitle}" — hover or tap for details`}
       >
-        <span className="variant-badge-icon" aria-hidden="true">
-          {isMasterpiece ? '✨' : '🔀'}
-        </span>
+        {!hideIcon && (
+          <span className="variant-badge-icon" aria-hidden="true">
+            {isMasterpiece ? '✨' : '🔀'}
+          </span>
+        )}
         <span className="variant-badge-text">
           {isMasterpiece ? 'Masterpiece Variant' : 'Variant'}
         </span>

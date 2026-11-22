@@ -83,12 +83,12 @@ const RecipeCard = ({ recipe }) => {
                 <div className="recipe-card-top-badges">
                     {isFollowedAuthor && (
                         <span className="recipe-followed-badge" title="Chef you follow">
-                            👥 Following
+                            Following
                         </span>
                     )}
                     {isDraftCard && (
                         <span className="recipe-draft-badge" title="Private Draft">
-                            🔒 Draft
+                            Draft
                         </span>
                     )}
                 </div>
@@ -106,6 +106,7 @@ const RecipeCard = ({ recipe }) => {
                     <div className="recipe-card-variant-row">
                         <VariantBadge
                             compact
+                            hideIcon
                             parentRecipeId={parentRecipeId}
                             parentRecipeTitle={parentRecipeTitle}
                             parentAuthorName={parentAuthorName}
@@ -182,17 +183,17 @@ const RecipeCard = ({ recipe }) => {
                     <div className='recipe-dietary-badges'>
                         {showOilFree && (
                             <span className='dietary-badge oil-free-badge'>
-                                🌿 Oil-Free
+                                Oil-Free
                             </span>
                         )}
                         {showGlutenFree && (
                             <span className='dietary-badge gluten-free-badge'>
-                                🌾 Gluten-Free
+                                Gluten-Free
                             </span>
                         )}
                         {showSugarFree && (
                             <span className='dietary-badge sugar-free-badge'>
-                                🍯 Refined Sugar-Free
+                                Refined Sugar-Free
                             </span>
                         )}
                     </div>

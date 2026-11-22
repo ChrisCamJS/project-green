@@ -1,33 +1,351 @@
 /* --- 1. Top Level Header Layout --- */
 .main-header {
-  position: relative; 
+  position: relative;
+  z-index: 900;
   width: 100%;
-  padding: 1.5rem 5%; 
-  box-sizing: border-box;
-  border-bottom: 2px solid var(--vault-green);
+  background-color: #ffffff;
+  border-bottom: 2px solid var(--vault-green, #2f855a);
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05);
   margin-bottom: 16px;
+}
+
+.header-inner {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0.85rem 1.5rem;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  background-color: #ffffff; 
+  justify-content: space-between;
+  gap: 1rem;
+  box-sizing: border-box;
+}
+
+.logo-container {
+  flex-shrink: 0;
 }
 
 .logo-container h1 {
   margin: 0;
+  line-height: 1.1;
 }
 
 .logo-container h1 a {
   text-decoration: none;
-  color: #1a202c;
-  font-size: 1.75rem;
-  font-weight: 800;
+  color: #0f172a;
+  font-size: 1.55rem;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  white-space: nowrap;
 }
 
-/* --- 2. Mobile Controls (Hidden on Desktop) --- */
+.logo-container h1 a:hover {
+  color: #166534;
+}
+
+/* --- 2. Desktop Primary Navigation (Center) --- */
+.desktop-primary-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.nav-item-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.85rem;
+  border-radius: 9999px;
+  text-decoration: none;
+  color: #334155;
+  font-size: 0.94rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.nav-item-link:hover {
+  background-color: #f0fdf4;
+  color: #166534;
+}
+
+.nav-item-link.active {
+  background-color: #dcfce7;
+  color: #166534;
+  font-weight: 700;
+}
+
+/* --- 3. Desktop Utility & Account Cluster (Right) --- */
+.desktop-utility-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+.desktop-notif-wrap {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Token Badge */
+.token-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background-color: #fef08a;
+  border: 1px solid #eab308;
+  color: #713f12;
+  padding: 0.32rem 0.72rem;
+  border-radius: 9999px;
+  font-size: 0.86rem;
+  font-weight: 800;
+  white-space: nowrap;
+  text-decoration: none;
+  box-shadow: 0 2px 5px rgba(234, 179, 8, 0.18);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.token-badge:hover {
+  color: #713f12;
+  background-color: #fde047;
+  transform: translateY(-1px);
+}
+
+.token-icon {
+  width: 15px;
+  height: 15px;
+  color: #ca8a04;
+  flex-shrink: 0;
+}
+
+/* Desktop Account Dropdown */
+.account-menu-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.account-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.28rem 0.72rem 0.28rem 0.32rem;
+  border-radius: 9999px;
+  border: 1.5px solid #cbd5e1;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.account-menu-trigger:hover,
+.account-menu-trigger.open {
+  background-color: #ffffff;
+  border-color: #2f855a;
+  box-shadow: 0 3px 10px rgba(47, 133, 90, 0.14);
+}
+
+.account-avatar-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2f855a 0%, #166534 100%);
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.account-avatar-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #bbf7d0;
+  flex-shrink: 0;
+}
+
+.account-trigger-name {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-trigger-caret {
+  font-size: 0.72rem;
+  color: #64748b;
+  transition: transform 0.15s ease;
+}
+
+.account-menu-trigger.open .account-trigger-caret {
+  transform: rotate(180deg);
+}
+
+.account-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 225px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.16);
+  padding: 0.4rem;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: left;
+}
+
+.account-dropdown-header {
+  padding: 0.55rem 0.75rem 0.6rem;
+  margin-bottom: 0.2rem;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.account-dropdown-signed {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.account-dropdown-user {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-dropdown-item {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.52rem 0.75rem;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: #1e293b;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.account-dropdown-item:hover {
+  background-color: #f0fdf4;
+  color: #166534;
+}
+
+.account-dropdown-admin {
+  color: #7e22ce;
+}
+
+.account-dropdown-admin:hover {
+  background-color: #faf5ff;
+  color: #6b21a8;
+}
+
+.account-dropdown-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 0.25rem 0.4rem;
+}
+
+.account-dropdown-logout {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.account-dropdown-logout:hover {
+  background-color: #fef2f2;
+  color: #b91c1c;
+}
+
+/* Guest Login / Register Buttons */
+.header-login-link {
+  padding: 0.42rem 0.85rem;
+  border-radius: 9999px;
+  text-decoration: none;
+  color: #1e293b;
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.header-login-link:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.header-register-btn {
+  padding: 0.44rem 1rem;
+  border-radius: 9999px;
+  text-decoration: none;
+  background-color: #166534;
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 3px 8px rgba(22, 101, 52, 0.22);
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.header-register-btn:hover {
+  background-color: #14532d;
+  transform: translateY(-1px);
+}
+
+.install-app-btn {
+  cursor: pointer;
+  background-color: #f0fdf4;
+  color: #166534;
+  border: 1.5px solid #86efac;
+  border-radius: 9999px;
+  padding: 0.36rem 0.8rem;
+  font-weight: 700;
+  font-size: 0.84rem;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.install-app-btn:hover {
+  background-color: #dcfce7;
+  transform: translateY(-1px);
+}
+
+/* --- 4. Mobile Controls & Drawer (<= 960px) --- */
 .mobile-controls {
   display: none;
   align-items: center;
-  gap: 15px;
+  gap: 0.55rem;
+}
+
+.mobile-token {
+  display: none;
+}
+
+.mobile-install-btn {
+  padding: 0.32rem 0.65rem;
+  font-size: 0.78rem;
 }
 
 .hamburger {
@@ -36,202 +354,170 @@
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 5px;
-  z-index: 101; /* Keep above the dropdown */
+  gap: 5px;
+  padding: 6px;
+  z-index: 950;
 }
 
-/* The Burger Lines */
 .hamburger span {
   display: block;
-  width: 28px;
-  height: 3px;
-  background-color: #2d5a27;
+  width: 24px;
+  height: 2.5px;
+  background-color: #166534;
   border-radius: 3px;
-  transition: all 0.3s ease-in-out;
+  transition: all 0.25s ease-in-out;
 }
 
-/* The "X" Animation */
 .hamburger.open span:nth-child(1) {
-  transform: translateY(9px) rotate(45deg);
+  transform: translateY(7.5px) rotate(45deg);
 }
 .hamburger.open span:nth-child(2) {
   opacity: 0;
 }
 .hamburger.open span:nth-child(3) {
-  transform: translateY(-9px) rotate(-45deg);
+  transform: translateY(-7.5px) rotate(-45deg);
 }
 
-/* --- 3. Desktop Navigation --- */
-.main-nav ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 20px;
+.mobile-drawer {
+  display: none;
 }
 
-.main-nav a {
-  text-decoration: none;
-  color: #2d3748;
-  font-weight: 500;
-  font-size: 1.05rem;
-  transition: color 0.2s;
-}
-
-.main-nav a:hover {
-  color: #48bb78;
-}
-
-/* --- 4. User Status & Badges --- */
-.user-status {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border-left: 2px solid #e2e8f0;
-  padding-left: 30px; 
-  margin-left: 5px;
-}
-
-.welcome-text {
-  font-weight: bold;
-  color: #48bb78;
-  white-space: nowrap;
-}
-
-.premium-sparkle {
-  margin-left: 5px;
-}
-
-.token-badge,
-.main-nav a.token-badge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background-color: #ecc94b;
-  color: #744210;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  font-weight: bold;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  white-space: nowrap;
-  text-decoration: none;
-  transition: transform 0.15s ease, background-color 0.15s ease;
-}
-
-.token-badge:hover,
-.main-nav a.token-badge:hover {
-  color: #744210;
-  background-color: #f6e05e;
-  transform: translateY(-1px);
-}
-
-.token-icon {
-  width: 16px;
-  height: 16px;
-  color: #d69e2e;
-}
-
-.mobile-token {
-  display: none; /* Hidden on desktop */
-}
-
-/* Logout */
-.logout-btn {
-  cursor: pointer;
-  background: none;
-  border: none;
-  color: #e53e3e;
-  font-weight: bold;
-  font-size: 1rem;
-  padding: 0;
-  margin-left: 10px;
-  transition: color 0.2s ease-in-out;
-}
-.logout-btn:hover {
-  color: #c53030;
-}
-
-.install-app-btn {
-  cursor: pointer;
-  background-color: #2f855a;
-  color: #ffffff;
-  border: 1.5px solid #276749;
-  border-radius: 9999px;
-  padding: 0.42rem 0.9rem;
-  font-weight: 700;
-  font-size: 0.9rem;
-  white-space: nowrap;
-  transition: background-color 0.15s ease, transform 0.15s ease;
-}
-
-.install-app-btn:hover {
-  background-color: #276749;
-  transform: translateY(-1px);
-}
-
-.mobile-install-btn {
-  padding: 0.34rem 0.7rem;
-  font-size: 0.82rem;
-}
-
-/* --- 5. Mobile Wrangling --- */
-@media (max-width: 768px) {
+@media (max-width: 960px) {
   .main-header {
-    padding: 0.75rem 0;
-    margin-bottom: 8px;
-  }
-  
-  .mobile-controls {
-    display: flex; /* Show the veggie burger and mobile token */
+    margin-bottom: 10px;
   }
 
-  .mobile-token {
+  .header-inner {
+    padding: 0.75rem 1rem;
+  }
+
+  .logo-container h1 a {
+    font-size: 1.32rem;
+  }
+
+  .desktop-primary-nav,
+  .desktop-utility-group {
+    display: none;
+  }
+
+  .mobile-controls {
     display: flex;
   }
 
-  .desktop-token,
-  .main-nav a.desktop-token,
-  .user-status .desktop-token,
-  .desktop-notif,
-  .user-status .desktop-notif,
-  .desktop-install-btn {
-    display: none; /* Hide duplicates already shown in mobile-controls */
+  .mobile-token {
+    display: inline-flex;
   }
 
-  /* The Dropdown Drawer */
-  .main-nav {
-    display: none; /* Hidden by default */
+  .mobile-drawer.open {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
     position: absolute;
     top: 100%;
     left: 0;
     width: 100%;
-    background-color: #ffffff; 
-    opacity: .98;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    padding: 2rem 0;
-    z-index: 100;
+    box-sizing: border-box;
+    background-color: #ffffff;
+    border-bottom: 2px solid var(--vault-green, #2f855a);
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.14);
+    padding: 1rem 1.25rem 1.35rem;
+    z-index: 940;
+    text-align: left;
   }
 
-  .main-nav.open {
-    display: flex; /* Reveal when state is true */
+  .mobile-user-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: 12px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    text-decoration: none;
   }
 
-  .main-nav ul {
+  .mobile-user-meta {
+    display: flex;
     flex-direction: column;
+    min-width: 0;
+  }
+
+  .mobile-user-welcome {
+    font-size: 0.94rem;
+    font-weight: 800;
+    color: #14532d;
+  }
+
+  .mobile-user-sub {
+    font-size: 0.76rem;
+    color: #166534;
+  }
+
+  .mobile-drawer-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .mobile-section-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+    padding-left: 0.25rem;
+  }
+
+  .mobile-nav-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .mobile-nav-list a,
+  .mobile-logout-btn {
+    display: flex;
+    align-items: center;
     width: 100%;
-    gap: 20px;
+    box-sizing: border-box;
+    padding: 0.6rem 0.8rem;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #1e293b;
+    font-size: 0.96rem;
+    font-weight: 600;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
   }
 
-  .user-status {
-    flex-direction: column;
-    background: rgba(236, 201, 75, 0.1);
-    padding: 10px;
-    border-radius: 8px;
-    width: 80%;
-    margin: 0 auto; 
+  .mobile-nav-list a:hover {
+    background-color: #f8fafc;
+  }
+
+  .mobile-nav-list a.active {
+    background-color: #dcfce7;
+    color: #166534;
+    font-weight: 700;
+  }
+
+  .mobile-register-link {
+    background-color: #166534 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    justify-content: center;
+  }
+
+  .mobile-logout-btn {
+    color: #dc2626;
+    font-weight: 700;
+  }
+
+  .mobile-logout-btn:hover {
+    background-color: #fef2f2;
   }
 }

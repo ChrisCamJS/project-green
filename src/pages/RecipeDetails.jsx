@@ -1078,13 +1078,13 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
               />
             )}
             {getRecipeDietaryFlags(recipe).oilFree && (
-              <span className="recipe-badge-oil-free">🌱 100% Oil-Free</span>
+              <span className="recipe-badge-oil-free">Oil-Free</span>
             )}
             {getRecipeDietaryFlags(recipe).glutenFree && (
-              <span className="recipe-badge-gluten-free">🌾 Gluten-Free</span>
+              <span className="recipe-badge-gluten-free">Gluten-Free</span>
             )}
             {getRecipeDietaryFlags(recipe).sugarFree && (
-              <span className="recipe-badge-sugar-free">🍯 Refined Sugar-Free</span>
+              <span className="recipe-badge-sugar-free">Refined Sugar-Free</span>
             )}
           </div>
           <div className="recipe-details-header">
@@ -1238,7 +1238,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
               }}
               title="Fork this recipe with Emma's Variant Studio"
             >
-              🔀 Create Variant
+              Create Variant
             </button>
 
             <button
@@ -1253,7 +1253,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
               }}
               title="Write a blog post / cooking story about this recipe"
             >
-              ✍️ Write a Story
+              Write a Story
             </button>
 
             <button
@@ -1265,7 +1265,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
                 )
               }
             >
-              📅 Add to Meal Plan
+              Add to Meal Plan
             </button>
 
             <div className="recipe-share-wrapper">
@@ -1276,7 +1276,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
                 aria-expanded={showShareMenu}
                 aria-haspopup="true"
               >
-                {shareCopied ? '✓ Link Copied!' : '🔗 Share Recipe'}
+                {shareCopied ? '✓ Link Copied!' : '🔗 Share'}
               </button>
 
               {showShareMenu && (
@@ -1287,7 +1287,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
                     className="recipe-share-option"
                     onClick={handleCopyShareLink}
                   >
-                    {shareCopied ? '✓ Copied to Clipboard' : '📋 Copy Recipe Link'}
+                    {shareCopied ? '✓ Copied to Clipboard' : 'Copy Recipe Link'}
                   </button>
                   <a
                     role="menuitem"
@@ -1346,7 +1346,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
               className="recipe-details-action-btn print-btn"
               onClick={handleCopyFullRecipe}
             >
-              {recipeCopied ? '✓ Recipe Copied!' : '📋 Copy Full Recipe'}
+              {recipeCopied ? '✓ Recipe Copied!' : 'Copy Recipe'}
             </button>
 
             <button
@@ -1354,7 +1354,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
               className="recipe-details-action-btn print-btn"
               onClick={handlePrintRecipe}
             >
-              🖨️ Print Recipe
+              🖨️ Print
             </button>
           </div>
         </div>
