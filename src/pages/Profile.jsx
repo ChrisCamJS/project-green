@@ -547,7 +547,15 @@ export default function Profile() {
           )}
         </div>
 
-        <AchievementsSection achievements={profile.achievements} />
+        <AchievementsSection
+          achievements={profile.achievements}
+          ownerProfile={{
+            id: profile.id,
+            username: profile.username,
+            displayName: displayTitle,
+            profileImage: avatarSrc,
+          }}
+        />
 
         {profile.is_own_profile && (
           <div className="profile-tabs" role="tablist">

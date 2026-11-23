@@ -210,8 +210,123 @@ export const resolveRecipeFiberGrams = (entry, detail = null) => {
 };
 
 /**
+ * Computes nutrition for a single scheduled meal entry including all attached
+ * sauces, sides, and USDA condiments (scaled by each item's own serving/portion amount).
+ */
+export const computeEntryTotalNutrients = (entry, recipeDetailsMap = {}) => {
+  const mult = Math.max(0.25, Number(entry?.servings || 1));
+  const detail = entry?.recipeId ? recipeDetailsMap?.[entry.recipeId] || null : null;
+  const detailMacros = detail?.macros || detail || {};
+
+  const baseCal = (Number(entry?.calories ?? detailMacros?.calories ?? 0) || 0) * mult;
+  const basePro = (Number(entry?.protein_g ?? detailMacros?.protein_g ?? 0) || 0) * mult;
+  const baseCarb = (Number(entry?.carbs_g ?? detailMacros?.carbs_g ?? 0) || 0) * mult;
+  const baseFat = (Number(entry?.fat_g ?? detailMacros?.fat_g ?? 0) || 0) * mult;
+  const baseFib = resolveRecipeFiberGrams(entry, detail) * mult;
+
+  const baseRawMicros =
+    Array.isArray(entry?.micros) && entry.micros.length > 0
+      ? entry.micros
+      : Array.isArray(detail?.micros) && detail.micros.length > 0
+        ? detail.micros
+        : parseMicrosFromDeepDive(entry?.recipeNotes || detail?.notes || '');
+
+  const scaledMicroChunks = [];
+  if (Array.isArray(baseRawMicros) && baseRawMicros.length > 0) {
+    scaledMicroChunks.push({ list: baseRawMicros, mult });
+  }
+
+  let addCal = 0;
+  let addPro = 0;
+  let addCarb = 0;
+  let addFat = 0;
+  let addFib = 0;
+
+  const addons = Array.isArray(entry?.addons) ? entry.addons : [];
+  for (const ad of addons) {
+    if (!ad || typeof ad !== 'object') continue;
+    if (ad.type === 'usda') {
+      if (ad.per100g && Number(ad.grams) > 0) {
+        const gScale = Number(ad.grams) / 100;
+        addCal += (Number(ad.per100g.calories) || 0) * gScale;
+        addPro += (Number(ad.per100g.protein_g) || 0) * gScale;
+        addCarb += (Number(ad.per100g.carbs_g) || 0) * gScale;
+        addFat += (Number(ad.per100g.fat_g) || 0) * gScale;
+        addFib += (Number(ad.per100g.fiber_g) || 0) * gScale;
+        if (Array.isArray(ad.micros) && ad.micros.length > 0) {
+          scaledMicroChunks.push({ list: ad.micros, mult: 1 });
+        } else if (ad.per100g.micros && typeof ad.per100g.micros === 'object') {
+          const converted = Object.entries(ad.per100g.micros).map(([name, val]) => ({
+            nutrient_name: name,
+            amount: (Number(val) || 0) * gScale,
+            unit: MICRO_ALIAS_MAP[name.toLowerCase()]?.unit || 'mg',
+          }));
+          if (converted.length > 0) {
+            scaledMicroChunks.push({ list: converted, mult: 1 });
+          }
+        }
+      } else {
+        addCal += Number(ad.calories) || 0;
+        addPro += Number(ad.protein_g) || 0;
+        addCarb += Number(ad.carbs_g) || 0;
+        addFat += Number(ad.fat_g) || 0;
+        addFib += Number(ad.fiber_g) || 0;
+        if (Array.isArray(ad.micros) && ad.micros.length > 0) {
+          scaledMicroChunks.push({ list: ad.micros, mult: 1 });
+        }
+      }
+    } else {
+      const adServ = Math.max(0.25, Number(ad.servings || 1));
+      const adDetail = ad.recipeId ? recipeDetailsMap?.[ad.recipeId] || null : null;
+      const adDetailMacros = adDetail?.macros || adDetail || {};
+      addCal += (Number(ad.calories ?? adDetailMacros?.calories ?? 0) || 0) * adServ;
+      addPro += (Number(ad.protein_g ?? adDetailMacros?.protein_g ?? 0) || 0) * adServ;
+      addCarb += (Number(ad.carbs_g ?? adDetailMacros?.carbs_g ?? 0) || 0) * adServ;
+      addFat += (Number(ad.fat_g ?? adDetailMacros?.fat_g ?? 0) || 0) * adServ;
+      addFib += resolveRecipeFiberGrams(ad, adDetail) * adServ;
+
+      const adMicros =
+        Array.isArray(adDetail?.micros) && adDetail.micros.length > 0
+          ? adDetail.micros
+          : Array.isArray(ad.micros) && ad.micros.length > 0
+            ? ad.micros
+            : [];
+      if (adMicros.length > 0) {
+        scaledMicroChunks.push({ list: adMicros, mult: adServ });
+      }
+    }
+  }
+
+  return {
+    baseMacros: {
+      calories: Math.round(baseCal),
+      protein: Math.round(basePro * 10) / 10,
+      carbs: Math.round(baseCarb * 10) / 10,
+      fat: Math.round(baseFat * 10) / 10,
+      fiber: Math.round(baseFib * 10) / 10,
+    },
+    addonsMacros: {
+      calories: Math.round(addCal),
+      protein: Math.round(addPro * 10) / 10,
+      carbs: Math.round(addCarb * 10) / 10,
+      fat: Math.round(addFat * 10) / 10,
+      fiber: Math.round(addFib * 10) / 10,
+    },
+    totalMacros: {
+      calories: Math.round(baseCal + addCal),
+      protein: Math.round((basePro + addPro) * 10) / 10,
+      carbs: Math.round((baseCarb + addCarb) * 10) / 10,
+      fat: Math.round((baseFat + addFat) * 10) / 10,
+      fiber: Math.round((baseFib + addFib) * 10) / 10,
+    },
+    scaledMicroChunks,
+    addonsCount: addons.length,
+  };
+};
+
+/**
  * Aggregates macros, dietary fiber, and common micronutrients across all entries
- * scheduled for a single day, scaled by each entry's servings.
+ * (plus attached sauces, sides, and USDA condiments) scheduled for a single day.
  */
 export const aggregateDailyNutrients = (dayEntries = [], recipeDetailsMap = {}) => {
   const totals = {
@@ -226,58 +341,45 @@ export const aggregateDailyNutrients = (dayEntries = [], recipeDetailsMap = {}) 
   let recipesWithMicroData = 0;
 
   for (const entry of dayEntries) {
-    const mult = Math.max(0.25, Number(entry?.servings || 1));
-    const detail = recipeDetailsMap?.[entry?.recipeId] || null;
-    const detailMacros = detail?.macros || detail || {};
+    const computed = computeEntryTotalNutrients(entry, recipeDetailsMap);
+    totals.calories += computed.totalMacros.calories;
+    totals.protein += computed.totalMacros.protein;
+    totals.carbs += computed.totalMacros.carbs;
+    totals.fat += computed.totalMacros.fat;
+    totals.fiber += computed.totalMacros.fiber;
 
-    const calories = Number(entry?.calories ?? detailMacros?.calories ?? 0) || 0;
-    const protein = Number(entry?.protein_g ?? detailMacros?.protein_g ?? 0) || 0;
-    const carbs = Number(entry?.carbs_g ?? detailMacros?.carbs_g ?? 0) || 0;
-    const fat = Number(entry?.fat_g ?? detailMacros?.fat_g ?? 0) || 0;
-    const fiber = resolveRecipeFiberGrams(entry, detail);
-
-    totals.calories += calories * mult;
-    totals.protein += protein * mult;
-    totals.carbs += carbs * mult;
-    totals.fat += fat * mult;
-    totals.fiber += fiber * mult;
-
-    const rawMicros =
-      Array.isArray(entry?.micros) && entry.micros.length > 0
-        ? entry.micros
-        : Array.isArray(detail?.micros) && detail.micros.length > 0
-          ? detail.micros
-          : parseMicrosFromDeepDive(entry?.recipeNotes || detail?.notes || '');
-
-    if (Array.isArray(rawMicros) && rawMicros.length > 0) {
+    if (computed.scaledMicroChunks.length > 0) {
       recipesWithMicroData += 1;
     }
 
-    for (const micro of rawMicros || []) {
-      const rawName = micro?.nutrient_name || micro?.name || '';
-      const meta = normalizeNutrientMeta(rawName);
-      if (!meta || meta.isFiberMacro) continue;
+    for (const chunk of computed.scaledMicroChunks) {
+      const cMult = chunk.mult || 1;
+      for (const micro of chunk.list || []) {
+        const rawName = micro?.nutrient_name || micro?.name || '';
+        const meta = normalizeNutrientMeta(rawName);
+        if (!meta || meta.isFiberMacro) continue;
 
-      const rawAmount = Number(micro?.amount ?? 0) || 0;
-      const rawUnit = normalizeUnitString(micro?.unit || meta.defaultUnit || '');
-      const rawDv = Number(micro?.daily_value_percentage ?? micro?.dv ?? 0) || 0;
+        const rawAmount = Number(micro?.amount ?? 0) || 0;
+        const rawUnit = normalizeUnitString(micro?.unit || meta.defaultUnit || '');
+        const rawDv = Number(micro?.daily_value_percentage ?? micro?.dv ?? 0) || 0;
 
-      const targetUnit = meta.defaultUnit || rawUnit;
-      const convertedAmount = convertUnitAmount(rawAmount, rawUnit, targetUnit) * mult;
+        const targetUnit = meta.defaultUnit || rawUnit;
+        const convertedAmount = convertUnitAmount(rawAmount, rawUnit, targetUnit) * cMult;
 
-      const existing = microsAccumulator.get(meta.key) || {
-        key: meta.key,
-        name: meta.label,
-        amount: 0,
-        unit: targetUnit || rawUnit || 'mg',
-        dvTarget: meta.dvTarget,
-        rawDvSum: 0,
-        priority: meta.priority,
-      };
+        const existing = microsAccumulator.get(meta.key) || {
+          key: meta.key,
+          name: meta.label,
+          amount: 0,
+          unit: targetUnit || rawUnit || 'mg',
+          dvTarget: meta.dvTarget,
+          rawDvSum: 0,
+          priority: meta.priority,
+        };
 
-      existing.amount += convertedAmount;
-      existing.rawDvSum += rawDv * mult;
-      microsAccumulator.set(meta.key, existing);
+        existing.amount += convertedAmount;
+        existing.rawDvSum += rawDv * cMult;
+        microsAccumulator.set(meta.key, existing);
+      }
     }
   }
 
@@ -508,11 +610,10 @@ NEVER recommend or schedule any recipe whose title or ingredients contain ${user
   const dayTotalsMap = new Map();
   entries.forEach((e) => {
     if (!e?.planDate) return;
-    const baseCal = Number(e.calories) || 0;
-    const serv = Number(e.servings || 1);
+    const computed = computeEntryTotalNutrients(e);
     const prev = dayTotalsMap.get(e.planDate) || { kcal: 0, count: 0 };
     dayTotalsMap.set(e.planDate, {
-      kcal: prev.kcal + baseCal * serv,
+      kcal: prev.kcal + computed.totalMacros.calories,
       count: prev.count + 1,
     });
   });
@@ -540,13 +641,25 @@ NEVER recommend or schedule any recipe whose title or ingredients contain ${user
       ? 'No meals are currently scheduled in the visible calendar window.'
       : entries
           .map((e) => {
+            const computed = computeEntryTotalNutrients(e);
             const baseCal = Number(e.calories) || 0;
             const serv = Number(e.servings || 1);
+            const totalCal = computed.totalMacros.calories;
             const calStr =
-              baseCal > 0
-                ? `base=${Math.round(baseCal)} kcal/serving, total=${Math.round(baseCal * serv)} kcal`
+              totalCal > 0
+                ? `base=${Math.round(baseCal)} kcal/serving, combined_total=${totalCal} kcal`
                 : 'kcal N/A';
-            return `- entry_id=${e.id} | ${e.planDate} | ${e.mealSlot} | "${e.title}" (recipe_id=${e.recipeId}, servings=${serv}, ${calStr}${e.isDraft ? ', DRAFT' : ''})`;
+            const addonDesc =
+              Array.isArray(e.addons) && e.addons.length > 0
+                ? `; sauces/sides=[${e.addons
+                    .map((ad) =>
+                      ad.type === 'usda'
+                        ? `${ad.title} (${ad.amount} ${ad.unit})`
+                        : `${ad.title} (${ad.servings} srv)`
+                    )
+                    .join(', ')}]`
+                : '';
+            return `- entry_id=${e.id} | ${e.planDate} | ${e.mealSlot} | "${e.title}" (recipe_id=${e.recipeId || 'USDA'}, servings=${serv}, ${calStr}${e.isDraft ? ', DRAFT' : ''}${addonDesc})`;
           })
           .join('\n');
 
@@ -581,10 +694,11 @@ NEVER recommend or schedule any recipe whose title or ingredients contain ${user
   const actionProtocol = vocalMode
     ? `LIVE AUDIO MEAL PLANNER CAPABILITIES (CRITICAL):
 1. THIS IS A LIVE VOICE SESSION. Do NOT speak or output Markdown syntax, asterisks, URLs, or XML tags.
-2. You have FULL permission to schedule, update, or remove meals on ${userName}'s Meal Planner calendar using your tool calls:
+2. You have FULL permission to schedule, update, copy/repeat, or remove meals on ${userName}'s Meal Planner calendar using your tool calls:
    - Call \`schedule_meal_plan_entries\` when the user asks you to add, fill in, or populate one or more meals/days on the calendar (set \`servings\` in 0.25 increments from 0.25 to 20 to match their daily calorie target).
    - Call \`update_meal_plan_entry\` to move/change an existing scheduled entry (using its \`entry_id\`, including adjusting \`servings\`).
    - Call \`update_meal_plan_entries\` to adjust servings (or other fields) on multiple existing scheduled entries at once (e.g., scaling a whole day to match the user's daily calorie target).
+   - Call \`copy_meal_plan_range\` to copy/repeat a Day, Week, or Month into another Day, Week, or Month (e.g., repeating last week or copying a month to next month before swapping specific days).
    - Call \`remove_meal_plan_entries\` to remove specific \`entry_id\` entries or clear a date/slot.
 3. Match dietary preferences accurately (e.g. only pick Gluten-Free recipes if they ask for gluten-free).
 4. Always use exact \`recipe_id\` integers from the Plannable Recipe Catalog and exact \`YYYY-MM-DD\` dates from the Calendar Date Reference. After calling a tool, confirm warmly out loud which recipes and serving sizes you scheduled or adjusted on which days.`
@@ -592,7 +706,7 @@ NEVER recommend or schedule any recipe whose title or ingredients contain ${user
 1. You have FULL access to ${userName}'s Meal Planner calendar and all plannable recipes (published recipes + their own private drafts).
 2. Format your conversational reply cleanly in Markdown. Whenever you mention or recommend a recipe from the catalog, ALWAYS link to it using [Recipe Title](/recipe/<recipe_id>) so ${userName} can click straight through!
 3. CALENDAR MODIFICATION PROTOCOL:
-   Whenever the user asks you to add, schedule, fill in, plan, populate, move, update, swap, adjust servings/calories, or remove meals on their calendar, perform a conversational response explaining your choices AND append ONE XML action block at the very end of your message:
+   Whenever the user asks you to add, schedule, fill in, plan, populate, move, update, swap, copy/repeat a day/week/month, adjust servings/calories, or remove meals on their calendar, perform a conversational response explaining your choices AND append ONE XML action block at the very end of your message:
    <MEAL_PLAN_ACTIONS>
    [
      { "action": "add", "recipe_id": 123, "plan_date": "YYYY-MM-DD", "meal_slot": "breakfast", "servings": 1.5, "notes": "Optional short note" }
@@ -602,6 +716,7 @@ NEVER recommend or schedule any recipe whose title or ingredients contain ${user
    Supported action schemas inside the JSON array:
    - Add a meal: { "action": "add", "recipe_id": <int>, "plan_date": "YYYY-MM-DD", "meal_slot": "breakfast"|"lunch"|"dinner"|"snack", "servings": <number in 0.25 increments from 0.25 to 20, e.g. 0.75, 1, 1.25, 1.5, 2>, "notes": "optional" }
    - Update/move or rescale servings on an existing meal (only \`entry_id\` plus the changed fields such as \`servings\` are required—omitted fields keep their existing values): { "action": "update", "entry_id": <int>, "recipe_id": <optional int>, "plan_date": <optional "YYYY-MM-DD">, "meal_slot": <optional "breakfast"|"lunch"|"dinner"|"snack">, "servings": <optional number in 0.25 increments from 0.25 to 20>, "notes": <optional string> }
+   - Copy or repeat a Day, Week, or Month: { "action": "copy_range", "mode": "day"|"week"|"month", "source_start": "YYYY-MM-DD", "source_end": "YYYY-MM-DD", "target_start": "YYYY-MM-DD", "repeat_count": 1, "overwrite": false }
    - Remove one entry: { "action": "remove", "entry_id": <int> }
    - Clear a day (or one slot on a day): { "action": "clear_day", "plan_date": "YYYY-MM-DD", "meal_slot": "optional slot or omit for whole day" }
 
@@ -609,7 +724,8 @@ NEVER recommend or schedule any recipe whose title or ingredients contain ${user
    - ONLY use real \`recipe_id\` integers from the Plannable Recipe Catalog below, and valid \`YYYY-MM-DD\` dates from the Calendar Date Reference.
    - Check each recipe's \`Diet\` tags and ingredients before scheduling if the user specifies Gluten-Free, Oil-Free, high-protein, high-iron, etc.
    - \`servings\` supports \`0.25\` increments from \`0.25\` to \`20\` (e.g., \`0.5\`, \`0.75\`, \`1\`, \`1.25\`, \`1.5\`, \`1.75\`, \`2\`).
-   - If the user is ONLY asking a question (e.g., "give me links to gluten-free dinners" or "what nutrients am I low on?"), do NOT output \`<MEAL_PLAN_ACTIONS>\`. Only emit \`<MEAL_PLAN_ACTIONS>\` when they want the calendar modified, rescaled, or filled in.
+   - If the user asks to copy a previous month/week to next month/week and swap specific days, you can emit \`copy_range\` followed by \`clear_day\` / \`add\` actions for the specific days being changed!
+   - If the user is ONLY asking a question (e.g., "give me links to gluten-free dinners" or "what nutrients am I low on?"), do NOT output \`<MEAL_PLAN_ACTIONS>\`. Only emit \`<MEAL_PLAN_ACTIONS>\` when they want the calendar modified, rescaled, copied, or filled in.
 
 ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
 
@@ -690,7 +806,7 @@ export const extractMealPlanActions = (rawText = '') => {
         if (
           list &&
           list.length > 0 &&
-          list.every((it) => it && typeof it === 'object' && ['add', 'update', 'remove', 'clear_day'].includes(it.action))
+          list.every((it) => it && typeof it === 'object' && ['add', 'update', 'remove', 'clear_day', 'copy_range'].includes(it.action))
         ) {
           list.forEach((it) => actions.push(it));
           return '';
@@ -832,6 +948,41 @@ export const MEAL_PLANNER_LIVE_TOOLS = [
             },
           },
           required: ['entries'],
+        },
+      },
+      {
+        name: 'copy_meal_plan_range',
+        description:
+          'Copy or repeat planned meals from a source day, week, or month onto a target day, week, or month (e.g. copy previous month into next month).',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            mode: {
+              type: 'STRING',
+              description: 'One of: day, week, month.',
+            },
+            source_start: {
+              type: 'STRING',
+              description: 'Source start date in YYYY-MM-DD (or first of month YYYY-MM-01).',
+            },
+            source_end: {
+              type: 'STRING',
+              description: 'Source end date in YYYY-MM-DD (optional for day/week).',
+            },
+            target_start: {
+              type: 'STRING',
+              description: 'Target start date in YYYY-MM-DD (or first of target month YYYY-MM-01).',
+            },
+            repeat_count: {
+              type: 'INTEGER',
+              description: 'Optional repeat count (1 to 12). Defaults to 1.',
+            },
+            overwrite: {
+              type: 'BOOLEAN',
+              description: 'Whether to replace existing meals in the target dates (true) or merge alongside them (false).',
+            },
+          },
+          required: ['mode', 'source_start', 'target_start'],
         },
       },
       {

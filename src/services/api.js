@@ -305,6 +305,40 @@ export const api = {
         });
     },
 
+    searchUsdaCondiments: (query = '') => {
+        return fetchWrapper(`/meal-plans/usda-search?q=${encodeURIComponent(query)}`, {
+            method: 'GET',
+        });
+    },
+
+    copyMealPlanRange: (payload) => {
+        return fetchWrapper('/meal-plans/copy-range', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+    },
+
+    createSharedMealPlan: (payload) => {
+        return fetchWrapper('/meal-plans/share', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+    },
+
+    getSharedMealPlan: (token) => {
+        return fetchWrapper(`/meal-plans/share?token=${encodeURIComponent(token)}`, {
+            method: 'GET',
+            cache: 'no-store',
+        });
+    },
+
+    importSharedMealPlan: (payload) => {
+        return fetchWrapper('/meal-plans/import-share', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+    },
+
     // RECENT CHATS (30-DAY DB STORAGE)
     getRecentChats: () => {
         return fetchWrapper('/chats', {

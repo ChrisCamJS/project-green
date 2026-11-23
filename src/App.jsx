@@ -16,6 +16,8 @@ import Favorites from './pages/Favorites';
 import Profile from './pages/Profile';
 import BuyTokens from './pages/BuyTokens';
 import MealPlanner from './pages/MealPlanner';
+import SharedMealPlan from './pages/SharedMealPlan';
+import SharedAchievement from './pages/SharedAchievement';
 import ResetPassword from './pages/ResetPassword';
 import ForgotPassword from './pages/ForgotPassword';
 import VerifyEmail from './pages/VerifyEmail';
@@ -41,6 +43,9 @@ function App() {
               <Route path='/privacy-policy' element={<PrivacyPolicy />} />
               <Route path='/contact' element={<Contact />} />
               <Route path='/profile/:identifier' element={<Profile />} />
+              <Route path='/achievements/shared/:identifier' element={<SharedAchievement />} />
+              <Route path='/achievements/shared/:identifier/:badgeKey/:level' element={<SharedAchievement />} />
+              <Route path='/meal-planner/shared/:token' element={<SharedMealPlan />} />
               <Route path='/register' element={<Register />} />
               <Route path='/verify-email' element={<VerifyEmail />} />
               <Route path='/reset-password' element={<ResetPassword />} />

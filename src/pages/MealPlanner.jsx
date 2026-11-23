@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { sendChatMessage } from '../services/geminiApi';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +11,7 @@ import VoiceDictationButton from '../components/VoiceDictationButton';
 import { extractRecipeIdeas } from '../utils/recipeIdeas';
 import FitnessTrackerPanel from '../components/FitnessTrackerPanel';
 import LiveChat from '../components/LiveChat';
+import MealPlanAddonsBuilder, { UsdaFoodSearchPicker } from '../components/MealPlanAddonsBuilder';
 import {
   MEAL_SLOTS,
   getMealSlotMeta,
@@ -24,12 +25,39 @@ import {
   COMMON_NUTRIENT_TARGETS,
   MEAL_PLANNER_LIVE_TOOLS,
   aggregateDailyNutrients,
+  computeEntryTotalNutrients,
   buildMealPlannerEmmaSystemPrompt,
   extractMealPlanActions,
   fetchPublishedRecipesCatalog,
-  resolveRecipeFiberGrams,
 } from '../utils/emmaRecipeContext';
 import './MealPlanner.css';
+
+const shiftYearMonth = (ymStr, deltaMonths) => {
+  const [y, m] = String(ymStr || '').split('-').map((n) => parseInt(n, 10));
+  if (!y || !m) {
+    const now = new Date();
+    now.setMonth(now.getMonth() + deltaMonths);
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }
+  const dt = new Date(y, m - 1 + deltaMonths, 1);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const getWeekStartEnd = (anchorYmd) => {
+  const anchor = parseDateYMD(anchorYmd);
+  const startDt = new Date(anchor);
+  startDt.setDate(anchor.getDate() - anchor.getDay());
+  const start = formatDateYMD(startDt);
+  const end = addDaysYMD(start, 6);
+  return { start, end };
+};
+
+const getMonthStartEnd = (anchorYmd) => {
+  const anchor = parseDateYMD(anchorYmd);
+  const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+  const last = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
+  return { start: formatDateYMD(first), end: formatDateYMD(last) };
+};
 
 const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -105,25 +133,63 @@ const MEAL_PLAN_CHAT_COST = 0.05;
 
 export default function MealPlanner() {
   const todayYmd = formatDateYMD(new Date());
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialDateParam = searchParams.get('date');
+  const initialViewParam = searchParams.get('view');
   const { user, spendToken, confirmTokenUsage, promptPurchaseTokens } = useAuth();
   const { speechState, handleSpeak } = useEmmaVoice();
   const currentUserName = user?.username || 'Love';
   const mealChatConfirmedRef = useRef(false);
   const [mealChatTokensSpent, setMealChatTokensSpent] = useState(0);
 
-  const [viewMode, setViewMode] = useState('month'); // 'month' | 'week' | 'day'
-  const [anchorDate, setAnchorDate] = useState(todayYmd);
+  const [viewMode, setViewMode] = useState(
+    ['month', 'week', 'day'].includes(initialViewParam) ? initialViewParam : 'month'
+  ); // 'month' | 'week' | 'day'
+  const [anchorDate, setAnchorDate] = useState(
+    initialDateParam && /^\d{4}-\d{2}-\d{2}$/.test(initialDateParam) ? initialDateParam : todayYmd
+  );
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [calendarToast, setCalendarToast] = useState(null);
+
+  useEffect(() => {
+    const paramDate = searchParams.get('date');
+    const paramView = searchParams.get('view');
+    if (paramDate && /^\d{4}-\d{2}-\d{2}$/.test(paramDate)) {
+      setAnchorDate(paramDate);
+    }
+    if (paramView && ['month', 'week', 'day'].includes(paramView)) {
+      setViewMode(paramView);
+    }
+    if (paramDate || paramView) {
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const showToastBanner = useCallback((msg, type = 'success') => {
+    setCalendarToast({ msg, type, id: Date.now() });
+  }, []);
+
+  useEffect(() => {
+    if (!calendarToast) return undefined;
+    const t = setTimeout(() => setCalendarToast(null), 5000);
+    return () => clearTimeout(t);
+  }, [calendarToast]);
+
+  // Drag & drop state
+  const [dragMode, setDragMode] = useState('move'); // 'move' | 'copy'
+  const [dragPayload, setDragPayload] = useState(null);
+  const [dropTargetKey, setDropTargetKey] = useState(null);
 
   // Per-recipe detailed nutrition cache (hydrates micros/fiber even before backend upgrade)
   const [recipeDetailsMap, setRecipeDetailsMap] = useState({});
   const requestedRecipeDetailsRef = useRef(new Set());
   const [showAllDailyMicros, setShowAllDailyMicros] = useState(false);
 
-  // Add Recipe Picker modal state
+  // Add Recipe / USDA Condiment Picker modal state
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerEntryMode, setPickerEntryMode] = useState('recipe'); // 'recipe' | 'usda'
   const [pickerDate, setPickerDate] = useState(todayYmd);
   const [pickerSlot, setPickerSlot] = useState('dinner');
   const [pickerServings, setPickerServings] = useState(1);
@@ -133,6 +199,8 @@ export default function MealPlanner() {
   const [plannableRecipes, setPlannableRecipes] = useState([]);
   const [recipesLoading, setRecipesLoading] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [pickerUsdaItem, setPickerUsdaItem] = useState(null);
+  const [pickerAddons, setPickerAddons] = useState([]);
   const [pickerSaving, setPickerSaving] = useState(false);
   const [pickerError, setPickerError] = useState(null);
 
@@ -142,7 +210,31 @@ export default function MealPlanner() {
   const [editSlot, setEditSlot] = useState('dinner');
   const [editServings, setEditServings] = useState(1);
   const [editNotes, setEditNotes] = useState('');
+  const [editAddons, setEditAddons] = useState([]);
   const [editSaving, setEditSaving] = useState(false);
+  const [editFocusAddons, setEditFocusAddons] = useState(false);
+
+  // Copy / Repeat modal state
+  const [copyModalOpen, setCopyModalOpen] = useState(false);
+  const [copyMode, setCopyMode] = useState('month'); // 'month' | 'week' | 'day'
+  const [copySourceStart, setCopySourceStart] = useState(todayYmd);
+  const [copyTargetStart, setCopyTargetStart] = useState(todayYmd);
+  const [copySourceMonth, setCopySourceMonth] = useState(todayYmd.slice(0, 7));
+  const [copyTargetMonth, setCopyTargetMonth] = useState(shiftYearMonth(todayYmd.slice(0, 7), 1));
+  const [copyRepeatCount, setCopyRepeatCount] = useState(1);
+  const [copyOverwrite, setCopyOverwrite] = useState(false);
+  const [copyBusy, setCopyBusy] = useState(false);
+  const [copyError, setCopyError] = useState(null);
+
+  // Share Meal Plan modal state
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareScope, setShareScope] = useState('week'); // 'day' | 'week' | 'month'
+  const [shareTitle, setShareTitle] = useState('');
+  const [shareDesc, setShareDesc] = useState('');
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareError, setShareError] = useState(null);
+  const [shareResult, setShareResult] = useState(null);
+  const [shareCopied, setShareCopied] = useState(false);
 
   // Emma Meal Planning Concierge state (Text Chat + Live Audio Mode)
   const [conciergeOpen, setConciergeOpen] = useState(true);
@@ -262,21 +354,33 @@ export default function MealPlanner() {
     loadMealPlans();
   }, [loadMealPlans]);
 
-  // Hydrate missing micros/notes/fiber for planned recipes via single-recipe endpoint
+  // Hydrate missing micros/notes/fiber for planned recipes AND recipe addons via single-recipe endpoint
   useEffect(() => {
-    const missingIds = Array.from(
-      new Set(
-        entries
-          .filter(
-            (e) =>
-              e.recipeId &&
-              (!Array.isArray(e.micros) || e.micros.length === 0) &&
-              !recipeDetailsMap[e.recipeId] &&
-              !requestedRecipeDetailsRef.current.has(e.recipeId)
-          )
-          .map((e) => Number(e.recipeId))
-      )
-    );
+    const idSet = new Set();
+    entries.forEach((e) => {
+      if (
+        e.recipeId &&
+        (!Array.isArray(e.micros) || e.micros.length === 0) &&
+        !recipeDetailsMap[e.recipeId] &&
+        !requestedRecipeDetailsRef.current.has(e.recipeId)
+      ) {
+        idSet.add(Number(e.recipeId));
+      }
+      if (Array.isArray(e.addons)) {
+        e.addons.forEach((ad) => {
+          if (
+            ad?.type === 'recipe' &&
+            ad.recipeId &&
+            (!Array.isArray(ad.micros) || ad.micros.length === 0) &&
+            !recipeDetailsMap[ad.recipeId] &&
+            !requestedRecipeDetailsRef.current.has(ad.recipeId)
+          ) {
+            idSet.add(Number(ad.recipeId));
+          }
+        });
+      }
+    });
+    const missingIds = Array.from(idSet);
 
     if (missingIds.length === 0) return undefined;
 
@@ -341,12 +445,15 @@ export default function MealPlanner() {
     setAnchorDate(formatDateYMD(nextMonth));
   };
 
-  const openPickerModal = async (dateYmd = anchorDate, slotId = 'dinner') => {
+  const openPickerModal = async (dateYmd = anchorDate, slotId = 'dinner', entryMode = 'recipe') => {
+    setPickerEntryMode(entryMode === 'usda' ? 'usda' : 'recipe');
     setPickerDate(dateYmd || todayYmd);
     setPickerSlot(slotId || 'dinner');
     setPickerServings(1);
     setPickerNotes('');
     setSelectedRecipe(null);
+    setPickerUsdaItem(null);
+    setPickerAddons([]);
     setPickerError(null);
     setPickerOpen(true);
 
@@ -355,25 +462,51 @@ export default function MealPlanner() {
 
   const handleAddFromPicker = async (e) => {
     e.preventDefault();
-    if (!selectedRecipe) {
+    if (pickerEntryMode === 'usda') {
+      if (!pickerUsdaItem) {
+        setPickerError('Search and select a USDA condiment, sauce, or food item first.');
+        return;
+      }
+    } else if (!selectedRecipe) {
       setPickerError('Select a recipe first, love.');
       return;
     }
+
     setPickerSaving(true);
     setPickerError(null);
     try {
-      const res = await api.addMealPlanEntry({
-        recipe_id: selectedRecipe.id,
-        plan_date: pickerDate,
-        meal_slot: pickerSlot,
-        servings: Number(pickerServings) || 1,
-        notes: pickerNotes.trim(),
-      });
+      const payload =
+        pickerEntryMode === 'usda'
+          ? {
+              entry_type: 'usda',
+              custom_item: pickerUsdaItem,
+              plan_date: pickerDate,
+              meal_slot: pickerSlot,
+              servings: 1,
+              notes: pickerNotes.trim(),
+              addons: pickerAddons,
+            }
+          : {
+              entry_type: 'recipe',
+              recipe_id: selectedRecipe.id,
+              plan_date: pickerDate,
+              meal_slot: pickerSlot,
+              servings: Number(pickerServings) || 1,
+              notes: pickerNotes.trim(),
+              addons: pickerAddons,
+            };
+
+      const res = await api.addMealPlanEntry(payload);
       if (res?.success) {
         setPickerOpen(false);
         await loadMealPlans();
+        showToastBanner(
+          pickerAddons.length > 0
+            ? 'Meal & attached sauces/sides added to your daily tally!'
+            : 'Added to your meal plan!'
+        );
       } else {
-        setPickerError(res?.message || 'Unable to schedule recipe.');
+        setPickerError(res?.message || 'Unable to schedule item.');
       }
     } catch (err) {
       setPickerError(err.message || 'Unable to save meal plan entry.');
@@ -382,12 +515,14 @@ export default function MealPlanner() {
     }
   };
 
-  const openEditModal = (entry) => {
+  const openEditModal = (entry, focusAddonsSection = false) => {
     setEditingEntry(entry);
     setEditDate(entry.planDate);
     setEditSlot(entry.mealSlot || 'dinner');
     setEditServings(entry.servings || 1);
     setEditNotes(entry.notes || '');
+    setEditAddons(Array.isArray(entry.addons) ? entry.addons : []);
+    setEditFocusAddons(Boolean(focusAddonsSection));
   };
 
   const handleSaveEdit = async (e) => {
@@ -399,17 +534,290 @@ export default function MealPlanner() {
         id: editingEntry.id,
         plan_date: editDate,
         meal_slot: editSlot,
-        servings: Number(editServings) || 1,
+        servings: editingEntry.entryType === 'usda' ? 1 : Number(editServings) || 1,
         notes: editNotes.trim(),
+        addons: editAddons,
       });
       if (res?.success) {
         setEditingEntry(null);
         await loadMealPlans();
+        showToastBanner('Updated planned meal & nutrition totals!');
       }
     } catch (err) {
       alert(err.message || 'Could not update meal plan.');
     } finally {
       setEditSaving(false);
+    }
+  };
+
+  // Drag & Drop handlers (Meals + Entire Days)
+  const handleDragStartMeal = (e, mealEntry) => {
+    const payload = { kind: 'meal', entry: mealEntry };
+    setDragPayload(payload);
+    try {
+      e.dataTransfer.setData('text/plain', JSON.stringify({ kind: 'meal', entryId: mealEntry.id }));
+      e.dataTransfer.effectAllowed = dragMode === 'copy' || e.altKey ? 'copy' : 'move';
+    } catch {
+      // Ignore synthetic events
+    }
+  };
+
+  const handleDragStartDay = (e, sourceDate) => {
+    const payload = { kind: 'day', sourceDate };
+    setDragPayload(payload);
+    try {
+      e.dataTransfer.setData('text/plain', JSON.stringify(payload));
+      e.dataTransfer.effectAllowed = 'copy';
+    } catch {
+      // Ignore
+    }
+  };
+
+  const handleCalendarDrop = async (e, targetDate, targetSlot = null) => {
+    e.preventDefault();
+    setDropTargetKey(null);
+    if (!dragPayload || !targetDate) return;
+
+    const activeDrag = dragPayload;
+    setDragPayload(null);
+
+    if (activeDrag.kind === 'day') {
+      const sourceDate = activeDrag.sourceDate;
+      if (!sourceDate || sourceDate === targetDate) return;
+      try {
+        const res = await api.copyMealPlanRange({
+          mode: 'day',
+          source_start: sourceDate,
+          target_start: targetDate,
+          overwrite: false,
+        });
+        if (res?.success) {
+          await loadMealPlans();
+          showToastBanner(`Copied ${res.copiedCount} meal(s) from ${sourceDate} to ${targetDate}!`);
+        }
+      } catch (err) {
+        showToastBanner(err.message || 'Could not copy day.', 'error');
+      }
+      return;
+    }
+
+    if (activeDrag.kind === 'meal' && activeDrag.entry) {
+      const meal = activeDrag.entry;
+      const nextSlot = targetSlot || meal.mealSlot || 'dinner';
+      const duplicate = dragMode === 'copy' || e.altKey || e.ctrlKey;
+
+      if (!duplicate && meal.planDate === targetDate && meal.mealSlot === nextSlot) {
+        return;
+      }
+
+      try {
+        if (duplicate) {
+          const payload =
+            meal.entryType === 'usda'
+              ? {
+                  entry_type: 'usda',
+                  custom_item: meal.customItem,
+                  plan_date: targetDate,
+                  meal_slot: nextSlot,
+                  servings: 1,
+                  notes: meal.notes || '',
+                  addons: meal.addons || [],
+                }
+              : {
+                  entry_type: 'recipe',
+                  recipe_id: meal.recipeId,
+                  plan_date: targetDate,
+                  meal_slot: nextSlot,
+                  servings: Number(meal.servings) || 1,
+                  notes: meal.notes || '',
+                  addons: meal.addons || [],
+                };
+          const res = await api.addMealPlanEntry(payload);
+          if (res?.success) {
+            await loadMealPlans();
+            showToastBanner(`Copied "${meal.title}" to ${targetDate} (${getMealSlotMeta(nextSlot).label}).`);
+          }
+        } else {
+          const res = await api.updateMealPlanEntry({
+            id: meal.id,
+            plan_date: targetDate,
+            meal_slot: nextSlot,
+          });
+          if (res?.success) {
+            await loadMealPlans();
+            showToastBanner(`Moved "${meal.title}" to ${targetDate} (${getMealSlotMeta(nextSlot).label}).`);
+          }
+        }
+      } catch (err) {
+        showToastBanner(err.message || 'Drag-and-drop update failed.', 'error');
+      }
+    }
+  };
+
+  // Copy / Repeat Modal handlers
+  const openCopyModal = (initialMode = null, customSourceDate = null) => {
+    const modeToUse = ['day', 'week', 'month'].includes(initialMode)
+      ? initialMode
+      : ['day', 'week', 'month'].includes(viewMode)
+        ? viewMode
+        : 'month';
+    const baseDate = customSourceDate || anchorDate;
+    const anchorMonth = baseDate.slice(0, 7);
+    const weekInfo = getWeekStartEnd(baseDate);
+
+    setCopyMode(modeToUse);
+    setCopySourceMonth(anchorMonth);
+    setCopyTargetMonth(shiftYearMonth(anchorMonth, 1));
+    setCopySourceStart(modeToUse === 'week' ? weekInfo.start : baseDate);
+    setCopyTargetStart(
+      modeToUse === 'week' ? addDaysYMD(weekInfo.start, 7) : addDaysYMD(baseDate, 1)
+    );
+    setCopyRepeatCount(1);
+    setCopyOverwrite(false);
+    setCopyError(null);
+    setCopyModalOpen(true);
+  };
+
+  const executeCopyRange = async (payload) => {
+    setCopyBusy(true);
+    setCopyError(null);
+    try {
+      const res = await api.copyMealPlanRange(payload);
+      if (res?.success) {
+        setCopyModalOpen(false);
+        if (payload.mode === 'month' && payload.target_start) {
+          const tMonthFirst = payload.target_start.length === 7 ? `${payload.target_start}-01` : payload.target_start;
+          setAnchorDate(tMonthFirst);
+          setViewMode('month');
+        } else if (payload.target_start && /^\d{4}-\d{2}-\d{2}$/.test(payload.target_start)) {
+          setAnchorDate(payload.target_start);
+        }
+        await loadMealPlans();
+        showToastBanner(res.message || `Copied ${res.copiedCount} meal(s)!`);
+      } else {
+        setCopyError(res?.message || 'Unable to copy meals.');
+      }
+    } catch (err) {
+      setCopyError(err.message || 'Could not copy meal plan.');
+    } finally {
+      setCopyBusy(false);
+    }
+  };
+
+  const handleCopySubmit = async (e) => {
+    e.preventDefault();
+    if (copyMode === 'month') {
+      await executeCopyRange({
+        mode: 'month',
+        source_start: copySourceMonth,
+        target_start: copyTargetMonth,
+        repeat_count: Number(copyRepeatCount) || 1,
+        overwrite: copyOverwrite,
+      });
+    } else if (copyMode === 'week') {
+      await executeCopyRange({
+        mode: 'week',
+        source_start: copySourceStart,
+        source_end: addDaysYMD(copySourceStart, 6),
+        target_start: copyTargetStart,
+        repeat_count: Number(copyRepeatCount) || 1,
+        overwrite: copyOverwrite,
+      });
+    } else {
+      await executeCopyRange({
+        mode: 'day',
+        source_start: copySourceStart,
+        target_start: copyTargetStart,
+        repeat_count: Number(copyRepeatCount) || 1,
+        overwrite: copyOverwrite,
+      });
+    }
+  };
+
+  // Share Meal Plan Modal handlers
+  const getShareRangeBounds = useCallback(
+    (scope) => {
+      if (scope === 'day') {
+        return { start: anchorDate, end: anchorDate };
+      }
+      if (scope === 'month') {
+        return getMonthStartEnd(anchorDate);
+      }
+      return getWeekStartEnd(anchorDate);
+    },
+    [anchorDate]
+  );
+
+  const openShareModal = (scopeOverride = null) => {
+    const scopeToUse = ['day', 'week', 'month'].includes(scopeOverride)
+      ? scopeOverride
+      : ['day', 'week', 'month'].includes(viewMode)
+        ? viewMode
+        : 'week';
+    const range = getShareRangeBounds(scopeToUse);
+    const defaultLabel =
+      scopeToUse === 'day'
+        ? `${currentUserName}'s WFPB Day Plan (${range.start})`
+        : scopeToUse === 'month'
+          ? `${currentUserName}'s ${parseDateYMD(range.start).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })} Plan`
+          : `${currentUserName}'s Weekly Meal Plan`;
+    setShareScope(scopeToUse);
+    setShareTitle(defaultLabel);
+    setShareDesc('');
+    setShareResult(null);
+    setShareError(null);
+    setShareCopied(false);
+    setShareModalOpen(true);
+  };
+
+  const handleShareScopeChange = (nextScope) => {
+    setShareScope(nextScope);
+    const range = getShareRangeBounds(nextScope);
+    setShareResult(null);
+    setShareError(null);
+    setShareTitle(
+      nextScope === 'day'
+        ? `${currentUserName}'s WFPB Day Plan (${range.start})`
+        : nextScope === 'month'
+          ? `${currentUserName}'s ${parseDateYMD(range.start).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })} Plan`
+          : `${currentUserName}'s Weekly Meal Plan`
+    );
+  };
+
+  const handleCreateShare = async (e) => {
+    e.preventDefault();
+    const range = getShareRangeBounds(shareScope);
+    setShareBusy(true);
+    setShareError(null);
+    try {
+      const res = await api.createSharedMealPlan({
+        scope: shareScope,
+        start_date: range.start,
+        end_date: range.end,
+        title: shareTitle.trim(),
+        description: shareDesc.trim(),
+      });
+      if (res?.success && res.shareToken) {
+        const shareUrl = `${window.location.origin}/meal-planner/shared/${res.shareToken}`;
+        setShareResult({ ...res, shareUrl });
+      } else {
+        setShareError(res?.message || 'Unable to generate share link.');
+      }
+    } catch (err) {
+      setShareError(err.message || 'Could not share meal plan.');
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
+  const handleCopyShareUrl = async () => {
+    if (!shareResult?.shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareResult.shareUrl);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    } catch {
+      window.prompt('Copy this meal plan link:', shareResult.shareUrl);
     }
   };
 
@@ -672,6 +1080,28 @@ export default function MealPlanner() {
               errors.push(err?.message || `Failed to remove "${item.title}"`);
             }
           }
+          continue;
+        }
+
+        if (actionType === 'copy_range') {
+          try {
+            const copyRes = await api.copyMealPlanRange({
+              mode: act.mode || 'week',
+              source_start: act.source_start,
+              source_end: act.source_end,
+              target_start: act.target_start,
+              repeat_count: Number(act.repeat_count) || 1,
+              overwrite: Boolean(act.overwrite),
+            });
+            if (copyRes?.success) {
+              appliedCount += 1;
+              summaries.push(copyRes.message || `Copied ${copyRes.copiedCount} meal(s) to ${act.target_start}`);
+            } else {
+              errors.push(copyRes?.message || 'Could not copy meal plan range.');
+            }
+          } catch (err) {
+            errors.push(err?.message || 'Failed to copy meal plan range.');
+          }
         }
       }
 
@@ -728,6 +1158,18 @@ export default function MealPlanner() {
         return {
           success: result.appliedCount > 0,
           updatedCount: result.appliedCount,
+          details: result.summaries,
+          errors: result.errors,
+        };
+      }
+
+      if (name === 'copy_meal_plan_range') {
+        const result = await executeMealPlanActions([{ action: 'copy_range', ...args }]);
+        if (result.summaries.length > 0) {
+          setLiveActionLog((prev) => [...result.summaries, ...prev].slice(0, 12));
+        }
+        return {
+          success: result.appliedCount > 0,
           details: result.summaries,
           errors: result.errors,
         };
@@ -925,6 +1367,22 @@ export default function MealPlanner() {
         <div className="mp-top-header-actions">
           <button
             type="button"
+            className="mp-secondary-btn"
+            onClick={() => openShareModal()}
+            title="Share your Day, Week, or Month meal plan on any platform"
+          >
+            🔗 Share Plan
+          </button>
+          <button
+            type="button"
+            className="mp-secondary-btn"
+            onClick={() => openCopyModal()}
+            title="Copy or repeat a Day, Week, or Month"
+          >
+            🔁 Copy / Repeat
+          </button>
+          <button
+            type="button"
             className={`mp-emma-toggle-btn ${conciergeOpen ? 'active' : ''}`}
             onClick={() => setConciergeOpen((prev) => !prev)}
           >
@@ -939,6 +1397,18 @@ export default function MealPlanner() {
           </button>
         </div>
       </div>
+
+      {calendarToast && (
+        <div
+          className={`mp-toast-banner ${calendarToast.type === 'error' ? 'error' : 'success'}`}
+          role="status"
+        >
+          <span>{calendarToast.msg}</span>
+          <button type="button" onClick={() => setCalendarToast(null)} aria-label="Dismiss notification">
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* EMMA'S MEAL PLANNING CONCIERGE (CHAT + LIVE AUDIO MODE) */}
       {conciergeOpen && (
@@ -1184,7 +1654,17 @@ export default function MealPlanner() {
           </button>
         </div>
 
-        <h2 className="mp-range-label">{visibleRange.label}</h2>
+        <div className="mp-controls-right">
+          <button
+            type="button"
+            className={`mp-drag-mode-btn ${dragMode === 'copy' ? 'copy-active' : ''}`}
+            onClick={() => setDragMode((prev) => (prev === 'move' ? 'copy' : 'move'))}
+            title="Toggle whether dragging a meal moves it or copies/duplicates it (hold Alt while dropping to always copy)"
+          >
+            {dragMode === 'copy' ? '📄 Drag: Duplicate' : '🔀 Drag: Move'}
+          </button>
+          <h2 className="mp-range-label">{visibleRange.label}</h2>
+        </div>
       </div>
 
       {error && (
@@ -1217,11 +1697,24 @@ export default function MealPlanner() {
                   const dayStats = nutrientsByDate[ymd];
                   const visibleMeals = dayMeals.slice(0, 3);
                   const hiddenCount = dayMeals.length - visibleMeals.length;
+                  const isDropTarget = dropTargetKey === `month-${ymd}`;
 
                   return (
                     <div
                       key={ymd}
-                      className={`mp-month-cell ${isToday ? 'is-today' : ''} ${isOutside ? 'is-outside' : ''}`}
+                      className={`mp-month-cell ${isToday ? 'is-today' : ''} ${isOutside ? 'is-outside' : ''} ${isDropTarget ? 'is-drop-target' : ''}`}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (dropTargetKey !== `month-${ymd}`) {
+                          setDropTargetKey(`month-${ymd}`);
+                        }
+                      }}
+                      onDragLeave={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget)) {
+                          setDropTargetKey((prev) => (prev === `month-${ymd}` ? null : prev));
+                        }
+                      }}
+                      onDrop={(e) => handleCalendarDrop(e, ymd)}
                     >
                       <div className="mp-month-cell-top">
                         <div className="mp-month-cell-left">
@@ -1242,39 +1735,71 @@ export default function MealPlanner() {
                             </span>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          className="mp-month-cell-add"
-                          onClick={() => openPickerModal(ymd, 'dinner')}
-                          aria-label={`Add meal on ${ymd}`}
-                          title="Add recipe to this day"
-                        >
-                          +
-                        </button>
+                        <div className="mp-month-cell-btns">
+                          {dayMeals.length > 0 && (
+                            <span
+                              draggable
+                              onDragStart={(e) => handleDragStartDay(e, ymd)}
+                              onDragEnd={() => {
+                                setDragPayload(null);
+                                setDropTargetKey(null);
+                              }}
+                              className="mp-day-drag-handle"
+                              title="Drag onto another date to copy all meals from this day"
+                              aria-label={`Drag to copy meals from ${ymd}`}
+                            >
+                              ⠿
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            className="mp-month-cell-add"
+                            onClick={() => openPickerModal(ymd, 'dinner')}
+                            aria-label={`Add meal on ${ymd}`}
+                            title="Add recipe or USDA condiment to this day"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
 
                       <div className="mp-month-meals">
                         {visibleMeals.map((meal) => {
                           const slotMeta = getMealSlotMeta(meal.mealSlot);
+                          const isUsda = meal.entryType === 'usda';
+                          const addonsCount = Array.isArray(meal.addons) ? meal.addons.length : 0;
                           return (
                             <button
                               key={meal.id}
                               type="button"
-                              className="mp-month-meal-chip"
+                              draggable
+                              onDragStart={(e) => handleDragStartMeal(e, meal)}
+                              onDragEnd={() => {
+                                setDragPayload(null);
+                                setDropTargetKey(null);
+                              }}
+                              className={`mp-month-meal-chip ${isUsda ? 'is-usda' : ''}`}
                               onClick={() => openEditModal(meal)}
-                              title={`${slotMeta.label}: ${meal.title}`}
+                              title={`${slotMeta.label}: ${meal.title} (Drag to move/copy)`}
                             >
-                              <img
-                                src={resolveRecipeImageUrl(meal)}
-                                alt={meal.title}
-                                className="mp-month-meal-thumb"
-                                onError={(e) => {
-                                  e.currentTarget.src = '/og-vault-preview.jpeg';
-                                }}
-                              />
+                              {isUsda ? (
+                                <span className="mp-month-usda-icon" aria-hidden="true">🥫</span>
+                              ) : (
+                                <img
+                                  src={resolveRecipeImageUrl(meal)}
+                                  alt={meal.title}
+                                  className="mp-month-meal-thumb"
+                                  onError={(e) => {
+                                    e.currentTarget.src = '/og-vault-preview.jpeg';
+                                  }}
+                                />
+                              )}
                               <div className="mp-month-meal-meta">
                                 <span className="mp-month-meal-slot">
                                   {slotMeta.icon} {meal.isDraft ? '🔒' : ''}
+                                  {addonsCount > 0 && (
+                                    <span className="mp-month-addon-dot">+{addonsCount}</span>
+                                  )}
                                 </span>
                                 <span className="mp-month-meal-title">{meal.title}</span>
                               </div>
@@ -1310,9 +1835,25 @@ export default function MealPlanner() {
                 const isToday = ymd === todayYmd;
                 const dayMeals = entriesByDate[ymd] || [];
                 const dayStats = nutrientsByDate[ymd];
+                const isDropTarget = dropTargetKey === `week-${ymd}`;
 
                 return (
-                  <div key={ymd} className={`mp-week-day-col ${isToday ? 'is-today' : ''}`}>
+                  <div
+                    key={ymd}
+                    className={`mp-week-day-col ${isToday ? 'is-today' : ''} ${isDropTarget ? 'is-drop-target' : ''}`}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      if (dropTargetKey !== `week-${ymd}`) {
+                        setDropTargetKey(`week-${ymd}`);
+                      }
+                    }}
+                    onDragLeave={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget)) {
+                        setDropTargetKey((prev) => (prev === `week-${ymd}` ? null : prev));
+                      }
+                    }}
+                    onDrop={(e) => handleCalendarDrop(e, ymd)}
+                  >
                     <div className="mp-week-col-header">
                       <button
                         type="button"
@@ -1329,14 +1870,30 @@ export default function MealPlanner() {
                           {dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                         </strong>
                       </button>
-                      <button
-                        type="button"
-                        className="mp-week-add-btn"
-                        onClick={() => openPickerModal(ymd, 'dinner')}
-                        title="Add meal to this day"
-                      >
-                        + Add
-                      </button>
+                      <div className="mp-week-col-actions">
+                        {dayMeals.length > 0 && (
+                          <span
+                            draggable
+                            onDragStart={(e) => handleDragStartDay(e, ymd)}
+                            onDragEnd={() => {
+                              setDragPayload(null);
+                              setDropTargetKey(null);
+                            }}
+                            className="mp-day-drag-handle"
+                            title="Drag onto another day to duplicate this day's meals"
+                          >
+                            ⠿
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          className="mp-week-add-btn"
+                          onClick={() => openPickerModal(ymd, 'dinner')}
+                          title="Add meal to this day"
+                        >
+                          + Add
+                        </button>
+                      </div>
                     </div>
 
                     {dayStats && dayStats.totalMeals > 0 && (
@@ -1384,37 +1941,80 @@ export default function MealPlanner() {
                       ) : (
                         dayMeals.map((meal) => {
                           const slotMeta = getMealSlotMeta(meal.mealSlot);
+                          const isUsda = meal.entryType === 'usda';
+                          const entryNutrition = computeEntryTotalNutrients(meal, resolvedDetailsMap);
+                          const combinedCals = entryNutrition.totalMacros.calories;
+                          const addons = Array.isArray(meal.addons) ? meal.addons : [];
                           return (
-                            <article key={meal.id} className="mp-week-meal-card">
-                              <Link to={`/recipe/${meal.recipeId}`} className="mp-week-card-img-link">
-                                <img
-                                  src={resolveRecipeImageUrl(meal)}
-                                  alt={meal.title}
-                                  className="mp-week-card-img"
-                                  onError={(e) => {
-                                    e.currentTarget.src = '/og-vault-preview.jpeg';
-                                  }}
-                                />
-                                <span className="mp-week-slot-badge">
-                                  {slotMeta.icon} {slotMeta.label}
-                                </span>
-                                {meal.isDraft && (
-                                  <span className="mp-draft-overlay-pill">🔒 Draft</span>
-                                )}
-                              </Link>
+                            <article
+                              key={meal.id}
+                              draggable
+                              onDragStart={(e) => handleDragStartMeal(e, meal)}
+                              onDragEnd={() => {
+                                setDragPayload(null);
+                                setDropTargetKey(null);
+                              }}
+                              className="mp-week-meal-card"
+                            >
+                              {isUsda ? (
+                                <div className="mp-week-usda-banner">
+                                  <span>🥫 USDA Condiment / Side</span>
+                                  <span className="mp-week-slot-badge">
+                                    {slotMeta.icon} {slotMeta.label}
+                                  </span>
+                                </div>
+                              ) : (
+                                <Link to={`/recipe/${meal.recipeId}`} className="mp-week-card-img-link">
+                                  <img
+                                    src={resolveRecipeImageUrl(meal)}
+                                    alt={meal.title}
+                                    className="mp-week-card-img"
+                                    onError={(e) => {
+                                      e.currentTarget.src = '/og-vault-preview.jpeg';
+                                    }}
+                                  />
+                                  <span className="mp-week-slot-badge">
+                                    {slotMeta.icon} {slotMeta.label}
+                                  </span>
+                                  {meal.isDraft && (
+                                    <span className="mp-draft-overlay-pill">🔒 Draft</span>
+                                  )}
+                                </Link>
+                              )}
 
                               <div className="mp-week-card-body">
-                                <Link to={`/recipe/${meal.recipeId}`} className="mp-week-card-title">
-                                  {meal.title}
-                                </Link>
+                                {isUsda ? (
+                                  <div className="mp-week-card-title">{meal.title}</div>
+                                ) : (
+                                  <Link to={`/recipe/${meal.recipeId}`} className="mp-week-card-title">
+                                    {meal.title}
+                                  </Link>
+                                )}
                                 <div className="mp-week-card-sub">
-                                  <span>{Number(meal.servings)} serving{Number(meal.servings) === 1 ? '' : 's'}</span>
-                                  {meal.calories ? <span>🔥 {meal.calories} kcal</span> : null}
+                                  <span>
+                                    {isUsda
+                                      ? meal.yields || '1 serving'
+                                      : `${Number(meal.servings)} serving${Number(meal.servings) === 1 ? '' : 's'}`}
+                                  </span>
+                                  {combinedCals > 0 ? <span>🔥 {combinedCals} kcal</span> : null}
                                 </div>
+                                {addons.length > 0 && (
+                                  <div className="mp-card-addons-list">
+                                    {addons.map((ad, idx) => (
+                                      <span key={ad.id || idx} className="mp-card-addon-pill">
+                                        {ad.type === 'usda' ? '🥫' : '🥣'} {ad.title} (
+                                        {ad.type === 'usda' ? `${ad.amount} ${ad.unit}` : `${ad.servings}x`})
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
                                 {meal.notes && <p className="mp-week-card-notes">{meal.notes}</p>}
                                 <div className="mp-week-card-actions">
-                                  <button type="button" onClick={() => openEditModal(meal)}>
+                                  <button type="button" onClick={() => openEditModal(meal, false)}>
                                     Edit
+                                  </button>
+                                  <button type="button" onClick={() => openEditModal(meal, true)}>
+                                    + Sauce
                                   </button>
                                   <button
                                     type="button"
@@ -1565,8 +2165,26 @@ export default function MealPlanner() {
               <div className="mp-day-slots-grid">
                 {MEAL_SLOTS.map((slot) => {
                   const slotMeals = dayEntries.filter((m) => m.mealSlot === slot.id);
+                  const isSlotDrop = dropTargetKey === `day-${anchorDate}-${slot.id}`;
                   return (
-                    <div key={slot.id} className="mp-day-slot-card">
+                    <div
+                      key={slot.id}
+                      className={`mp-day-slot-card ${isSlotDrop ? 'is-drop-target' : ''}`}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (dropTargetKey !== `day-${anchorDate}-${slot.id}`) {
+                          setDropTargetKey(`day-${anchorDate}-${slot.id}`);
+                        }
+                      }}
+                      onDragLeave={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget)) {
+                          setDropTargetKey((prev) =>
+                            prev === `day-${anchorDate}-${slot.id}` ? null : prev
+                          );
+                        }
+                      }}
+                      onDrop={(e) => handleCalendarDrop(e, anchorDate, slot.id)}
+                    >
                       <div className="mp-day-slot-header">
                         <h3>
                           {slot.icon} {slot.label}
@@ -1582,47 +2200,71 @@ export default function MealPlanner() {
 
                       {slotMeals.length === 0 ? (
                         <p className="mp-day-slot-empty">
-                          Nothing scheduled for {slot.label.toLowerCase()} yet.
+                          Nothing scheduled for {slot.label.toLowerCase()} yet. Drop a meal here or click Add.
                         </p>
                       ) : (
                         <div className="mp-day-meals-list">
                           {slotMeals.map((meal) => {
-                            const detail = resolvedDetailsMap[meal.recipeId] || null;
-                            const mealCalories = meal.calories ?? detail?.macros?.calories ?? 0;
-                            const mealProtein = meal.protein_g ?? detail?.macros?.protein_g ?? 0;
-                            const mealCarbs = meal.carbs_g ?? detail?.macros?.carbs_g ?? 0;
-                            const mealFat = meal.fat_g ?? detail?.macros?.fat_g ?? 0;
-                            const mealFiber = resolveRecipeFiberGrams(meal, detail);
+                            const isUsda = meal.entryType === 'usda';
+                            const entryNutrition = computeEntryTotalNutrients(meal, resolvedDetailsMap);
+                            const { calories: mealCalories, protein: mealProtein, carbs: mealCarbs, fat: mealFat, fiber: mealFiber } =
+                              entryNutrition.totalMacros;
+                            const addons = Array.isArray(meal.addons) ? meal.addons : [];
                             return (
-                              <article key={meal.id} className="mp-day-meal-row">
-                                <Link to={`/recipe/${meal.recipeId}`} className="mp-day-meal-img-link">
-                                  <img
-                                    src={resolveRecipeImageUrl(meal)}
-                                    alt={meal.title}
-                                    className="mp-day-meal-img"
-                                    onError={(e) => {
-                                      e.currentTarget.src = '/og-vault-preview.jpeg';
-                                    }}
-                                  />
-                                </Link>
+                              <article
+                                key={meal.id}
+                                draggable
+                                onDragStart={(e) => handleDragStartMeal(e, meal)}
+                                onDragEnd={() => {
+                                  setDragPayload(null);
+                                  setDropTargetKey(null);
+                                }}
+                                className="mp-day-meal-row"
+                              >
+                                {isUsda ? (
+                                  <div className="mp-day-meal-usda-thumb" aria-hidden="true">
+                                    🥫
+                                  </div>
+                                ) : (
+                                  <Link to={`/recipe/${meal.recipeId}`} className="mp-day-meal-img-link">
+                                    <img
+                                      src={resolveRecipeImageUrl(meal)}
+                                      alt={meal.title}
+                                      className="mp-day-meal-img"
+                                      onError={(e) => {
+                                        e.currentTarget.src = '/og-vault-preview.jpeg';
+                                      }}
+                                    />
+                                  </Link>
+                                )}
 
                                 <div className="mp-day-meal-info">
                                   <div className="mp-day-meal-badges">
-                                    <span className={`mp-status-pill ${meal.isDraft ? 'draft' : 'published'}`}>
-                                      {meal.isDraft ? '🔒 Private Draft' : '🌟 Published'}
-                                    </span>
+                                    {isUsda ? (
+                                      <span className="mp-status-pill usda">
+                                        🥫 USDA Database
+                                      </span>
+                                    ) : (
+                                      <span className={`mp-status-pill ${meal.isDraft ? 'draft' : 'published'}`}>
+                                        {meal.isDraft ? '🔒 Private Draft' : '🌟 Published'}
+                                      </span>
+                                    )}
                                     <span className="mp-servings-pill">
-                                      🍽️ {Number(meal.servings)} serving{Number(meal.servings) === 1 ? '' : 's'}
+                                      🍽️ {isUsda ? meal.yields || '1 serving' : `${Number(meal.servings)} serving${Number(meal.servings) === 1 ? '' : 's'}`}
                                     </span>
                                   </div>
 
-                                  <Link to={`/recipe/${meal.recipeId}`} className="mp-day-meal-title">
-                                    {meal.title}
-                                  </Link>
+                                  {isUsda ? (
+                                    <div className="mp-day-meal-title">{meal.title}</div>
+                                  ) : (
+                                    <Link to={`/recipe/${meal.recipeId}`} className="mp-day-meal-title">
+                                      {meal.title}
+                                    </Link>
+                                  )}
 
                                   <div className="mp-day-meal-meta">
-                                    <span>🧑‍🍳 By {meal.authorName}</span>
-                                    <span>⏱️ Prep {meal.prepTime}m • Cook {meal.cookTime}m</span>
+                                    <span>🧑‍🍳 {isUsda ? meal.authorName : `By ${meal.authorName}`}</span>
+                                    {!isUsda && <span>⏱️ Prep {meal.prepTime}m • Cook {meal.cookTime}m</span>}
                                     {(mealCalories > 0 || mealFiber > 0) ? (
                                       <span>
                                         {mealCalories ? `🔥 ${mealCalories} kcal • 💪 ${mealProtein}g P • 🥖 ${mealCarbs}g C • 🥑 ${mealFat}g F • ` : ''}
@@ -1631,18 +2273,50 @@ export default function MealPlanner() {
                                     ) : null}
                                   </div>
 
+                                  {addons.length > 0 && (
+                                    <div className="mp-day-addons-block">
+                                      <strong>🥣 Sauces, Sides &amp; Condiments Included:</strong>
+                                      <div className="mp-card-addons-list">
+                                        {addons.map((ad, idx) => {
+                                          const adCal =
+                                            ad.type === 'usda'
+                                              ? Math.round(Number(ad.calories) || 0)
+                                              : Math.round((Number(ad.calories) || 0) * (Number(ad.servings) || 1));
+                                          const portion =
+                                            ad.type === 'usda'
+                                              ? `${ad.amount} ${ad.unit} (${ad.grams}g)`
+                                              : `${ad.servings} serving${Number(ad.servings) === 1 ? '' : 's'}`;
+                                          return (
+                                            <span key={ad.id || idx} className="mp-card-addon-pill">
+                                              {ad.type === 'usda' ? '🥫' : '🥣'} {ad.title} — {portion} (+{adCal} kcal)
+                                            </span>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+
                                   {meal.notes && <p className="mp-day-meal-notes">📝 {meal.notes}</p>}
 
                                   <div className="mp-day-meal-actions">
-                                    <Link to={`/recipe/${meal.recipeId}`} className="mp-action-link">
-                                      Open Recipe
-                                    </Link>
+                                    {!isUsda && (
+                                      <Link to={`/recipe/${meal.recipeId}`} className="mp-action-link">
+                                        Open Recipe
+                                      </Link>
+                                    )}
                                     <button
                                       type="button"
                                       className="mp-action-btn"
-                                      onClick={() => openEditModal(meal)}
+                                      onClick={() => openEditModal(meal, false)}
                                     >
                                       Edit / Move
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="mp-action-btn accent"
+                                      onClick={() => openEditModal(meal, true)}
+                                    >
+                                      🥣 + Sauce / Side
                                     </button>
                                     <button
                                       type="button"
@@ -1678,7 +2352,7 @@ export default function MealPlanner() {
         >
           <div className="mp-modal-panel mp-picker-panel" onClick={(e) => e.stopPropagation()}>
             <div className="mp-modal-header">
-              <h3 id="mp-picker-title">➕ Add Recipe to Meal Plan</h3>
+              <h3 id="mp-picker-title">➕ Add Meal, Sauce or Condiment to Plan</h3>
               <button
                 type="button"
                 className="mp-modal-close"
@@ -1695,87 +2369,126 @@ export default function MealPlanner() {
               </div>
             )}
 
-            <div className="mp-picker-filters">
-              <input
-                type="search"
-                className="mp-picker-search"
-                placeholder="Search published or draft recipes..."
-                value={pickerSearch}
-                onChange={(e) => setPickerSearch(e.target.value)}
-              />
-              <div className="mp-picker-tabs">
-                <button
-                  type="button"
-                  className={pickerFilter === 'all' ? 'active' : ''}
-                  onClick={() => setPickerFilter('all')}
-                >
-                  All ({plannableRecipes.length})
-                </button>
-                <button
-                  type="button"
-                  className={pickerFilter === 'drafts' ? 'active' : ''}
-                  onClick={() => setPickerFilter('drafts')}
-                >
-                  🔒 My Drafts ({draftCount})
-                </button>
-                <button
-                  type="button"
-                  className={pickerFilter === 'favorites' ? 'active' : ''}
-                  onClick={() => setPickerFilter('favorites')}
-                >
-                  ❤️ Favorites
-                </button>
-                <button
-                  type="button"
-                  className={pickerFilter === 'published' ? 'active' : ''}
-                  onClick={() => setPickerFilter('published')}
-                >
-                  🌟 Published
-                </button>
-              </div>
+            <div className="mp-entry-mode-tabs" role="tablist">
+              <button
+                type="button"
+                className={pickerEntryMode === 'recipe' ? 'active' : ''}
+                onClick={() => setPickerEntryMode('recipe')}
+              >
+                📖 Vault Recipe (+ Optional Sauces / Sides)
+              </button>
+              <button
+                type="button"
+                className={pickerEntryMode === 'usda' ? 'active' : ''}
+                onClick={() => setPickerEntryMode('usda')}
+              >
+                🥫 USDA Condiment, Sauce or Side
+              </button>
             </div>
 
-            <div className="mp-picker-recipes-list">
-              {recipesLoading ? (
-                <p className="mp-picker-status">Loading your recipes and community masterpieces...</p>
-              ) : filteredPickerRecipes.length === 0 ? (
-                <p className="mp-picker-status">No matching recipes found.</p>
-              ) : (
-                filteredPickerRecipes.map((rec) => {
-                  const isSelected = selectedRecipe?.id === rec.id;
-                  return (
+            {pickerEntryMode === 'recipe' ? (
+              <>
+                <div className="mp-picker-filters">
+                  <input
+                    type="search"
+                    className="mp-picker-search"
+                    placeholder="Search published or draft recipes..."
+                    value={pickerSearch}
+                    onChange={(e) => setPickerSearch(e.target.value)}
+                  />
+                  <div className="mp-picker-tabs">
                     <button
-                      key={rec.id}
                       type="button"
-                      className={`mp-picker-recipe-item ${isSelected ? 'selected' : ''}`}
-                      onClick={() => setSelectedRecipe(rec)}
+                      className={pickerFilter === 'all' ? 'active' : ''}
+                      onClick={() => setPickerFilter('all')}
                     >
-                      <img
-                        src={resolveRecipeImageUrl(rec)}
-                        alt={rec.title}
-                        className="mp-picker-recipe-thumb"
-                        onError={(e) => {
-                          e.currentTarget.src = '/og-vault-preview.jpeg';
-                        }}
-                      />
-                      <div className="mp-picker-recipe-meta">
-                        <div className="mp-picker-recipe-badges">
-                          <span className={`mp-status-pill ${rec.isDraft ? 'draft' : 'published'}`}>
-                            {rec.isDraft ? '🔒 My Draft' : '🌟 Published'}
-                          </span>
-                          {rec.isFavorited && <span className="mp-fav-pill">❤️</span>}
-                        </div>
-                        <strong>{rec.title}</strong>
-                        <span>
-                          By {rec.authorName}
-                          {rec.calories ? ` • ${rec.calories} kcal` : ''}
-                        </span>
-                      </div>
+                      All ({plannableRecipes.length})
                     </button>
-                  );
-                })
-              )}
-            </div>
+                    <button
+                      type="button"
+                      className={pickerFilter === 'drafts' ? 'active' : ''}
+                      onClick={() => setPickerFilter('drafts')}
+                    >
+                      🔒 My Drafts ({draftCount})
+                    </button>
+                    <button
+                      type="button"
+                      className={pickerFilter === 'favorites' ? 'active' : ''}
+                      onClick={() => setPickerFilter('favorites')}
+                    >
+                      ❤️ Favorites
+                    </button>
+                    <button
+                      type="button"
+                      className={pickerFilter === 'published' ? 'active' : ''}
+                      onClick={() => setPickerFilter('published')}
+                    >
+                      🌟 Published
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mp-picker-recipes-list">
+                  {recipesLoading ? (
+                    <p className="mp-picker-status">Loading your recipes and community masterpieces...</p>
+                  ) : filteredPickerRecipes.length === 0 ? (
+                    <p className="mp-picker-status">No matching recipes found.</p>
+                  ) : (
+                    filteredPickerRecipes.map((rec) => {
+                      const isSelected = selectedRecipe?.id === rec.id;
+                      return (
+                        <button
+                          key={rec.id}
+                          type="button"
+                          className={`mp-picker-recipe-item ${isSelected ? 'selected' : ''}`}
+                          onClick={() => setSelectedRecipe(rec)}
+                        >
+                          <img
+                            src={resolveRecipeImageUrl(rec)}
+                            alt={rec.title}
+                            className="mp-picker-recipe-thumb"
+                            onError={(e) => {
+                              e.currentTarget.src = '/og-vault-preview.jpeg';
+                            }}
+                          />
+                          <div className="mp-picker-recipe-meta">
+                            <div className="mp-picker-recipe-badges">
+                              <span className={`mp-status-pill ${rec.isDraft ? 'draft' : 'published'}`}>
+                                {rec.isDraft ? '🔒 My Draft' : '🌟 Published'}
+                              </span>
+                              {rec.isFavorited && <span className="mp-fav-pill">❤️</span>}
+                            </div>
+                            <strong>{rec.title}</strong>
+                            <span>
+                              By {rec.authorName}
+                              {rec.calories ? ` • ${rec.calories} kcal` : ''}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="mp-picker-usda-panel">
+                {pickerUsdaItem && (
+                  <div className="mp-usda-selected-banner">
+                    <span>
+                      ✅ Selected: <strong>{pickerUsdaItem.title}</strong> — {pickerUsdaItem.amount} {pickerUsdaItem.unit} ({pickerUsdaItem.grams}g, {pickerUsdaItem.calories} kcal)
+                    </span>
+                    <button type="button" onClick={() => setPickerUsdaItem(null)}>
+                      Change
+                    </button>
+                  </div>
+                )}
+                <UsdaFoodSearchPicker
+                  actionLabel="Select This USDA Item"
+                  onSelectFood={(item) => setPickerUsdaItem(item)}
+                  autoFocusSearch
+                />
+              </div>
+            )}
 
             <form className="mp-picker-schedule-form" onSubmit={handleAddFromPicker}>
               <div className="mp-schedule-grid">
@@ -1800,17 +2513,19 @@ export default function MealPlanner() {
                   </select>
                 </label>
 
-                <label>
-                  <span>Servings</span>
-                  <input
-                    type="number"
-                    min="0.25"
-                    max="20"
-                    step="0.25"
-                    value={pickerServings}
-                    onChange={(e) => setPickerServings(e.target.value)}
-                  />
-                </label>
+                {pickerEntryMode === 'recipe' && (
+                  <label>
+                    <span>Servings</span>
+                    <input
+                      type="number"
+                      min="0.25"
+                      max="20"
+                      step="0.25"
+                      value={pickerServings}
+                      onChange={(e) => setPickerServings(e.target.value)}
+                    />
+                  </label>
+                )}
               </div>
 
               <label className="mp-notes-label">
@@ -1824,6 +2539,14 @@ export default function MealPlanner() {
                 />
               </label>
 
+              {pickerEntryMode === 'recipe' && (
+                <MealPlanAddonsBuilder
+                  addons={pickerAddons}
+                  onChange={setPickerAddons}
+                  plannableRecipes={plannableRecipes}
+                />
+              )}
+
               <div className="mp-modal-footer">
                 <button
                   type="button"
@@ -1835,13 +2558,20 @@ export default function MealPlanner() {
                 <button
                   type="submit"
                   className="mp-save-btn"
-                  disabled={!selectedRecipe || pickerSaving}
+                  disabled={
+                    pickerSaving ||
+                    (pickerEntryMode === 'recipe' ? !selectedRecipe : !pickerUsdaItem)
+                  }
                 >
                   {pickerSaving
                     ? 'Saving...'
-                    : selectedRecipe
-                      ? `Add "${selectedRecipe.title}"`
-                      : 'Select a Recipe Above'}
+                    : pickerEntryMode === 'usda'
+                      ? pickerUsdaItem
+                        ? `Add "${pickerUsdaItem.title}"`
+                        : 'Select a USDA Item Above'
+                      : selectedRecipe
+                        ? `Add "${selectedRecipe.title}"${pickerAddons.length > 0 ? ` (+${pickerAddons.length} side/sauce)` : ''}`
+                        : 'Select a Recipe Above'}
                 </button>
               </div>
             </form>
@@ -1860,7 +2590,7 @@ export default function MealPlanner() {
         >
           <div className="mp-modal-panel mp-edit-panel" onClick={(e) => e.stopPropagation()}>
             <div className="mp-modal-header">
-              <h3 id="mp-edit-title">✏️ Edit Planned Meal</h3>
+              <h3 id="mp-edit-title">✏️ Edit Planned Meal &amp; Sauces/Sides</h3>
               <button
                 type="button"
                 className="mp-modal-close"
@@ -1872,22 +2602,28 @@ export default function MealPlanner() {
             </div>
 
             <div className="mp-edit-preview">
-              <img
-                src={resolveRecipeImageUrl(editingEntry)}
-                alt={editingEntry.title}
-                className="mp-edit-preview-img"
-                onError={(e) => {
-                  e.currentTarget.src = '/og-vault-preview.jpeg';
-                }}
-              />
+              {editingEntry.entryType === 'usda' ? (
+                <div className="mp-day-meal-usda-thumb" aria-hidden="true">🥫</div>
+              ) : (
+                <img
+                  src={resolveRecipeImageUrl(editingEntry)}
+                  alt={editingEntry.title}
+                  className="mp-edit-preview-img"
+                  onError={(e) => {
+                    e.currentTarget.src = '/og-vault-preview.jpeg';
+                  }}
+                />
+              )}
               <div>
-                <span className={`mp-status-pill ${editingEntry.isDraft ? 'draft' : 'published'}`}>
-                  {editingEntry.isDraft ? '🔒 My Private Draft' : '🌟 Published Recipe'}
+                <span className={`mp-status-pill ${editingEntry.entryType === 'usda' ? 'usda' : editingEntry.isDraft ? 'draft' : 'published'}`}>
+                  {editingEntry.entryType === 'usda' ? '🥫 USDA Item' : editingEntry.isDraft ? '🔒 My Private Draft' : '🌟 Published Recipe'}
                 </span>
                 <h4>{editingEntry.title}</h4>
-                <Link to={`/recipe/${editingEntry.recipeId}`} className="mp-edit-recipe-link">
-                  Open Full Recipe &rarr;
-                </Link>
+                {editingEntry.entryType !== 'usda' && editingEntry.recipeId && (
+                  <Link to={`/recipe/${editingEntry.recipeId}`} className="mp-edit-recipe-link">
+                    Open Full Recipe &rarr;
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -1914,17 +2650,19 @@ export default function MealPlanner() {
                   </select>
                 </label>
 
-                <label>
-                  <span>Servings</span>
-                  <input
-                    type="number"
-                    min="0.25"
-                    max="20"
-                    step="0.25"
-                    value={editServings}
-                    onChange={(e) => setEditServings(e.target.value)}
-                  />
-                </label>
+                {editingEntry.entryType !== 'usda' && (
+                  <label>
+                    <span>Servings</span>
+                    <input
+                      type="number"
+                      min="0.25"
+                      max="20"
+                      step="0.25"
+                      value={editServings}
+                      onChange={(e) => setEditServings(e.target.value)}
+                    />
+                  </label>
+                )}
               </div>
 
               <label className="mp-notes-label">
@@ -1937,6 +2675,15 @@ export default function MealPlanner() {
                   placeholder="Optional prep or serving notes"
                 />
               </label>
+
+              {editingEntry.entryType !== 'usda' && (
+                <MealPlanAddonsBuilder
+                  addons={editAddons}
+                  onChange={setEditAddons}
+                  plannableRecipes={plannableRecipes}
+                  defaultTab={editFocusAddons ? 'usda' : 'recipe'}
+                />
+              )}
 
               <div className="mp-modal-footer mp-edit-footer">
                 <button
@@ -1960,6 +2707,423 @@ export default function MealPlanner() {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* COPY / REPEAT DAY, WEEK, OR MONTH MODAL */}
+      {copyModalOpen && (
+        <div
+          className="mp-modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mp-copy-title"
+          onClick={() => setCopyModalOpen(false)}
+        >
+          <div className="mp-modal-panel mp-copy-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="mp-modal-header">
+              <h3 id="mp-copy-title">🔁 Copy or Repeat Meal Plan</h3>
+              <button
+                type="button"
+                className="mp-modal-close"
+                onClick={() => setCopyModalOpen(false)}
+                aria-label="Close copy modal"
+              >
+                ✕
+              </button>
+            </div>
+
+            {copyError && <div className="mp-error-banner">{copyError}</div>}
+
+            <div className="mp-entry-mode-tabs">
+              <button
+                type="button"
+                className={copyMode === 'month' ? 'active' : ''}
+                onClick={() => setCopyMode('month')}
+              >
+                📅 Month
+              </button>
+              <button
+                type="button"
+                className={copyMode === 'week' ? 'active' : ''}
+                onClick={() => setCopyMode('week')}
+              >
+                🗓️ Week
+              </button>
+              <button
+                type="button"
+                className={copyMode === 'day' ? 'active' : ''}
+                onClick={() => setCopyMode('day')}
+              >
+                🍽️ Day
+              </button>
+            </div>
+
+            {copyMode === 'month' && (
+              <div className="mp-copy-presets">
+                <button
+                  type="button"
+                  className="mp-preset-btn"
+                  disabled={copyBusy}
+                  onClick={() => {
+                    const prevM = shiftYearMonth(anchorDate.slice(0, 7), -1);
+                    const currM = anchorDate.slice(0, 7);
+                    executeCopyRange({
+                      mode: 'month',
+                      source_start: prevM,
+                      target_start: currM,
+                      overwrite: copyOverwrite,
+                    });
+                  }}
+                >
+                  ⚡ Copy Previous Month &rarr; This Month
+                </button>
+                <button
+                  type="button"
+                  className="mp-preset-btn"
+                  disabled={copyBusy}
+                  onClick={() => {
+                    const currM = anchorDate.slice(0, 7);
+                    const nextM = shiftYearMonth(currM, 1);
+                    executeCopyRange({
+                      mode: 'month',
+                      source_start: currM,
+                      target_start: nextM,
+                      overwrite: copyOverwrite,
+                    });
+                  }}
+                >
+                  ⚡ Copy This Month &rarr; Next Month
+                </button>
+              </div>
+            )}
+
+            {copyMode === 'week' && (
+              <div className="mp-copy-presets">
+                <button
+                  type="button"
+                  className="mp-preset-btn"
+                  disabled={copyBusy}
+                  onClick={() => {
+                    const w = getWeekStartEnd(anchorDate);
+                    const prevStart = addDaysYMD(w.start, -7);
+                    executeCopyRange({
+                      mode: 'week',
+                      source_start: prevStart,
+                      source_end: addDaysYMD(prevStart, 6),
+                      target_start: w.start,
+                      overwrite: copyOverwrite,
+                    });
+                  }}
+                >
+                  ⚡ Copy Previous Week &rarr; This Week
+                </button>
+                <button
+                  type="button"
+                  className="mp-preset-btn"
+                  disabled={copyBusy}
+                  onClick={() => {
+                    const w = getWeekStartEnd(anchorDate);
+                    executeCopyRange({
+                      mode: 'week',
+                      source_start: w.start,
+                      source_end: w.end,
+                      target_start: addDaysYMD(w.start, 7),
+                      overwrite: copyOverwrite,
+                    });
+                  }}
+                >
+                  ⚡ Copy This Week &rarr; Next Week
+                </button>
+              </div>
+            )}
+
+            <form onSubmit={handleCopySubmit} className="mp-edit-form">
+              {copyMode === 'month' ? (
+                <div className="mp-schedule-grid">
+                  <label>
+                    <span>Copy From Month</span>
+                    <input
+                      type="month"
+                      value={copySourceMonth}
+                      onChange={(e) => setCopySourceMonth(e.target.value)}
+                      required
+                    />
+                  </label>
+                  <label>
+                    <span>Into Starting Month</span>
+                    <input
+                      type="month"
+                      value={copyTargetMonth}
+                      onChange={(e) => setCopyTargetMonth(e.target.value)}
+                      required
+                    />
+                  </label>
+                  <label>
+                    <span>Repeat Months</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="6"
+                      value={copyRepeatCount}
+                      onChange={(e) => setCopyRepeatCount(e.target.value)}
+                    />
+                  </label>
+                </div>
+              ) : (
+                <div className="mp-schedule-grid">
+                  <label>
+                    <span>{copyMode === 'week' ? 'Source Week Starting' : 'Copy From Date'}</span>
+                    <input
+                      type="date"
+                      value={copySourceStart}
+                      onChange={(e) => setCopySourceStart(e.target.value)}
+                      required
+                    />
+                  </label>
+                  <label>
+                    <span>{copyMode === 'week' ? 'Target Week Starting' : 'Target Start Date'}</span>
+                    <input
+                      type="date"
+                      value={copyTargetStart}
+                      onChange={(e) => setCopyTargetStart(e.target.value)}
+                      required
+                    />
+                  </label>
+                  <label>
+                    <span>{copyMode === 'week' ? 'Repeat Weeks' : 'Repeat Consecutive Days'}</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="12"
+                      value={copyRepeatCount}
+                      onChange={(e) => setCopyRepeatCount(e.target.value)}
+                    />
+                  </label>
+                </div>
+              )}
+
+              <label className="mp-checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={copyOverwrite}
+                  onChange={(e) => setCopyOverwrite(e.target.checked)}
+                />
+                <span>
+                  Replace existing meals in target dates (unchecked = merge alongside existing meals)
+                </span>
+              </label>
+
+              <p className="mp-copy-hint">
+                💡 Tip: You can also drag any individual meal (or the <strong>⠿</strong> handle on a day) directly onto another date on the calendar!
+              </p>
+
+              <div className="mp-modal-footer">
+                <button
+                  type="button"
+                  className="mp-cancel-btn"
+                  onClick={() => setCopyModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="mp-save-btn" disabled={copyBusy}>
+                  {copyBusy ? 'Copying...' : `Copy ${copyMode === 'month' ? 'Month' : copyMode === 'week' ? 'Week' : 'Day'}`}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* SHARE MEAL PLAN MODAL */}
+      {shareModalOpen && (
+        <div
+          className="mp-modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mp-share-title"
+          onClick={() => setShareModalOpen(false)}
+        >
+          <div className="mp-modal-panel mp-share-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="mp-modal-header">
+              <h3 id="mp-share-title">🔗 Share Your Meal Plan</h3>
+              <button
+                type="button"
+                className="mp-modal-close"
+                onClick={() => setShareModalOpen(false)}
+                aria-label="Close share modal"
+              >
+                ✕
+              </button>
+            </div>
+
+            {shareError && <div className="mp-error-banner">{shareError}</div>}
+
+            {!shareResult ? (
+              <form onSubmit={handleCreateShare} className="mp-edit-form">
+                <div className="mp-entry-mode-tabs">
+                  <button
+                    type="button"
+                    className={shareScope === 'day' ? 'active' : ''}
+                    onClick={() => handleShareScopeChange('day')}
+                  >
+                    🍽️ Day Plan
+                  </button>
+                  <button
+                    type="button"
+                    className={shareScope === 'week' ? 'active' : ''}
+                    onClick={() => handleShareScopeChange('week')}
+                  >
+                    🗓️ Week Plan
+                  </button>
+                  <button
+                    type="button"
+                    className={shareScope === 'month' ? 'active' : ''}
+                    onClick={() => handleShareScopeChange('month')}
+                  >
+                    📅 Month Plan
+                  </button>
+                </div>
+
+                {(() => {
+                  const r = getShareRangeBounds(shareScope);
+                  const countInRange = entries.filter(
+                    (e) => e.planDate >= r.start && e.planDate <= r.end
+                  ).length;
+                  return (
+                    <div className="mp-share-range-preview">
+                      <span>📆 Range: <strong>{r.start}</strong>{r.end !== r.start ? ` to ${r.end}` : ''}</span>
+                      <span>🍽️ <strong>{countInRange}</strong> planned meal{countInRange === 1 ? '' : 's'} ready to share</span>
+                    </div>
+                  );
+                })()}
+
+                <label className="mp-notes-label">
+                  <span>Share Title</span>
+                  <input
+                    type="text"
+                    maxLength={150}
+                    value={shareTitle}
+                    onChange={(e) => setShareTitle(e.target.value)}
+                    required
+                  />
+                </label>
+
+                <label className="mp-notes-label">
+                  <span>Note for Friends &amp; Followers (Optional)</span>
+                  <input
+                    type="text"
+                    maxLength={400}
+                    placeholder="E.g., High-fiber whole-food week — all gluten-free & oil-free!"
+                    value={shareDesc}
+                    onChange={(e) => setShareDesc(e.target.value)}
+                  />
+                </label>
+
+                <p className="mp-copy-hint">
+                  Anyone with the link can view this plan on The Veggie Vault, and logged-in Vault users can click one button to copy it straight into their own Meal Planner!
+                </p>
+
+                <div className="mp-modal-footer">
+                  <button
+                    type="button"
+                    className="mp-cancel-btn"
+                    onClick={() => setShareModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="mp-save-btn" disabled={shareBusy}>
+                    {shareBusy ? 'Creating Share Link...' : 'Create Shareable Link'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="mp-share-success-box">
+                <div className="mp-share-success-banner">
+                  ✅ Share link ready! ({shareResult.entryCount} meals from {shareResult.startDate}
+                  {shareResult.endDate !== shareResult.startDate ? ` to ${shareResult.endDate}` : ''})
+                </div>
+
+                <div className="mp-share-url-row">
+                  <input
+                    type="text"
+                    readOnly
+                    value={shareResult.shareUrl}
+                    onClick={(e) => e.currentTarget.select()}
+                  />
+                  <button type="button" className="mp-save-btn" onClick={handleCopyShareUrl}>
+                    {shareCopied ? '✓ Copied!' : '📋 Copy Link'}
+                  </button>
+                </div>
+
+                <div className="mp-social-share-row">
+                  <a
+                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareResult.title + ' — Copy my WFPB meal plan on The Veggie Vault!')}&url=${encodeURIComponent(shareResult.shareUrl)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mp-social-btn"
+                  >
+                    𝕏 Post
+                  </a>
+                  <a
+                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareResult.shareUrl)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mp-social-btn"
+                  >
+                    📘 Facebook
+                  </a>
+                  <a
+                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(shareResult.title + ': ' + shareResult.shareUrl)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mp-social-btn"
+                  >
+                    💬 WhatsApp
+                  </a>
+                  <a
+                    href={`https://www.reddit.com/submit?url=${encodeURIComponent(shareResult.shareUrl)}&title=${encodeURIComponent(shareResult.title)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mp-social-btn"
+                  >
+                    👽 Reddit
+                  </a>
+                  <a
+                    href={`mailto:?subject=${encodeURIComponent(shareResult.title)}&body=${encodeURIComponent('Check out my plant-based meal plan on The Veggie Vault and copy it to your calendar:\n\n' + shareResult.shareUrl)}`}
+                    className="mp-social-btn"
+                  >
+                    ✉️ Email
+                  </a>
+                  {typeof navigator !== 'undefined' && navigator.share && (
+                    <button
+                      type="button"
+                      className="mp-social-btn"
+                      onClick={() =>
+                        navigator
+                          .share({ title: shareResult.title, url: shareResult.shareUrl })
+                          .catch(() => {})
+                      }
+                    >
+                      📤 Share
+                    </button>
+                  )}
+                </div>
+
+                <div className="mp-modal-footer">
+                  <Link to={`/meal-planner/shared/${shareResult.shareToken}`} className="mp-action-link">
+                    Preview Shared Plan &rarr;
+                  </Link>
+                  <button
+                    type="button"
+                    className="mp-cancel-btn"
+                    onClick={() => setShareModalOpen(false)}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

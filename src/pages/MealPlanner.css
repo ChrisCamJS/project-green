@@ -1636,3 +1636,870 @@
     display: none;
   }
 }
+
+/* ============================================================
+   NEW FEATURE STYLES: SHARE, COPY/REPEAT, DRAG-DROP, ADDONS/USDA
+   ============================================================ */
+
+.mp-secondary-btn {
+  background-color: #ffffff;
+  color: #2d3748;
+  border: 1.5px solid #cbd5e0;
+  border-radius: 10px;
+  padding: 0.68rem 1rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+}
+
+.mp-secondary-btn:hover {
+  border-color: #2f855a;
+  color: #22543d;
+  background-color: #f0fff4;
+}
+
+.mp-toast-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.mp-toast-banner.success {
+  background-color: #f0fff4;
+  border: 1px solid #9ae6b4;
+  color: #22543d;
+}
+
+.mp-toast-banner.error {
+  background-color: #fff5f5;
+  border: 1px solid #feb2b2;
+  color: #9b2c2c;
+}
+
+.mp-toast-banner button {
+  background: transparent;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  color: inherit;
+}
+
+.mp-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.mp-drag-mode-btn {
+  padding: 0.44rem 0.8rem;
+  border-radius: 9px;
+  border: 1.5px solid #cbd5e0;
+  background-color: #f8fafc;
+  color: #2d3748;
+  font-weight: 700;
+  font-size: 0.84rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mp-drag-mode-btn.copy-active {
+  background-color: #ebf8ff;
+  border-color: #63b3ed;
+  color: #2b6cb0;
+}
+
+.mp-month-cell-btns,
+.mp-week-col-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.mp-day-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.12rem 0.35rem;
+  border-radius: 6px;
+  border: 1px dashed #cbd5e0;
+  background-color: #f8fafc;
+  color: #64748b;
+  font-size: 0.85rem;
+  cursor: grab;
+  user-select: none;
+}
+
+.mp-day-drag-handle:hover {
+  background-color: #e6fffa;
+  border-color: #38b2ac;
+  color: #234e52;
+}
+
+.mp-month-cell.is-drop-target,
+.mp-week-day-col.is-drop-target,
+.mp-day-slot-card.is-drop-target {
+  outline: 2.5px dashed #2f855a;
+  background-color: #f0fff4 !important;
+  box-shadow: 0 0 0 4px rgba(72, 187, 120, 0.16);
+}
+
+.mp-month-meal-chip[draggable="true"],
+.mp-week-meal-card[draggable="true"],
+.mp-day-meal-row[draggable="true"] {
+  cursor: grab;
+}
+
+.mp-month-meal-chip.is-usda {
+  background-color: #fffaf0;
+  border-color: #fbd38d;
+}
+
+.mp-month-usda-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background-color: #feebc8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.mp-month-addon-dot {
+  display: inline-block;
+  margin-left: 0.25rem;
+  background-color: #ebf8ff;
+  color: #2b6cb0;
+  border-radius: 999px;
+  padding: 0 0.32rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.mp-week-usda-banner {
+  background: linear-gradient(135deg, #fffaf0 0%, #feebc8 100%);
+  padding: 0.55rem 0.7rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #9c4221;
+  position: relative;
+}
+
+.mp-day-meal-usda-thumb {
+  width: 78px;
+  height: 78px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fffaf0 0%, #feebc8 100%);
+  border: 1px solid #fbd38d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.mp-status-pill.usda {
+  background-color: #feebc8;
+  color: #9c4221;
+}
+
+.mp-action-btn.accent {
+  background-color: #fffaf0;
+  border-color: #fbd38d;
+  color: #9c4221;
+}
+
+.mp-day-addons-block {
+  margin-top: 0.45rem;
+  font-size: 0.8rem;
+  color: #2d3748;
+}
+
+.mp-card-addons-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.mp-card-addon-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: #edf2f7;
+  border: 1px solid #cbd5e0;
+  color: #2d3748;
+  border-radius: 999px;
+  padding: 0.16rem 0.52rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+/* Entry mode tabs in modals */
+.mp-entry-mode-tabs {
+  display: flex;
+  gap: 0.45rem;
+  margin-bottom: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.mp-entry-mode-tabs button {
+  flex: 1;
+  min-width: 150px;
+  padding: 0.55rem 0.8rem;
+  border-radius: 9px;
+  border: 1.5px solid #cbd5e0;
+  background-color: #f8fafc;
+  color: #4a5568;
+  font-weight: 700;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+
+.mp-entry-mode-tabs button.active {
+  background-color: #f0fff4;
+  border-color: #2f855a;
+  color: #22543d;
+}
+
+/* Sauces, Sides & Condiments Builder */
+.mp-addons-builder {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.85rem;
+  background-color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.mp-addons-header h4 {
+  margin: 0 0 0.15rem 0;
+  font-size: 0.96rem;
+  color: #1c4532;
+}
+
+.mp-addons-header p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #4a5568;
+}
+
+.mp-addons-chip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.mp-addon-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e0;
+  border-radius: 9px;
+  padding: 0.42rem 0.65rem;
+}
+
+.mp-addon-chip.usda {
+  border-color: #fbd38d;
+  background-color: #fffaf0;
+}
+
+.mp-addon-chip-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.mp-addon-chip-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mp-addon-chip-text strong {
+  font-size: 0.85rem;
+  color: #1a202c;
+}
+
+.mp-addon-chip-text span {
+  font-size: 0.76rem;
+  color: #4a5568;
+}
+
+.mp-addon-chip-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.mp-addon-chip-controls button {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e0;
+  background-color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mp-addon-chip-controls button.remove {
+  color: #c53030;
+  border-color: #feb2b2;
+  background-color: #fff5f5;
+}
+
+.mp-addons-tabs {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.mp-addons-tabs button {
+  flex: 1;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e0;
+  background-color: #ffffff;
+  color: #4a5568;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.mp-addons-tabs button.active {
+  background-color: #2f855a;
+  border-color: #2f855a;
+  color: #ffffff;
+}
+
+.mp-usda-search-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.mp-usda-results-list {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+}
+
+.mp-usda-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.48rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #edf2f7;
+  background-color: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mp-usda-item:hover {
+  background-color: #f8fafc;
+}
+
+.mp-usda-item.selected {
+  border-color: #2f855a;
+  background-color: #f0fff4;
+}
+
+.mp-usda-item-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mp-usda-item-main strong {
+  font-size: 0.84rem;
+  color: #1a202c;
+}
+
+.mp-usda-item-sub {
+  font-size: 0.74rem;
+  color: #64748b;
+}
+
+.mp-usda-pick-pill {
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background-color: #edf2f7;
+  color: #2d3748;
+  flex-shrink: 0;
+}
+
+.mp-usda-item.selected .mp-usda-pick-pill {
+  background-color: #2f855a;
+  color: #ffffff;
+}
+
+.mp-usda-portion-bar {
+  background-color: #ffffff;
+  border: 1.5px solid #9ae6b4;
+  border-radius: 10px;
+  padding: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.mp-usda-portion-inputs {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 0.6rem;
+}
+
+.mp-usda-portion-inputs label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.mp-usda-portion-inputs input,
+.mp-usda-portion-inputs select {
+  padding: 0.42rem 0.55rem;
+  border: 1.5px solid #cbd5e0;
+  border-radius: 7px;
+  font-size: 0.86rem;
+}
+
+.mp-usda-preview-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.8rem;
+  color: #22543d;
+}
+
+.mp-usda-selected-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background-color: #f0fff4;
+  border: 1px solid #9ae6b4;
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.84rem;
+  margin-bottom: 0.55rem;
+}
+
+.mp-usda-selected-banner button {
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e0;
+  background: #ffffff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.mp-recipe-addon-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.mp-recipe-addon-filters,
+.mp-recipe-addon-select-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.mp-recipe-addon-filters input {
+  flex: 1;
+  min-width: 170px;
+}
+
+.mp-recipe-addon-cat,
+.mp-recipe-addon-dropdown,
+.mp-recipe-addon-servings input {
+  padding: 0.48rem 0.6rem;
+  border: 1.5px solid #cbd5e0;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  background-color: #ffffff;
+}
+
+.mp-recipe-addon-dropdown {
+  flex: 1;
+  min-width: 190px;
+}
+
+.mp-recipe-addon-servings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.mp-recipe-addon-servings input {
+  width: 78px;
+}
+
+.mp-recipe-quick-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.38rem;
+}
+
+.mp-recipe-quick-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid #cbd5e0;
+  background-color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mp-recipe-quick-chip img {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Copy & Share Modals */
+.mp-copy-panel,
+.mp-share-panel {
+  max-width: 600px;
+}
+
+.mp-copy-presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.mp-preset-btn {
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  border: 1.5px solid #9ae6b4;
+  background-color: #f0fff4;
+  color: #22543d;
+  font-weight: 700;
+  font-size: 0.86rem;
+  cursor: pointer;
+  text-align: center;
+}
+
+.mp-preset-btn:hover:not(:disabled) {
+  background-color: #2f855a;
+  color: #ffffff;
+}
+
+.mp-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #2d3748;
+  cursor: pointer;
+}
+
+.mp-copy-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.mp-share-range-preview {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.86rem;
+  color: #2d3748;
+}
+
+.mp-share-success-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.mp-share-success-banner {
+  background-color: #f0fff4;
+  border: 1px solid #9ae6b4;
+  color: #22543d;
+  border-radius: 9px;
+  padding: 0.65rem 0.85rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.mp-share-url-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mp-share-url-row input {
+  flex: 1;
+  padding: 0.55rem 0.75rem;
+  border: 1.5px solid #cbd5e0;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  background-color: #f8fafc;
+}
+
+.mp-social-share-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.mp-social-btn {
+  padding: 0.45rem 0.78rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e0;
+  background-color: #ffffff;
+  color: #2d3748;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.mp-social-btn:hover {
+  border-color: #2f855a;
+  background-color: #f0fff4;
+}
+
+/* Shared Meal Plan Public Page */
+.mp-shared-hero {
+  background: linear-gradient(135deg, #f0fff4 0%, #ffffff 100%);
+  border: 1.5px solid #9ae6b4;
+  border-radius: 16px;
+  padding: 1.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.mp-shared-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.mp-shared-scope-pill {
+  background-color: #2f855a;
+  color: #ffffff;
+  padding: 0.28rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.mp-shared-meta-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.mp-shared-hero h1 {
+  margin: 0 0 0.45rem 0;
+  font-size: 1.85rem;
+  color: #1c4532;
+}
+
+.mp-shared-desc {
+  margin: 0 0 0.9rem 0;
+  color: #4a5568;
+  font-size: 0.98rem;
+}
+
+.mp-shared-author-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #c6f6d5;
+}
+
+.mp-shared-author-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.mp-shared-author-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #9ae6b4;
+}
+
+.mp-shared-author-left > div {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+  color: #4a5568;
+}
+
+.mp-shared-author-left a {
+  font-size: 0.95rem;
+  color: #22543d;
+  text-decoration: none;
+}
+
+.mp-shared-import-card {
+  background-color: #ffffff;
+  border: 1.5px solid #d6bcfa;
+  border-radius: 14px;
+  padding: 1.15rem 1.25rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 6px 18px rgba(107, 70, 193, 0.08);
+}
+
+.mp-shared-import-intro h2 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.15rem;
+  color: #44337a;
+}
+
+.mp-shared-import-intro p {
+  margin: 0 0 0.85rem 0;
+  font-size: 0.88rem;
+  color: #4a5568;
+}
+
+.mp-shared-import-form {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+}
+
+.mp-shared-import-form label:not(.mp-checkbox-row) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.mp-shared-import-form input[type="date"],
+.mp-shared-import-form input[type="month"] {
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e0;
+}
+
+.mp-shared-guest-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mp-shared-guest-cta p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #4a5568;
+}
+
+.mp-shared-guest-btns {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.mp-shared-days-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.mp-shared-day-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1rem 1.15rem;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+.mp-shared-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding-bottom: 0.7rem;
+  margin-bottom: 0.85rem;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.mp-shared-day-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #1c4532;
+}
+
+.mp-shared-day-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #2f855a;
+}
+
+.mp-shared-day-meals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
