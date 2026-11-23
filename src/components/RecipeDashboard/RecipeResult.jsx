@@ -22,6 +22,39 @@ import { copyRichRecipeToClipboard } from '../../utils/recipeClipboard';
 import ImageStyleOptions from './ImageStyleOptions';
 import './RecipeResult.css';
 
+const IMAGE_REGEN_REASONS = [
+  {
+    id: 'wrong_dish',
+    label: 'Wrong dish or missing main ingredients',
+    detail: 'Does not look like the recipe title or core ingredients.',
+    hint: 'Ensure the dish accurately depicts the exact recipe title and primary ingredients.',
+  },
+  {
+    id: 'off_diet',
+    label: 'Looks oily, non-vegan, or off-diet',
+    detail: 'Shows glossy oil, meat, dairy, cheese, or eggs.',
+    hint: 'Ensure it is 100% whole-food plant-based and oil-free with no meat, dairy, cheese, eggs, or glossy oil.',
+  },
+  {
+    id: 'artifacts',
+    label: 'Distorted, blurry, or AI artifacts',
+    detail: 'Weird utensils, melted textures, or visual glitches.',
+    hint: 'Ensure natural food photography with crisp focus, realistic textures, and no distorted utensils or text.',
+  },
+  {
+    id: 'wrong_style',
+    label: 'Wrong plating, lighting, or kitchen style',
+    detail: 'Does not match the chosen plating or setting.',
+    hint: 'Follow the chosen plating, background, and lighting preferences closely.',
+  },
+  {
+    id: 'other',
+    label: 'Other visual mismatch',
+    detail: 'Something else looks noticeably off from the recipe.',
+    hint: 'Make the plated dish closely match the recipe description and natural whole-food appearance.',
+  },
+];
+
 const normalizeMicrosForPanel = (list = []) =>
   (Array.isArray(list) ? list : []).map((m, idx) => ({
     ...m,
@@ -151,6 +184,10 @@ const RecipeResult = ({
   const [isUpgradingToMasterpiece, setIsUpgradingToMasterpiece] = useState(false);
   const [upgradeImageFailed, setUpgradeImageFailed] = useState(false);
   const [upgradeStatusMsg, setUpgradeStatusMsg] = useState(null);
+  const [showRegenReasonModal, setShowRegenReasonModal] = useState(false);
+  const [regenReasonId, setRegenReasonId] = useState('');
+  const [regenExtraNote, setRegenExtraNote] = useState('');
+  const [freeMismatchRegenUsed, setFreeMismatchRegenUsed] = useState(false);
   const [workshopImageOptions, setWorkshopImageOptions] = useState({
     ...DEFAULT_IMAGE_STYLE_OPTIONS,
     ...(imageStyleOptions || {}),
@@ -270,10 +307,20 @@ const RecipeResult = ({
       );
 
       try {
+          let resolvedImageUrl = displayImageUrl || '';
+          if (!effectiveIsDraft && !resolvedImageUrl && (onRetryImage || isUpgradedToMasterpiece)) {
+            const generatedFallbackUrl = await handleMasterpieceImageRetry('');
+            if (generatedFallbackUrl) {
+              resolvedImageUrl = generatedFallbackUrl;
+              setLocalImageUrl(generatedFallbackUrl);
+              setImageSource('ai');
+            }
+          }
+
           const res = await api.saveGeneratedRecipe({
           title: recipeTitle, 
           description, 
-          imageUrl: displayImageUrl || '', 
+          imageUrl: resolvedImageUrl, 
           prepTime, 
           cookTime, 
           yields, 
@@ -288,19 +335,23 @@ const RecipeResult = ({
           micros: parsedMicros,
           isOilFree,
           isGlutenFree,
-          isSugarFree
+          isSugarFree,
+          isMasterpiece: !effectiveIsDraft
         });
         if (res?.recipeId) {
           setSavedRecipeId(res.recipeId);
         }
-        if (!effectiveIsDraft && displayImageUrl) {
+        const wasPublished = res?.isPublic !== undefined
+          ? Boolean(res.isPublic)
+          : (!effectiveIsDraft && Boolean(resolvedImageUrl));
+        if (wasPublished) {
           setIsPublishedMasterpiece(true);
         }
         const successMsg = effectiveIsDraft
           ? 'Smashing! Your recipe draft has been locked in the Veggie Vault.'
-          : (displayImageUrl
-              ? 'Brilliant! The full recipe and image have been safely vaulted.'
-              : 'Your Masterpiece text has been saved to drafts while the image is pending—retry generating the photo below at no cost to publish!');
+          : (wasPublished
+              ? 'Brilliant! The full recipe and image have been safely vaulted and published!'
+              : (res?.message || 'Your Masterpiece text has been saved to drafts while the image is pending—retry generating the photo below at no cost to publish!'));
         alert(successMsg);
       } catch (error) {
         console.error('Failed to save to the vault:', error);
@@ -369,15 +420,19 @@ const RecipeResult = ({
     setWorkshopImageOptions(nextOpts);
   };
 
-  const handleMasterpieceImageRetry = async () => {
+  const handleMasterpieceImageRetry = async (correctiveNote = '') => {
     if (isGeneratingImage || isGeneratingAiImage) return;
+    const safeCorrection = typeof correctiveNote === 'string' ? correctiveNote.trim() : '';
     setUpgradeStatusMsg(null);
     let generatedDataUrl = null;
     if (isUpgradedToMasterpiece) {
       setIsGeneratingAiImage(true);
       setUpgradeImageFailed(false);
       try {
-        const base64Data = await generateRecipeImage(extractRecipeTitle(), activeRetryStyleOptions);
+        const promptTitle = safeCorrection
+          ? `${extractRecipeTitle()}. Important visual correction: ${safeCorrection}`
+          : extractRecipeTitle();
+        const base64Data = await generateRecipeImage(promptTitle, activeRetryStyleOptions);
         if (base64Data) {
           generatedDataUrl = `data:image/jpeg;base64,${base64Data}`;
           setLocalImageUrl(generatedDataUrl);
@@ -393,8 +448,8 @@ const RecipeResult = ({
         setIsGeneratingAiImage(false);
       }
     } else {
-      if (!onRetryImage) return;
-      generatedDataUrl = await onRetryImage(extractRecipeTitle(), activeRetryStyleOptions);
+      if (!onRetryImage) return null;
+      generatedDataUrl = await onRetryImage(extractRecipeTitle(), activeRetryStyleOptions, safeCorrection);
     }
 
     if (generatedDataUrl && savedRecipeId) {
@@ -410,6 +465,22 @@ const RecipeResult = ({
         console.error('Failed to attach retried image to saved recipe:', err);
       }
     }
+
+    return generatedDataUrl;
+  };
+
+  const handleConfirmMismatchRegenerate = async (e) => {
+    e.preventDefault();
+    if (!regenReasonId || isGeneratingImage || isGeneratingAiImage) return;
+    const selected = IMAGE_REGEN_REASONS.find((item) => item.id === regenReasonId);
+    if (!selected) return;
+
+    const extra = regenExtraNote.trim();
+    const correctiveNote = extra ? `${selected.hint} User note: ${extra}` : selected.hint;
+
+    setShowRegenReasonModal(false);
+    setFreeMismatchRegenUsed(true);
+    await handleMasterpieceImageRetry(correctiveNote);
   };
 
   const handleUploadDraftPhoto = (e) => {
@@ -642,17 +713,39 @@ const RecipeResult = ({
   return (
     <div className="recipe-result-card">
       
-      {displayImageUrl ? (
+      {effectiveGeneratingImage && !effectiveIsDraft && !isChat ? (
+        <div className="masterpiece-image-status generating">
+          <span>Emma is painting your Masterpiece dish photo...</span>
+        </div>
+      ) : displayImageUrl ? (
         <div className="recipe-image-container">
             <img src={displayImageUrl} alt="A glorious AI-generated WFPB meal" />
+            {!effectiveIsDraft && !isChat && (onRetryImage || isUpgradedToMasterpiece) && (
+              <div className="regen-mismatch-row">
+                {!freeMismatchRegenUsed ? (
+                  <button
+                    type="button"
+                    className="regen-mismatch-btn"
+                    onClick={() => {
+                      setRegenReasonId('');
+                      setRegenExtraNote('');
+                      setShowRegenReasonModal(true);
+                    }}
+                    disabled={effectiveGeneratingImage}
+                    title="If the generated photo does not match the dish, choose a reason to regenerate it once at no cost"
+                  >
+                    🔄 Image Doesn&apos;t Match? Regenerate (Free)
+                  </button>
+                ) : (
+                  <span className="regen-mismatch-used-note">
+                    ✓ Free image regeneration applied
+                  </span>
+                )}
+              </div>
+            )}
         </div>
       ) : (!effectiveIsDraft && !isChat && (
         <>
-          {effectiveGeneratingImage && (
-            <div className="masterpiece-image-status generating">
-              <span>Emma is painting your Masterpiece dish photo...</span>
-            </div>
-          )}
           {effectiveImageGenFailed && !effectiveGeneratingImage && (
             <div className="masterpiece-image-status failed">
               <div className="masterpiece-failed-top">
@@ -663,7 +756,7 @@ const RecipeResult = ({
                 <button
                   type="button"
                   className="retry-image-btn"
-                  onClick={handleMasterpieceImageRetry}
+                  onClick={() => handleMasterpieceImageRetry('')}
                   disabled={effectiveGeneratingImage}
                 >
                   Try Generating Image Again (Free)
@@ -946,6 +1039,97 @@ const RecipeResult = ({
       <div className="recipe-footer">
         <p><em>Generated by Emma Advanced for The Chris and Emma Show Premium Vault.</em></p>
       </div>
+
+      {showRegenReasonModal && (
+        <div
+          className="regen-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="regen-reason-modal-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !effectiveGeneratingImage) {
+              setShowRegenReasonModal(false);
+            }
+          }}
+        >
+          <div className="regen-modal-card">
+            <div className="regen-modal-header">
+              <h3 id="regen-reason-modal-title">Regenerate Masterpiece Photo (Free)</h3>
+              <button
+                type="button"
+                className="regen-modal-close"
+                onClick={() => setShowRegenReasonModal(false)}
+                disabled={effectiveGeneratingImage}
+                aria-label="Close regenerate photo modal"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="regen-modal-subtitle">
+              Tell Emma what was off about the generated photo so she can fix it at <strong>0 tokens</strong>. Select a reason to continue:
+            </p>
+
+            <form onSubmit={handleConfirmMismatchRegenerate}>
+              <div className="regen-reason-list" role="radiogroup" aria-label="Reason for regenerating image">
+                {IMAGE_REGEN_REASONS.map((reason) => {
+                  const isSelected = regenReasonId === reason.id;
+                  return (
+                    <label
+                      key={reason.id}
+                      className={`regen-reason-option ${isSelected ? 'selected' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name="regen-reason"
+                        value={reason.id}
+                        checked={isSelected}
+                        onChange={() => setRegenReasonId(reason.id)}
+                        disabled={effectiveGeneratingImage}
+                      />
+                      <div>
+                        <strong>{reason.label}</strong>
+                        <span>{reason.detail}</span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+
+              <div className="regen-extra-note-wrap">
+                <label htmlFor="regen-extra-note">Optional: What should Emma fix? </label>
+                <textarea
+                  id="regen-extra-note"
+                  rows={2}
+                  className="regen-extra-note-input"
+                  value={regenExtraNote}
+                  onChange={(e) => setRegenExtraNote(e.target.value)}
+                  placeholder="E.g., Show whole roasted chickpeas and kale in a bowl instead of pasta..."
+                  maxLength={300}
+                  disabled={effectiveGeneratingImage}
+                />
+              </div>
+
+              <div className="regen-modal-actions">
+                <button
+                  type="button"
+                  className="regen-cancel-btn"
+                  onClick={() => setShowRegenReasonModal(false)}
+                  disabled={effectiveGeneratingImage}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="regen-confirm-btn"
+                  disabled={!regenReasonId || effectiveGeneratingImage}
+                >
+                  Regenerate Image (Free)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -453,6 +453,209 @@
   cursor: not-allowed;
 }
 
+/* --- Free Image Mismatch Regeneration --- */
+.regen-mismatch-row {
+  margin-top: 0.75rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.regen-mismatch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.42rem 0.9rem;
+  border-radius: 9999px;
+  border: 1px solid #cbd5e1;
+  background-color: #f8fafc;
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.regen-mismatch-btn:hover:not(:disabled) {
+  background-color: #f3e8ff;
+  border-color: #a855f7;
+  color: #6b21a8;
+}
+
+.regen-mismatch-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.regen-mismatch-used-note {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #2f855a;
+}
+
+.regen-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1250;
+}
+
+.regen-modal-card {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.35rem;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.24);
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.regen-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.regen-modal-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #0f172a;
+}
+
+.regen-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0.2rem 0.45rem;
+}
+
+.regen-modal-subtitle {
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.regen-reason-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+}
+
+.regen-reason-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  border: 1.5px solid #cbd5e1;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.regen-reason-option.selected {
+  border-color: #7c3aed;
+  background-color: #faf5ff;
+}
+
+.regen-reason-option input {
+  margin-top: 0.2rem;
+  accent-color: #7c3aed;
+}
+
+.regen-reason-option strong {
+  display: block;
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+
+.regen-reason-option span {
+  display: block;
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 0.1rem;
+}
+
+.regen-extra-note-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.regen-extra-note-wrap label {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.regen-extra-note-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.8rem;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.regen-extra-note-input:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.14);
+}
+
+.regen-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.regen-cancel-btn {
+  padding: 0.65rem 1.05rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.regen-confirm-btn {
+  padding: 0.65rem 1.2rem;
+  border-radius: 8px;
+  border: none;
+  background: #7c3aed;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.regen-confirm-btn:disabled {
+  background: #cbd5e1;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
 /* --- Dietary Badges in Recipe Result --- */
 .result-dietary-badges {
   display: flex;

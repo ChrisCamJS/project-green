@@ -334,24 +334,24 @@ export async function parseReferenceFile(file) {
  */
 function extractImageSubjectHint({ userPrompt, pastedReference, uploadedDoc }) {
   const trimmedPrompt = (userPrompt || '').trim();
-  if (trimmedPrompt && trimmedPrompt.length <= 160) {
-    return trimmedPrompt;
-  }
-
-  const refText = (pastedReference || uploadedDoc?.textContent || '').trim();
-  if (refText) {
-    const firstNonEmptyLine = refText
-      .split('\n')
-      .map((line) => line.replace(/^#+\s*/, '').trim())
-      .find((line) => line.length >= 4);
-    if (firstNonEmptyLine) {
-      const snippet = firstNonEmptyLine.slice(0, 120).trim();
-      return trimmedPrompt ? `${snippet} (${trimmedPrompt.slice(0, 80)})` : snippet;
-    }
-  }
-
   if (trimmedPrompt) {
     return trimmedPrompt.slice(0, 160);
+  }
+
+  const refText = (uploadedDoc?.textContent || pastedReference || '').trim();
+  if (refText) {
+    const candidateLine = refText
+      .split('\n')
+      .map((line) => line.replace(/^#+\s*/, '').replace(/[*_`]/g, '').trim())
+      .find(
+        (line) =>
+          line.length >= 4 &&
+          !/^https?:\/\//i.test(line) &&
+          !/^(?:prep(?:\s*time)?|cook(?:\s*time)?|total\s*time|yields?|servings?|ingredients?|instructions?|directions?|method|notes?|author|source)\s*:/i.test(line)
+      );
+    if (candidateLine) {
+      return candidateLine.slice(0, 120).trim();
+    }
   }
 
   if (uploadedDoc?.fileName) {

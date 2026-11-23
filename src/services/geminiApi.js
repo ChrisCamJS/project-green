@@ -57,7 +57,7 @@ export const buildRecipeImagePrompt = (dishName, imageOptions = {}) => {
     : '';
 
   return [
-    `A professional, mouth-watering, high-resolution food photography shot of a vegan, whole-food plant-based dish: ${cleanDish}.`,
+    `A professional, mouth-watering, high-resolution food photography shot of ${cleanDish} (prepared 100% vegan, whole-food plant-based, and oil-free).`,
     surfaceClause,
     kitchenColorClause,
     lightingClause,

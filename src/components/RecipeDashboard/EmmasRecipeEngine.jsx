@@ -5,7 +5,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import EmmaMarkdown from '../EmmaMarkdown';
 import RecipeIdeaActions from '../RecipeIdeaActions';
 import VoiceDictationButton from '../VoiceDictationButton';
-import { getSystemInstructions } from '../../utils/promptBuilder';
+import { getSystemInstructions, cleanRecipeTitle } from '../../utils/promptBuilder';
 import { extractRecipeIdeas } from '../../utils/recipeIdeas';
 import {
     fetchPublishedRecipesCatalog,
@@ -176,6 +176,26 @@ const EmmasRecipeEngine = () => {
         }, 300);
     };
 
+    const extractGeneratedDishPrompt = (markdown = '', fallbackHint = '') => {
+        const titleMatch = markdown.match(/^#\s+(.+)$/m);
+        const rawTitle = titleMatch && titleMatch[1] ? cleanRecipeTitle(titleMatch[1]) : '';
+        if (!rawTitle) {
+            return fallbackHint || 'Whole-Food Plant-Based Dish';
+        }
+        const afterTitle = markdown.slice((titleMatch.index ?? 0) + titleMatch[0].length);
+        const introMatch = afterTitle.match(/^\s*\n+([^#\n*>-][^\n]{10,220})/);
+        const introLine = introMatch
+            ? introMatch[1].replace(/[*_`]/g, '').trim()
+            : '';
+        if (introLine) {
+            const firstSentence = introLine.split(/(?<=[.!?])\s+/)[0].slice(0, 160).trim();
+            if (firstSentence) {
+                return `${rawTitle} — ${firstSentence}`;
+            }
+        }
+        return rawTitle;
+    };
+
     const triggerMasterpieceImageGeneration = async (promptText, styleOpts = imageStyleOptions) => {
         setIsGeneratingImage(true);
         setImageGenFailed(false);
@@ -199,9 +219,16 @@ const EmmasRecipeEngine = () => {
         }
     };
 
-    // Free retry (0 tokens) when initial Masterpiece image generation fails
-    const handleRetryMasterpieceImage = async (fallbackTitle = '', styleOptsOverride = null) => {
-        const promptToUse = lastImagePrompt || fallbackTitle || 'Whole-food plant-based dish';
+    // Free retry (0 tokens) when initial Masterpiece image generation fails or user reports a visual mismatch
+    const handleRetryMasterpieceImage = async (
+        fallbackTitle = '',
+        styleOptsOverride = null,
+        correctiveNote = ''
+    ) => {
+        const basePrompt = lastImagePrompt || fallbackTitle || 'Whole-food plant-based dish';
+        const promptToUse = correctiveNote
+            ? `${basePrompt}. Important visual correction: ${correctiveNote}`
+            : basePrompt;
         const styleToUse = styleOptsOverride || imageStyleOptions;
         if (styleOptsOverride) {
             setImageStyleOptions(styleOptsOverride);
@@ -270,10 +297,12 @@ const EmmasRecipeEngine = () => {
                 user?.allergies || ''
             );
             
-            if (engineMode === 'full' && baseHistory.length === 0) {
-                const activeImageOpts = imageOptionsOverride || imageStyleOptions;
+            const isShouldGenerateMasterpieceImg = engineMode === 'full' && baseHistory.length === 0;
+            const activeImageOpts = imageOptionsOverride || imageStyleOptions;
+            if (isShouldGenerateMasterpieceImg) {
+                setIsGeneratingImage(true);
+                setImageGenFailed(false);
                 setLastImagePrompt(imageSubjectHint);
-                triggerMasterpieceImageGeneration(imageSubjectHint, activeImageOpts);
             }
 
             const modelReplyText = await sendChatMessage(apiHistory, systemInstructions);
@@ -305,6 +334,12 @@ const EmmasRecipeEngine = () => {
             setChatHistory(finalHistory);
             setCurrentSessionId(activeSessionId);
 
+            if (isShouldGenerateMasterpieceImg) {
+                const resolvedImagePrompt = extractGeneratedDishPrompt(recipeMarkdown, imageSubjectHint);
+                setLastImagePrompt(resolvedImagePrompt);
+                triggerMasterpieceImageGeneration(resolvedImagePrompt, activeImageOpts);
+            }
+
             if (
                 engineMode === 'full' &&
                 baseHistory.length === 0 &&
@@ -323,6 +358,7 @@ const EmmasRecipeEngine = () => {
 
         } catch (err) {
             console.error("Dashboard caught an error:", err);
+            setIsGeneratingImage(false);
             setError(err.message || "Something went wrong. Try again.");
         } finally {
             setIsLoading(false);
@@ -1021,13 +1057,13 @@ const EmmasRecipeEngine = () => {
                                 
                                 <RecipeResult 
                                     recipeMarkdown={cleanRecipeText} 
-                                    imageUrl={index === 1 ? recipeImage : null} 
+                                    imageUrl={engineMode === 'full' ? recipeImage : null} 
                                     isDraft={engineMode === 'draft'} 
                                     isChat={engineMode === 'chat'}
                                     dietaryPrefs={dietaryPrefs}
-                                    isGeneratingImage={index === 1 ? isGeneratingImage : false}
-                                    imageGenFailed={index === 1 ? imageGenFailed : false}
-                                    onRetryImage={index === 1 ? handleRetryMasterpieceImage : null}
+                                    isGeneratingImage={engineMode === 'full' ? isGeneratingImage : false}
+                                    imageGenFailed={engineMode === 'full' ? imageGenFailed : false}
+                                    onRetryImage={engineMode === 'full' ? handleRetryMasterpieceImage : null}
                                     imageStyleOptions={imageStyleOptions}
                                     onUpdateImageStyleOptions={setImageStyleOptions}
                                     onToggleLiveChat={handleToggleInlineLiveChat}
