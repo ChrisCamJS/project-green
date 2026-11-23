@@ -49,6 +49,8 @@ const RecipeCard = ({ recipe }) => {
         : (parentAuthorName && parentAuthorName !== 'Emma (AI)' ? `/profile/${encodeURIComponent(parentAuthorName)}` : null);
     const isMasterpieceCard = Boolean(recipe.isMasterpiece || recipe.is_masterpiece);
     const variantSummary = recipe.variantSummary || recipe.variant_summary || null;
+    const variantCount = Number(recipe.variantCount ?? recipe.variant_count ?? 0);
+    const storyCount = Number(recipe.storyCount ?? recipe.story_count ?? 0);
 
     const {
         oilFree: showOilFree,
@@ -161,6 +163,28 @@ const RecipeCard = ({ recipe }) => {
                         onRate={(id, newRating) => console.log(`Recipe ${id} rated ${newRating} stars`)} 
                     />
                 </div>
+                {(variantCount > 0 || storyCount > 0) && (
+                    <div className="recipe-card-connections-row">
+                        {variantCount > 0 && (
+                            <Link
+                                to={`/recipe/${id}/connections?tab=variants`}
+                                className="recipe-card-connection-pill variants-pill"
+                                title={`View all ${variantCount} public ${variantCount === 1 ? 'variant' : 'variants'} and lineage`}
+                            >
+                                🔀 {variantCount} {variantCount === 1 ? 'Variant' : 'Variants'}
+                            </Link>
+                        )}
+                        {storyCount > 0 && (
+                            <Link
+                                to={`/recipe/${id}/connections?tab=stories`}
+                                className="recipe-card-connection-pill stories-pill"
+                                title={`View all ${storyCount} published ${storyCount === 1 ? 'story' : 'stories'} for this recipe`}
+                            >
+                                📖 {storyCount} {storyCount === 1 ? 'Story' : 'Stories'}
+                            </Link>
+                        )}
+                    </div>
+                )}
                 <p className='recipe-description'>
                     {/* safety check: ensures it only slices if description exists */}
                     {description ? description.slice(0, 200) + '...' : 'A delicious plant-based creation.'}

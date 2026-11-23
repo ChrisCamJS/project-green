@@ -149,6 +149,44 @@
   margin-bottom: 2px;
 }
 
+.recipe-card-connections-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: 0.25rem 0;
+}
+
+.recipe-card-connection-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.recipe-card-connection-pill:hover {
+  transform: translateY(-1px);
+  filter: brightness(0.96);
+}
+
+.recipe-card-connection-pill.variants-pill {
+  background-color: #f0fdfa;
+  color: #0f766e;
+  border: 1px solid #99f6e4;
+}
+
+.recipe-card-connection-pill.stories-pill {
+  background-color: #f5f3ff;
+  color: #5b21b6;
+  border: 1px solid #ddd6fe;
+}
+
 .recipe-author-stack {
   display: flex;
   flex-direction: column;

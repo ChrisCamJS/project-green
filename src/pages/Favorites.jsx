@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import RecipeCard from '../components/RecipeCard';
 import StoryCard from '../components/StoryCard';
 import StoryEditorModal from '../components/StoryEditorModal';
+import CreateVariantModal from '../components/CreateVariantModal';
 import RecipeFilterToolbar from '../components/RecipeFilterToolbar';
 import { filterRecipesList } from '../utils/recipeFilterUtils';
 import { resolveRecipeImageUrl } from '../utils/mealPlanUtils';
@@ -20,10 +21,11 @@ const resolveAssetUrl = (path) => {
 
 export default function Favorites() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [favorites, setFavorites] = useState([]);
   const [followingList, setFollowingList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // 'all', 'public', 'drafts', 'stories', 'following'
+  const [filter, setFilter] = useState('all'); // 'all', 'public', 'drafts', 'variants', 'stories', 'following'
   const [unfollowingId, setUnfollowingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilters, setActiveFilters] = useState({
@@ -42,6 +44,7 @@ export default function Favorites() {
   const [editingLoadingId, setEditingLoadingId] = useState(null);
 
   const [showRecipePicker, setShowRecipePicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState('story'); // 'story' | 'variant'
   const [pickerScope, setPickerScope] = useState('all'); // 'all' | 'saved'
   const [pickerQuery, setPickerQuery] = useState('');
   const [catalogRecipes, setCatalogRecipes] = useState([]);
@@ -50,6 +53,9 @@ export default function Favorites() {
   const [isStoryEditorOpen, setIsStoryEditorOpen] = useState(false);
   const [editorRecipe, setEditorRecipe] = useState(null);
   const [editingStory, setEditingStory] = useState(null);
+
+  const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
+  const [variantParentRecipe, setVariantParentRecipe] = useState(null);
 
   const loadVaultData = async () => {
     try {
@@ -122,7 +128,8 @@ export default function Favorites() {
     }
   };
 
-  const handleOpenRecipePicker = async () => {
+  const handleOpenRecipePicker = async (mode = 'story') => {
+    setPickerMode(mode === 'variant' ? 'variant' : 'story');
     setPickerQuery('');
     setShowRecipePicker(true);
     if (catalogRecipes.length === 0 && !loadingCatalog) {
@@ -134,16 +141,28 @@ export default function Favorites() {
           : (Array.isArray(data?.recipes) ? data.recipes : []);
         setCatalogRecipes(list);
       } catch (err) {
-        console.error('Failed to load recipes for story picker:', err);
+        console.error('Failed to load recipes for picker:', err);
       } finally {
         setLoadingCatalog(false);
       }
     }
   };
 
-  const handleSelectRecipeForStory = (recipeItem) => {
+  const handleSelectRecipeFromPicker = (recipeItem) => {
     if (!recipeItem?.id) return;
     setShowRecipePicker(false);
+
+    if (pickerMode === 'variant') {
+      setVariantParentRecipe({
+        ...recipeItem,
+        id: recipeItem.id,
+        title: recipeItem.title,
+        authorName: recipeItem.authorName || recipeItem.username || 'Emma (AI)',
+      });
+      setIsVariantModalOpen(true);
+      return;
+    }
+
     setEditingStory(null);
     setEditorRecipe({
       id: recipeItem.id,
@@ -298,9 +317,16 @@ export default function Favorites() {
           <button
             type="button"
             className="start-story-cta-btn"
-            onClick={handleOpenRecipePicker}
+            onClick={() => handleOpenRecipePicker('story')}
           >
             ✍️ Start a New Story
+          </button>
+          <button
+            type="button"
+            className="start-variant-cta-btn"
+            onClick={() => handleOpenRecipePicker('variant')}
+          >
+            🔀 Start a New Variant
           </button>
         </div>
 
@@ -460,7 +486,7 @@ export default function Favorites() {
             <button
               type="button"
               className="start-story-cta-btn"
-              onClick={handleOpenRecipePicker}
+              onClick={() => handleOpenRecipePicker('story')}
             >
               ✍️ Start a New Story
             </button>
@@ -555,7 +581,7 @@ export default function Favorites() {
                   <button
                     type="button"
                     className="start-story-cta-btn"
-                    onClick={handleOpenRecipePicker}
+                    onClick={() => handleOpenRecipePicker('story')}
                   >
                     ✍️ Start Your First Story
                   </button>
@@ -594,8 +620,23 @@ export default function Favorites() {
         </div>
       ) : (
         <div className="no-favorites-card">
-          <p>No recipes found in this view.</p>
-          <Link to="/" className="browse-recipes-btn">Explore Masterpieces</Link>
+          {filter === 'variants' && myVariantsCount === 0 ? (
+            <>
+              <p>You haven&apos;t created any recipe variants yet. Pick any recipe from your Vault or the community feed to remix into your own variant!</p>
+              <button
+                type="button"
+                className="start-variant-cta-btn"
+                onClick={() => handleOpenRecipePicker('variant')}
+              >
+                🔀 Start Your First Variant
+              </button>
+            </>
+          ) : (
+            <>
+              <p>No recipes found in this view.</p>
+              <Link to="/" className="browse-recipes-btn">Explore Masterpieces</Link>
+            </>
+          )}
         </div>
       )}
 
@@ -614,8 +655,14 @@ export default function Favorites() {
           <div className="vault-story-picker-modal">
             <div className="vault-story-picker-header">
               <div>
-                <h2 id="vault-story-picker-title">Start a New Story</h2>
-                <p>Choose a recipe to base your story on</p>
+                <h2 id="vault-story-picker-title">
+                  {pickerMode === 'variant' ? 'Start a New Recipe Variant' : 'Start a New Story'}
+                </h2>
+                <p>
+                  {pickerMode === 'variant'
+                    ? 'Choose a recipe to remix into your own variant'
+                    : 'Choose a recipe to base your story on'}
+                </p>
               </div>
               <button
                 type="button"
@@ -635,7 +682,11 @@ export default function Favorites() {
                 onChange={(e) => setPickerQuery(e.target.value)}
                 placeholder="Search recipes by title, description, or chef..."
                 autoFocus
-                aria-label="Search recipes for your story"
+                aria-label={
+                  pickerMode === 'variant'
+                    ? 'Search recipes for your variant'
+                    : 'Search recipes for your story'
+                }
               />
               <div className="vault-story-picker-scopes" role="group" aria-label="Recipe source">
                 <button
@@ -669,7 +720,7 @@ export default function Favorites() {
                       key={r.id}
                       type="button"
                       className="vault-picker-item"
-                      onClick={() => handleSelectRecipeForStory(r)}
+                      onClick={() => handleSelectRecipeFromPicker(r)}
                     >
                       <img
                         src={thumbUrl}
@@ -715,6 +766,25 @@ export default function Favorites() {
         recipe={editorRecipe}
         initialStory={editingStory}
         onSaved={handleStorySaved}
+      />
+
+      <CreateVariantModal
+        isOpen={isVariantModalOpen}
+        onClose={() => {
+          setIsVariantModalOpen(false);
+          setVariantParentRecipe(null);
+        }}
+        parentRecipe={variantParentRecipe}
+        onVariantCreated={async (res) => {
+          setIsVariantModalOpen(false);
+          setVariantParentRecipe(null);
+          await loadVaultData();
+          if (res?.recipeId) {
+            navigate(`/recipe/${res.recipeId}`);
+          } else {
+            setFilter('variants');
+          }
+        }}
       />
     </div>
   );

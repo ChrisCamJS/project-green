@@ -333,6 +333,28 @@
   box-shadow: 0 6px 16px rgba(107, 33, 168, 0.3);
 }
 
+.start-variant-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: linear-gradient(135deg, #0f766e 0%, #0284c7 100%);
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 1.4rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.96rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.22);
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.start-variant-cta-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 6px 16px rgba(15, 118, 110, 0.3);
+}
+
 /* --- My Stories Management Section --- */
 .vault-stories-section {
   margin-top: 1rem;

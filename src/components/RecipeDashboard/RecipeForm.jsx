@@ -1,6 +1,7 @@
 // src/components/RecipeDashboard/RecipeForm.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useSpeechToText } from '../../hooks/useSpeechToText';
+import { api } from '../../services/api';
 import { DEFAULT_IMAGE_STYLE_OPTIONS } from '../../services/geminiApi';
 import {
   ACCEPTED_REFERENCE_EXTENSIONS,
@@ -69,6 +70,13 @@ const RecipeForm = ({
   const [showMobileContextInput, setShowMobileContextInput] = useState(false);
   const [mobileContextDraft, setMobileContextDraft] = useState('');
 
+  // Google Drive share state
+  const [showGoogleDriveModal, setShowGoogleDriveModal] = useState(false);
+  const [googleDriveUrl, setGoogleDriveUrl] = useState('');
+  const [googleDriveError, setGoogleDriveError] = useState(null);
+  const [isFetchingGoogleDrive, setIsFetchingGoogleDrive] = useState(false);
+  const [driveOpenReferenceDrawer, setDriveOpenReferenceDrawer] = useState(false);
+
   // Masterpiece image style & kitchen customization state
   const [imageOptions, setImageOptions] = useState({ ...DEFAULT_IMAGE_STYLE_OPTIONS });
 
@@ -126,6 +134,55 @@ const RecipeForm = ({
 
   const handleMobilePaperclipFileChange = (e) =>
     processSelectedFile(e.target.files?.[0], e.target, { openReferenceDrawer: false });
+
+  const handleOpenGoogleDriveModal = (openDrawer = false) => {
+    setDriveOpenReferenceDrawer(Boolean(openDrawer));
+    setGoogleDriveUrl('');
+    setGoogleDriveError(null);
+    setShowGoogleDriveModal(true);
+  };
+
+  const handleImportFromGoogleDrive = async (e) => {
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
+    const trimmedUrl = googleDriveUrl.trim();
+    if (!trimmedUrl || isFetchingGoogleDrive || isParsingFile) return;
+
+    setIsFetchingGoogleDrive(true);
+    setGoogleDriveError(null);
+    try {
+      const res = await api.fetchGoogleDriveFile(trimmedUrl);
+      if (!res?.success || !res?.base64Data) {
+        throw new Error(res?.message || 'Could not import that file from Google Drive.');
+      }
+
+      const binaryString = window.atob(res.base64Data);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i += 1) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      const importedFile = new File(
+        [bytes],
+        res.fileName || 'google-drive-document.txt',
+        { type: res.mimeType || 'text/plain' }
+      );
+
+      setShowGoogleDriveModal(false);
+      setGoogleDriveUrl('');
+      await processSelectedFile(importedFile, null, {
+        openReferenceDrawer: driveOpenReferenceDrawer,
+      });
+    } catch (err) {
+      setGoogleDriveError(
+        err?.message || 'Could not import file from Google Drive. Make sure link sharing is enabled.'
+      );
+    } finally {
+      setIsFetchingGoogleDrive(false);
+    }
+  };
 
   const hasReference = Boolean(pastedReference.trim() || uploadedDoc);
   const canSubmit = Boolean(userRequest.trim() || hasReference);
@@ -191,6 +248,25 @@ const RecipeForm = ({
           />
 
           <div className="textarea-action-icons">
+            <button
+              type="button"
+              className={`mobile-attach-gdrive-btn ${(isLoading || isParsingFile || isFetchingGoogleDrive) ? 'disabled' : ''}`}
+              onClick={() => handleOpenGoogleDriveModal(false)}
+              disabled={isLoading || isParsingFile || isFetchingGoogleDrive}
+              title="Share a file or document from Google Drive"
+              aria-label="Share a file or document from Google Drive"
+            >
+              {isFetchingGoogleDrive ? (
+                <span aria-hidden="true">⏳</span>
+              ) : (
+                <svg className="gdrive-inline-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#0066DA" d="M8.6 3.5L2.1 14.8l3.2 5.7 6.5-11.3z" />
+                  <path fill="#00AC47" d="M15.4 3.5H8.6l6.5 11.3h6.8z" />
+                  <path fill="#EA4335" d="M15.1 14.8H8.6l-3.3 5.7h13.4l3.2-5.7z" />
+                </svg>
+              )}
+            </button>
+
             <label
               className={`mobile-attach-paperclip-btn ${hasReference ? 'has-ref' : ''} ${(isLoading || isParsingFile) ? 'disabled' : ''}`}
               title="Attach a file or image for Emma"
@@ -405,6 +481,20 @@ const RecipeForm = ({
                 />
               </label>
 
+              <button
+                type="button"
+                className="reference-gdrive-btn"
+                onClick={() => handleOpenGoogleDriveModal(true)}
+                disabled={isLoading || isParsingFile || isFetchingGoogleDrive}
+              >
+                <svg className="gdrive-inline-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#0066DA" d="M8.6 3.5L2.1 14.8l3.2 5.7 6.5-11.3z" />
+                  <path fill="#00AC47" d="M15.4 3.5H8.6l6.5 11.3h6.8z" />
+                  <path fill="#EA4335" d="M15.1 14.8H8.6l-3.3 5.7h13.4l3.2-5.7z" />
+                </svg>
+                <span>Share from Google Drive</span>
+              </button>
+
               {uploadedDoc && (
                 <div className="reference-file-chip">
                   <span className="reference-chip-name">
@@ -542,6 +632,100 @@ const RecipeForm = ({
               </div>
             </div>
           )}
+        </div>
+      </div>
+    )}
+
+    {showGoogleDriveModal && (
+      <div
+        className="mobile-context-modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="gdrive-modal-title"
+        onClick={(e) => {
+          if (e.target === e.currentTarget && !isFetchingGoogleDrive) {
+            setShowGoogleDriveModal(false);
+          }
+        }}
+      >
+        <div className="mobile-context-modal-card">
+          <div className="mobile-context-modal-header">
+            <div className="gdrive-modal-header-row">
+              <div className="gdrive-modal-title-wrap">
+                <svg className="gdrive-inline-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#0066DA" d="M8.6 3.5L2.1 14.8l3.2 5.7 6.5-11.3z" />
+                  <path fill="#00AC47" d="M15.4 3.5H8.6l6.5 11.3h6.8z" />
+                  <path fill="#EA4335" d="M15.1 14.8H8.6l-3.3 5.7h13.4l3.2-5.7z" />
+                </svg>
+                <h3 id="gdrive-modal-title">Share from Google Drive</h3>
+              </div>
+              <button
+                type="button"
+                className="gdrive-modal-close-btn"
+                onClick={() => setShowGoogleDriveModal(false)}
+                disabled={isFetchingGoogleDrive}
+                aria-label="Close Google Drive dialog"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <p className="mobile-context-modal-question">
+            Paste a link to any Google Doc, Google Sheet, PDF, Word doc, text file, or dish photo from your Google Drive (set to <strong>&ldquo;Anyone with the link&rdquo;</strong>).
+          </p>
+
+          <form onSubmit={handleImportFromGoogleDrive} className="mobile-context-input-panel">
+            <input
+              type="url"
+              className="gdrive-url-input"
+              value={googleDriveUrl}
+              onChange={(e) => {
+                setGoogleDriveUrl(e.target.value);
+                if (googleDriveError) setGoogleDriveError(null);
+              }}
+              placeholder="https://docs.google.com/document/d/... or https://drive.google.com/file/d/..."
+              autoFocus
+              required
+              disabled={isFetchingGoogleDrive}
+            />
+
+            <div className="gdrive-helper-row">
+              <span>Supports Docs, Sheets, PDF, DOCX, TXT &amp; images</span>
+              <a
+                href="https://drive.google.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="gdrive-open-drive-link"
+              >
+                Open Google Drive &#8599;
+              </a>
+            </div>
+
+            {googleDriveError && (
+              <div className="reference-error-msg" role="alert">
+                {googleDriveError}
+              </div>
+            )}
+
+            <div className="mobile-context-actions">
+              <button
+                type="submit"
+                className="mobile-context-btn-primary"
+                disabled={isFetchingGoogleDrive || !googleDriveUrl.trim()}
+              >
+                {isFetchingGoogleDrive ? '⏳ Importing from Google Drive...' : 'Attach from Google Drive'}
+              </button>
+              <button
+                type="button"
+                className="mobile-context-btn-secondary"
+                onClick={() => setShowGoogleDriveModal(false)}
+                disabled={isFetchingGoogleDrive}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     )}

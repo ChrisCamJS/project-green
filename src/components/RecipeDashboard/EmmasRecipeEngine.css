@@ -1586,7 +1586,8 @@
   border-color: #fc8181;
 }
 
-/* --- Mobile Paperclip Attachment Inside Prompt Input --- */
+/* --- Mobile Paperclip & Google Drive Attachment Inside Prompt Input --- */
+.textarea-action-icons .mobile-attach-gdrive-btn,
 .textarea-action-icons .mobile-attach-paperclip-btn,
 .mobile-attached-bar,
 .mobile-file-error-wrap {
@@ -1603,6 +1604,7 @@
     box-sizing: border-box;
   }
 
+  .textarea-action-icons .mobile-attach-gdrive-btn,
   .textarea-action-icons .mobile-attach-paperclip-btn {
     display: inline-flex;
     align-items: center;
@@ -1624,6 +1626,7 @@
     transition: background-color 0.2s ease, border-color 0.2s ease;
   }
 
+  .textarea-action-icons .mobile-attach-gdrive-btn:hover:not(.disabled),
   .mobile-attach-paperclip-btn:hover:not(.disabled) {
     background-color: #cbd5e0;
   }
@@ -1633,6 +1636,7 @@
     border-color: #48bb78;
   }
 
+  .textarea-action-icons .mobile-attach-gdrive-btn.disabled,
   .mobile-attach-paperclip-btn.disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -1687,6 +1691,97 @@
     display: block;
     margin-top: 0.55rem;
   }
+}
+
+.gdrive-inline-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.reference-gdrive-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.95rem;
+  border-radius: 8px;
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.reference-gdrive-btn:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.reference-gdrive-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gdrive-modal-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.gdrive-modal-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.gdrive-modal-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.05rem;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  line-height: 1;
+}
+
+.gdrive-url-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.72rem 0.85rem;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: #0f172a;
+}
+
+.gdrive-url-input:focus {
+  outline: none;
+  border-color: #2f855a;
+  box-shadow: 0 0 0 3px rgba(47, 133, 90, 0.15);
+}
+
+.gdrive-helper-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.gdrive-open-drive-link {
+  color: #0284c7;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.gdrive-open-drive-link:hover {
+  text-decoration: underline;
 }
 
 /* --- Mobile Extra Context Modal --- */

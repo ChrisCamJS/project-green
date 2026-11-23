@@ -50,6 +50,10 @@ export const api = {
     getRecipesById: (id) => {
         return fetchWrapper(`/recipes/single?id=${id}`, { method: 'GET' });
     },
+
+    getRecipeLineage: (id) => {
+        return fetchWrapper(`/recipes/lineage?id=${encodeURIComponent(id)}`, { method: 'GET' });
+    },
     
     addRecipe: (recipeData) => {
         return fetchWrapper('/recipes', {
@@ -568,6 +572,13 @@ export const api = {
         return fetchWrapper('/contact', {
             method: 'POST',
             body: JSON.stringify(payload),
+        });
+    },
+
+    fetchGoogleDriveFile: (url) => {
+        return fetchWrapper('/ai/google-drive-fetch', {
+            method: 'POST',
+            body: JSON.stringify({ url }),
         });
     }
 };

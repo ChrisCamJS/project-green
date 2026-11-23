@@ -1190,9 +1190,17 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
             <span className="recipe-variant-summary-text">
               🔀 <strong>Variant Twist:</strong> {variantSummary}
             </span>
-            <Link to={`/recipe/${parentRecipeId}`} className="recipe-variant-parent-inline-link">
-              View Original: {parentRecipeTitle} →
-            </Link>
+            <div className="recipe-variant-summary-links">
+              <Link to={`/recipe/${parentRecipeId}`} className="recipe-variant-parent-inline-link">
+                View Original: {parentRecipeTitle} →
+              </Link>
+              <Link
+                to={`/recipe/${recipe.id}/connections?tab=variants`}
+                className="recipe-variant-parent-inline-link"
+              >
+                Trace Lineage
+              </Link>
+            </div>
           </div>
         )}
         {/* The Creator Tag & Action Toolbar */}
@@ -1233,6 +1241,28 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
                   {parentRecipeTitle}
                 </Link>
               </span>
+            )}
+            {Math.max(Number(recipe.variantCount ?? recipe.variant_count ?? 0), communityVariants.length) > 0 && (
+              <Link
+                to={`/recipe/${recipe.id}/connections?tab=variants`}
+                className="recipe-creator-pill recipe-connection-pill variants"
+                title="View all associated public variants and trace full variant lineage"
+              >
+                🔀 {Math.max(Number(recipe.variantCount ?? recipe.variant_count ?? 0), communityVariants.length)}{' '}
+                {Math.max(Number(recipe.variantCount ?? recipe.variant_count ?? 0), communityVariants.length) === 1
+                  ? 'Variant'
+                  : 'Variants'}
+              </Link>
+            )}
+            {Number(recipe.storyCount ?? recipe.story_count ?? 0) > 0 && (
+              <Link
+                to={`/recipe/${recipe.id}/connections?tab=stories`}
+                className="recipe-creator-pill recipe-connection-pill stories"
+                title="View all published community stories for this recipe"
+              >
+                📖 {Number(recipe.storyCount ?? recipe.story_count ?? 0)}{' '}
+                {Number(recipe.storyCount ?? recipe.story_count ?? 0) === 1 ? 'Story' : 'Stories'}
+              </Link>
             )}
             {canFollowAuthor && (
               <button

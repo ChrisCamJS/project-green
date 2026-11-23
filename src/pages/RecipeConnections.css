@@ -1,0 +1,583 @@
+/* src/pages/RecipeConnections.css */
+
+.rc-page {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3.5rem;
+}
+
+.rc-top-nav {
+  margin-bottom: 1rem;
+}
+
+.rc-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #166534;
+  font-weight: 700;
+  font-size: 0.92rem;
+  text-decoration: none;
+}
+
+.rc-back-link:hover {
+  text-decoration: underline;
+}
+
+.rc-hero-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.35rem 1.5rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+  margin-bottom: 1.5rem;
+}
+
+.rc-hero-main {
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.rc-hero-thumb {
+  width: 84px;
+  height: 84px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid #cbd5e1;
+}
+
+.rc-hero-info {
+  min-width: 0;
+}
+
+.rc-kicker {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #2e7d32;
+  background: #dcfce7;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  margin-bottom: 0.4rem;
+}
+
+.rc-hero-title {
+  margin: 0 0 0.35rem 0;
+  font-size: clamp(1.25rem, 2.5vw, 1.65rem);
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.rc-hero-title a {
+  color: #0f172a;
+  text-decoration: none;
+}
+
+.rc-hero-title a:hover {
+  color: #2e7d32;
+}
+
+.rc-meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.88rem;
+  color: #475569;
+}
+
+.rc-chef-link {
+  color: #166534;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.rc-chef-link:hover {
+  text-decoration: underline;
+}
+
+.rc-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.rc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.6rem 1.05rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.rc-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+}
+
+.rc-btn.primary {
+  background: #2e7d32;
+  color: #ffffff;
+}
+
+.rc-btn.variant {
+  background: linear-gradient(135deg, #0f766e 0%, #0284c7 100%);
+  color: #ffffff;
+}
+
+.rc-btn.story {
+  background: linear-gradient(135deg, #6b21a8 0%, #4338ca 100%);
+  color: #ffffff;
+}
+
+/* Lineage Tree Section */
+.rc-lineage-section {
+  background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%);
+  border: 1px solid #bbf7d0;
+  border-radius: 16px;
+  padding: 1.25rem 1.4rem;
+  margin-bottom: 1.5rem;
+}
+
+.rc-lineage-header {
+  margin-bottom: 1rem;
+}
+
+.rc-lineage-header h2 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.12rem;
+  font-weight: 800;
+  color: #14532d;
+}
+
+.rc-lineage-header p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #334155;
+}
+
+.rc-lineage-chain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.rc-lineage-step-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.rc-lineage-connector {
+  padding-left: 1.4rem;
+  color: #0f766e;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.rc-lineage-node {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+}
+
+.rc-lineage-node.current {
+  border-color: #2e7d32;
+  background: #f0fdf4;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.1);
+}
+
+.rc-lineage-node-left {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+  flex: 1 1 260px;
+}
+
+.rc-lineage-thumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 9px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid #e2e8f0;
+}
+
+.rc-lineage-node-body {
+  min-width: 0;
+}
+
+.rc-lineage-gen-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.2rem;
+}
+
+.rc-gen-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.14rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.rc-gen-pill.root {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.rc-gen-pill.current {
+  background: #2e7d32;
+  color: #ffffff;
+}
+
+.rc-lineage-node-title {
+  display: block;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: #0f172a;
+  text-decoration: none;
+  margin-bottom: 0.15rem;
+}
+
+.rc-lineage-node-title:hover {
+  color: #2e7d32;
+  text-decoration: underline;
+}
+
+.rc-lineage-twist {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.82rem;
+  color: #334155;
+  background: #f8fafc;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  border-left: 3px solid #0284c7;
+}
+
+.rc-lineage-node-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rc-mini-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.38rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  background: #f1f5f9;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+}
+
+.rc-mini-link:hover {
+  border-color: #2e7d32;
+  color: #166534;
+}
+
+/* Tabs */
+.rc-tabs-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0.75rem;
+}
+
+.rc-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.rc-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.2rem;
+  border-radius: 10px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.94rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rc-tab-btn.active {
+  background: #2e7d32;
+  border-color: #2e7d32;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
+}
+
+.rc-scope-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.rc-scope-pill {
+  padding: 0.38rem 0.8rem;
+  border-radius: 9999px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rc-scope-pill.active {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #ffffff;
+}
+
+/* Cards Grid */
+.rc-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 1.25rem;
+}
+
+.rc-item-card {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rc-item-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.09);
+}
+
+.rc-item-media-link {
+  display: block;
+  position: relative;
+  height: 185px;
+  overflow: hidden;
+  background: #f1f5f9;
+}
+
+.rc-item-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rc-item-top-badges {
+  position: absolute;
+  top: 0.65rem;
+  left: 0.65rem;
+  right: 0.65rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.rc-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  backdrop-filter: blur(6px);
+}
+
+.rc-badge.masterpiece {
+  background: rgba(107, 33, 168, 0.9);
+  color: #ffffff;
+}
+
+.rc-badge.variant {
+  background: rgba(15, 118, 110, 0.9);
+  color: #ffffff;
+}
+
+.rc-badge.direct {
+  background: rgba(22, 101, 52, 0.9);
+  color: #ffffff;
+}
+
+.rc-badge.branch {
+  background: rgba(3, 105, 161, 0.9);
+  color: #ffffff;
+}
+
+.rc-badge.story {
+  background: rgba(67, 56, 202, 0.9);
+  color: #ffffff;
+}
+
+.rc-item-body {
+  padding: 1.1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.6rem;
+}
+
+.rc-item-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.rc-item-title a {
+  color: #0f172a;
+  text-decoration: none;
+}
+
+.rc-item-title a:hover {
+  color: #2e7d32;
+}
+
+.rc-item-meta-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.84rem;
+  color: #475569;
+  background: #f8fafc;
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.rc-item-twist {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: #1e293b;
+  background: #f0fdf4;
+  border-left: 3px solid #2e7d32;
+  padding: 0.45rem 0.65rem;
+  border-radius: 6px;
+}
+
+.rc-item-excerpt {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #334155;
+}
+
+.rc-downstream-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
+}
+
+.rc-downstream-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-decoration: none;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.rc-downstream-pill:hover {
+  background: #dbeafe;
+}
+
+.rc-item-footer {
+  margin-top: auto;
+  padding-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.rc-empty-card {
+  background: #ffffff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 14px;
+  padding: 2.25rem 1.5rem;
+  text-align: center;
+  color: #475569;
+}
+
+.rc-empty-card p {
+  margin: 0 0 1rem 0;
+  font-size: 0.98rem;
+}
+
+@media (max-width: 640px) {
+  .rc-page {
+    padding: 1rem 0.85rem 2.5rem;
+  }
+
+  .rc-hero-card {
+    padding: 1.1rem;
+  }
+
+  .rc-hero-actions {
+    width: 100%;
+  }
+
+  .rc-hero-actions .rc-btn {
+    flex: 1 1 auto;
+  }
+
+  .rc-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}

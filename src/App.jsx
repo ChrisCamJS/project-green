@@ -5,6 +5,7 @@ import { FollowProvider } from './context/FollowContext';
 import Home from './pages/Home';
 import AdminDashboard from './pages/AdminDashboard';
 import RecipeDetails from './pages/RecipeDetails';
+import RecipeConnections from './pages/RecipeConnections';
 import WellnessTools from './pages/WellnessTools';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
@@ -33,6 +34,7 @@ function App() {
             <Routes>
               <Route path='/' element={<Home />} />
               <Route path='/recipe/:id' element={<RecipeDetails />} />
+              <Route path='/recipe/:id/connections' element={<RecipeConnections />} />
               <Route path='/stories/:slug' element={<StoryReader />} />
               <Route path='/wellness' element={<WellnessTools />} />
               <Route path='/sitemap' element={<Sitemap />} />
