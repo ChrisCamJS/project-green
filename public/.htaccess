@@ -11,6 +11,15 @@
     RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|facebot|meta-externalagent|twitterbot|linkedinbot|whatsapp|discordbot|skype|slackbot|telegrambot|pinterest|applebot|redditbot|bluesky|cardyb|mastodon|embedly|iframely) [NC]
     RewriteRule ^stories/([a-zA-Z0-9_-]+)/?$ story-meta.php?slug=$1 [QSA,L]
 
+    RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|facebot|meta-externalagent|twitterbot|linkedinbot|whatsapp|discordbot|skype|slackbot|telegrambot|pinterest|applebot|redditbot|bluesky|cardyb|mastodon|embedly|iframely) [NC]
+    RewriteRule ^profile/([a-zA-Z0-9_.-]+)/?$ profile-meta.php?mode=profile&identifier=$1 [QSA,L]
+
+    RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|facebot|meta-externalagent|twitterbot|linkedinbot|whatsapp|discordbot|skype|slackbot|telegrambot|pinterest|applebot|redditbot|bluesky|cardyb|mastodon|embedly|iframely) [NC]
+    RewriteRule ^achievements/shared/([a-zA-Z0-9_.-]+)/([a-zA-Z0-9_-]+)/([0-9]+)/?$ profile-meta.php?mode=achievements&identifier=$1&badge_key=$2&level=$3 [QSA,L]
+
+    RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|facebot|meta-externalagent|twitterbot|linkedinbot|whatsapp|discordbot|skype|slackbot|telegrambot|pinterest|applebot|redditbot|bluesky|cardyb|mastodon|embedly|iframely) [NC]
+    RewriteRule ^achievements/shared/([a-zA-Z0-9_.-]+)/?$ profile-meta.php?mode=achievements&identifier=$1 [QSA,L]
+
     # 3. Let API requests and existing static files/directories pass through untouched
     RewriteRule ^pantry-rebuild-api - [L]
     RewriteCond %{REQUEST_FILENAME} !-f

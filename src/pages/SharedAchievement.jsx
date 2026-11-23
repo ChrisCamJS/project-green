@@ -6,6 +6,8 @@ import AchievementsSection from '../components/AchievementsSection';
 import SEOHead from '../components/SEOHead';
 import { resolveRecipeImageUrl } from '../utils/mealPlanUtils';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 const formatEarnedDate = (dateStr) => {
   if (!dateStr) return '';
   const d = new Date(dateStr.replace(' ', 'T'));
@@ -118,11 +120,22 @@ export default function SharedAchievement() {
     ? `${displayName} (@${profile.username}) earned Level ${spotlightBadge.level} "${spotlightBadge.level_name}" (${spotlightBadge.description}). Start earning achievements at The Veggie Vault!`
     : `${displayName} (@${profile.username}) has earned ${earnedBadges.length} Whole-Food Plant-Based chef badges. Start earning achievements at The Veggie Vault!`;
 
+  const ogCompositeImage =
+    API_BASE_URL && (profile.username || identifier)
+      ? `${API_BASE_URL.replace(/\/+$/, '')}/users/profile-og-image?identifier=${encodeURIComponent(profile.username || identifier)}&mode=achievements${
+          badgeKey && level
+            ? `&badge_key=${encodeURIComponent(badgeKey)}&level=${encodeURIComponent(level)}`
+            : ''
+        }`
+      : undefined;
+
   return (
     <div className="shared-achievement-page">
       <SEOHead
         title={seoTitle}
         description={seoDesc}
+        ogType="profile"
+        image={ogCompositeImage}
         canonicalPath={
           badgeKey && level
             ? `/achievements/shared/${encodeURIComponent(identifier)}/${encodeURIComponent(badgeKey)}/${level}`

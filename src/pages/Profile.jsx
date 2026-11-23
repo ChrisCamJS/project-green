@@ -333,12 +333,16 @@ export default function Profile() {
       160
     );
     const avatar = resolveAssetUrl(profile.profile_image);
+    const ogCompositeImage =
+      API_BASE_URL && (profile.username || shareSlug)
+        ? `${API_BASE_URL.replace(/\/+$/, '')}/users/profile-og-image?identifier=${encodeURIComponent(profile.username || shareSlug)}`
+        : undefined;
     return {
       title: `${name} (@${profile.username}) — Chef Profile`,
       description: desc,
       canonicalPath: path,
       ogType: 'profile',
-      image: avatar || undefined,
+      image: ogCompositeImage || avatar || undefined,
       noindex: !identifier && !shareSlug,
       jsonLd: {
         '@context': 'https://schema.org',
