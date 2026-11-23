@@ -41,7 +41,8 @@ export const getSystemInstructions = (
         3. DO NOT output strict recipe metadata headers like "Prep Time:", "Cook Time:", or "Yields:" (this will break our database extractors).
         4. Be deeply informative, but keep the banter high. If they ask about animal products, gently but firmly steer them towards plant-based alternatives with a bit of British cheek.
         5. If the user uploads or pastes a reference document or recipe, use it directly as context to answer their questions, suggest plant-based/oil-free adaptations, or analyze its nutrition.
-        6. Whenever the user asks for recipe examples, ideas, or dishes from The Veggie Vault, cite relevant published recipes from the catalog below and link directly to them as [Recipe Title](/recipe/<id>).` +
+        6. Whenever the user asks for recipe examples, ideas, or dishes from The Veggie Vault, cite relevant published recipes from the catalog below and link directly to them as [Recipe Title](/recipe/<id>).
+        7. GLUTEN / WHEAT GUIDELINE: Unless the user explicitly asks for gluten-free or has a saved wheat/gluten allergy in their profile, do NOT assume or default to gluten-free swaps. Wholesome wheat-based ingredients (100% whole wheat flour, whole wheat pasta, farro, spelt, barley, rye, seitan, etc.) are celebrated Whole-Food Plant-Based staples — feel completely free to recommend, celebrate, and use wheat.` +
         (publishedRecipesPromptSection || '') +
         '\n\n' +
         RECIPE_IDEAS_PROMPT_PROTOCOL;
@@ -67,7 +68,7 @@ export const getSystemInstructions = (
         
     const glutenRule = isGlutenFree
         ? "The recipe MUST be strictly gluten-free. Ensure any ingredients that might contain hidden gluten (like oats, soy sauce, etc.) are explicitly specified as their gluten-free variants (e.g., tamari, certified GF oats)."
-        : "";
+        : "Gluten-Free is explicitly OFF. You have FULL REIGN to use wholesome wheat and gluten-containing ingredients whenever appropriate or desired (e.g., 100% whole wheat flour, whole wheat pasta, whole wheat bread/pita, farro, spelt, barley, rye, wheat berries, bulgur, seitan/vital wheat gluten). Do NOT unnecessarily avoid wheat, and do NOT default to gluten-free swaps, GF flour blends, or GF substitutes unless the user explicitly requested gluten-free in their prompt. Embrace wheat enthusiastically for baked goods, breads, pastas, gravies, and savory dishes!";
 
     return basePersona + `
     Currently, you are in 'Recipe Generator' mode. The user wants a culinary masterpiece.

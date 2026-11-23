@@ -55,6 +55,8 @@ export const buildRecipeImagePrompt = (dishName, imageOptions = {}) => {
   const customClause = customDetails?.trim()
     ? `Additional scene and styling details: ${customDetails.trim()}.`
     : '';
+  const noPeopleClause =
+    'Composition must focus strictly on the prepared food, dishware, and tabletop styling. Strictly NO people, persons, human figures, chefs, grandmothers, grandpas, family members, hands, faces, silhouettes, or background characters — food and table setting only in the scene.';
 
   return [
     `A professional, mouth-watering, high-resolution food photography shot of ${cleanDish} (prepared 100% vegan, whole-food plant-based, and oil-free).`,
@@ -63,6 +65,7 @@ export const buildRecipeImagePrompt = (dishName, imageOptions = {}) => {
     lightingClause,
     angleClause,
     customClause,
+    noPeopleClause,
   ]
     .filter(Boolean)
     .join(' ');

@@ -1093,6 +1093,7 @@
   flex: 1 1 0%;
   min-width: 0;
   width: 100%;
+  min-height: 92px;
   box-sizing: border-box;
   padding: 0.75rem 0.9rem;
   border-radius: 8px;

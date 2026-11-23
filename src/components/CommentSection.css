@@ -154,6 +154,10 @@
   align-items: center;
 }
 
+.no-comments {
+  text-align: center;
+}
+
 .vote-btn, .reply-btn {
   background: none;
   border: none;

@@ -259,7 +259,7 @@ export default function CommentSection({ recipeId }) {
           ))}
         </div>
       ) : (
-        <p className="no-comments">No one has chimed in yet. Log in to be the first!</p>
+        <p className="no-comments">No comments posted. Log in to be the first!</p>
       )}
     </div>
   );

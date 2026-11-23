@@ -5,7 +5,7 @@ import Paginator from '../components/Paginator';
 import { RecipeViewControls, EndlessScrollSentinel } from '../components/RecipeViewControls';
 import SEOHead from '../components/SEOHead';
 import { SITE_URL, cleanSeoText } from '../utils/seoUtils';
-import { isTruthyFlag, getRecipeDietaryFlags } from '../utils/dietaryUtils';
+import { getRecipeDietaryFlags } from '../utils/dietaryUtils';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useFollow } from '../context/FollowContext';
@@ -227,14 +227,8 @@ const Home = () => {
     };
 
     const normalizedRecipes = useMemo(() => {
-        const needsGlutenFallback =
-            recipes.length > 0 &&
-            recipes.every((r) => !isTruthyFlag(r?.is_gluten_free ?? r?.isGlutenFree));
-
         return recipes.map((recipe) => {
-            const flags = getRecipeDietaryFlags(recipe, {
-                useGlutenHeuristicFallback: needsGlutenFallback,
-            });
+            const flags = getRecipeDietaryFlags(recipe);
             return {
                 ...recipe,
                 isGlutenFree: flags.glutenFree,

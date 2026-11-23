@@ -1,9 +1,10 @@
 // src/components/RecipeDashboard/RecipeResult.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EmmaMarkdown from '../EmmaMarkdown';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { inferGlutenFreeFromRecipe } from '../../utils/dietaryUtils';
 import {
   sendChatMessage,
   generateRecipeImage,
@@ -46,6 +47,12 @@ const IMAGE_REGEN_REASONS = [
     label: 'Wrong plating, lighting, or kitchen style',
     detail: 'Does not match the chosen plating or setting.',
     hint: 'Follow the chosen plating, background, and lighting preferences closely.',
+  },
+  {
+    id: 'people_in_image',
+    label: 'People or hands shown in image',
+    detail: 'Shows a person, chef, grandma, hands, or background figure.',
+    hint: 'Food only in the scene. Strictly remove all people, persons, hands, faces, chefs, or background figures.',
   },
   {
     id: 'other',
@@ -207,8 +214,17 @@ const RecipeResult = ({
   const effectiveIsDraft = isDraft && !isUpgradedToMasterpiece;
   const effectiveGeneratingImage = isGeneratingImage || isGeneratingAiImage;
   const effectiveImageGenFailed = imageGenFailed || upgradeImageFailed;
+  const isNaturallyGf = useMemo(() => {
+    if (!recipeMarkdown) return false;
+    const { title: rTitle, ingredients: rIngredients } = extractMarkdownNutritionInputs(recipeMarkdown);
+    return inferGlutenFreeFromRecipe({
+      title: rTitle,
+      ingredients: rIngredients,
+      recipeMarkdown,
+    });
+  }, [recipeMarkdown]);
   const isOilFree = Boolean(dietaryPrefs?.oilFree ?? true);
-  const isGlutenFree = Boolean(dietaryPrefs?.glutenFree || /gluten[-\s]?free/i.test(recipeMarkdown || ''));
+  const isGlutenFree = Boolean(dietaryPrefs?.glutenFree || isNaturallyGf || /gluten[-\s]?free/i.test(recipeMarkdown || ''));
   const isSugarFree = Boolean(dietaryPrefs?.sugarFree ?? true);
 
   useEffect(() => {

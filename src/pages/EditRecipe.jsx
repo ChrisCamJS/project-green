@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import styles from './EditRecipe.module.css';
 import { useToast } from '../context/ToastContext';
+import { getRecipeDietaryFlags } from '../utils/dietaryUtils';
 
 /**
  * Formats a numeric database value cleanly for display (strips trailing .00).
@@ -238,7 +239,7 @@ const EditRecipe = () => {
                     imageSource: data.image_source || data.imageSource || 'none',
                     isDraft: !resolvedPublic,
                     isOilFree: Boolean(Number(data.is_oil_free ?? (data.isOilFree ? 1 : 1))),
-                    isGlutenFree: Boolean(Number(data.is_gluten_free ?? (data.isGlutenFree ? 1 : 0))),
+                    isGlutenFree: Boolean(Number(data.is_gluten_free ?? (data.isGlutenFree ? 1 : 0))) || getRecipeDietaryFlags(data).glutenFree,
                     isSugarFree: Boolean(Number(data.is_sugar_free ?? (data.isSugarFree ? 1 : 1))),
                 });
             } catch (err) {
