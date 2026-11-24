@@ -37,6 +37,7 @@ function fetchProfileFromLocalDb(string $identifier): ?array {
     }
 
     $candidates = [
+        dirname(__DIR__),
         __DIR__ . '/pantry-rebuild-api',
         dirname(__DIR__) . '/pantry-rebuild-api',
         dirname(__DIR__, 2) . '/pantry-rebuild-api',
