@@ -133,7 +133,9 @@ const RecipeForm = ({
   const handleFileChange = (e) => processSelectedFile(e.target.files?.[0], e.target, { openReferenceDrawer: true });
 
   const handleMobilePaperclipFileChange = (e) =>
-    processSelectedFile(e.target.files?.[0], e.target, { openReferenceDrawer: false });
+    processSelectedFile(e.target.files?.[0], e.target, {
+      openReferenceDrawer: typeof window !== 'undefined' && window.innerWidth > 640,
+    });
 
   const handleOpenGoogleDriveModal = (openDrawer = false) => {
     setDriveOpenReferenceDrawer(Boolean(openDrawer));

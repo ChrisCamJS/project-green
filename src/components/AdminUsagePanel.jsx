@@ -25,6 +25,7 @@ export default function AdminUsagePanel({ onUserDeleted, addToast }) {
   const [summary, setSummary] = useState(null);
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [period, setPeriod] = useState('all');
   const [sortBy, setSortBy] = useState('cost');
   const [deletingId, setDeletingId] = useState(null);
   const [suspendingId, setSuspendingId] = useState(null);
@@ -40,7 +41,7 @@ export default function AdminUsagePanel({ onUserDeleted, addToast }) {
     setLoading(true);
     setError('');
     try {
-      const res = await api.getAdminUsageAnalytics();
+      const res = await api.getAdminUsageAnalytics(period);
       if (res?.success) {
         setSummary(res.summary || null);
         setUsers(Array.isArray(res.users) ? res.users : []);
@@ -52,7 +53,7 @@ export default function AdminUsagePanel({ onUserDeleted, addToast }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [period]);
 
   useEffect(() => {
     loadUsage();
@@ -234,7 +235,17 @@ export default function AdminUsagePanel({ onUserDeleted, addToast }) {
           <div className="usage-kpi-card highlight">
             <span className="usage-kpi-label">Est. API Cost</span>
             <strong className="usage-kpi-value">{formatUsd(summary.total_estimated_cost_usd)}</strong>
-            <span className="usage-kpi-sub">Since usage tracking enabled</span>
+            <span className="usage-kpi-sub">
+              {period === 'today'
+                ? 'Current day'
+                : period === '7d'
+                  ? 'Last 7 days'
+                  : period === '30d'
+                    ? 'Last 30 days'
+                    : period === '90d'
+                      ? 'Last 90 days'
+                      : 'Since usage tracking enabled'}
+            </span>
           </div>
         </div>
       )}
@@ -305,6 +316,18 @@ export default function AdminUsagePanel({ onUserDeleted, addToast }) {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
+        <select
+          className="usage-period-select"
+          value={period}
+          onChange={(e) => setPeriod(e.target.value)}
+          aria-label="Filter usage by time range"
+        >
+          <option value="all">Range: All Time</option>
+          <option value="today">Range: Current Day</option>
+          <option value="7d">Range: Last Week</option>
+          <option value="30d">Range: Last 30 Days</option>
+          <option value="90d">Range: Last 90 Days</option>
+        </select>
         <select
           className="usage-sort-select"
           value={sortBy}

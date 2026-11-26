@@ -1586,12 +1586,62 @@
   border-color: #fc8181;
 }
 
-/* --- Mobile Paperclip & Google Drive Attachment Inside Prompt Input --- */
+/* --- Mobile Google Drive & Attachment Bar Inside Prompt Input --- */
 .textarea-action-icons .mobile-attach-gdrive-btn,
-.textarea-action-icons .mobile-attach-paperclip-btn,
 .mobile-attached-bar,
 .mobile-file-error-wrap {
   display: none;
+}
+
+.input-group .textarea-wrapper textarea {
+  padding-bottom: 3.4rem;
+  box-sizing: border-box;
+}
+
+.textarea-action-icons .mobile-attach-paperclip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  border-radius: 50%;
+  background-color: #e2e8f0;
+  border: 1.5px solid transparent;
+  font-size: 1.1rem;
+  cursor: pointer;
+  position: relative;
+  box-sizing: border-box;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.textarea-action-icons .mobile-attach-paperclip-btn:hover:not(.disabled) {
+  background-color: #cbd5e0;
+}
+
+.mobile-attach-paperclip-btn.has-ref {
+  background-color: #f0fff4;
+  border-color: #48bb78;
+}
+
+.textarea-action-icons .mobile-attach-paperclip-btn.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mobile-attach-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background-color: #38a169;
+  border: 1.5px solid #ffffff;
 }
 
 @media (max-width: 640px) {
@@ -1599,13 +1649,7 @@
     display: none;
   }
 
-  .input-group .textarea-wrapper textarea {
-    padding-bottom: 3.4rem;
-    box-sizing: border-box;
-  }
-
-  .textarea-action-icons .mobile-attach-gdrive-btn,
-  .textarea-action-icons .mobile-attach-paperclip-btn {
+  .textarea-action-icons .mobile-attach-gdrive-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1626,31 +1670,13 @@
     transition: background-color 0.2s ease, border-color 0.2s ease;
   }
 
-  .textarea-action-icons .mobile-attach-gdrive-btn:hover:not(.disabled),
-  .mobile-attach-paperclip-btn:hover:not(.disabled) {
+  .textarea-action-icons .mobile-attach-gdrive-btn:hover:not(.disabled) {
     background-color: #cbd5e0;
   }
 
-  .mobile-attach-paperclip-btn.has-ref {
-    background-color: #f0fff4;
-    border-color: #48bb78;
-  }
-
-  .textarea-action-icons .mobile-attach-gdrive-btn.disabled,
-  .mobile-attach-paperclip-btn.disabled {
+  .textarea-action-icons .mobile-attach-gdrive-btn.disabled {
     opacity: 0.6;
     cursor: not-allowed;
-  }
-
-  .mobile-attach-dot {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    width: 8px;
-    height: 8px;
-    border-radius: 9999px;
-    background-color: #38a169;
-    border: 1.5px solid #ffffff;
   }
 
   .mobile-attached-bar {

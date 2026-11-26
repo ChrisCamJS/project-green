@@ -127,6 +127,17 @@ export const cleanRecipeTitle = (rawTitle = '') => {
     }
     return cleaned;
 };
+
+/**
+ * Strip accidental markdown formatting (asterisks, leading colons) from recipe yields.
+ */
+export const cleanRecipeYields = (rawYields = '') => {
+    return String(rawYields || '')
+        .replace(/\*+/g, '')
+        .replace(/^[:\s]+/, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+};
 // ----------------------------------------------------------------------
 // PHASE 2: THE DEEP DIVE CALCULATOR (0.1 TOKENS)
 // ----------------------------------------------------------------------

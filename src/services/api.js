@@ -200,8 +200,9 @@ export const api = {
         });
     },
 
-    getAdminUsageAnalytics: () => {
-        return fetchWrapper('/admin/usage', {
+    getAdminUsageAnalytics: (period = 'all') => {
+        const qs = period && period !== 'all' ? `?period=${encodeURIComponent(period)}` : '';
+        return fetchWrapper(`/admin/usage${qs}`, {
             method: 'GET',
             cache: 'no-store',
         });

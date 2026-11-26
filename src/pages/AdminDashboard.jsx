@@ -9,6 +9,7 @@ import AdminUsagePanel from '../components/AdminUsagePanel';
 import VariantBadge from '../components/VariantBadge';
 import StoryEditorModal from '../components/StoryEditorModal';
 import { formatStoryDate } from '../utils/storyUtils';
+import { cleanRecipeYields } from '../utils/promptBuilder';
 import { RecipeViewControls, EndlessScrollSentinel } from '../components/RecipeViewControls';
 
 /**
@@ -117,7 +118,7 @@ const AdminDashboard = () => {
     setRecipeForm({
         title: extractLine(/Title:\s*(.+)/i),
         description: extractLine(/Description:\s*(.+)/i),
-        yields: extractLine(/Yields:\s*(.+)/i),
+        yields: cleanRecipeYields(extractLine(/Yields:\s*(.+)/i)),
         prepTime: extractLine(/Prep(?: Time)?:\s*(\d+)/i),
         cookTime: extractLine(/Cook(?: Time)?:\s*(\d+)/i),
         ingredients: extractBlock('Ingredients:', 'Instructions:'),
@@ -847,7 +848,7 @@ const AdminDashboard = () => {
                                         </span>
                                         {recipe.yields && (
                                           <span className={styles.recipeMetaChip}>
-                                              🍽️ {recipe.yields}
+                                              🍽️ {cleanRecipeYields(recipe.yields)}
                                           </span>
                                         )}
                                         {isVar && parentId && (

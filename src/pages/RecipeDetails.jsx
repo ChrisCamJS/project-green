@@ -6,7 +6,7 @@ import {
   generateRecipeImage,
   DEFAULT_IMAGE_STYLE_OPTIONS,
 } from '../services/geminiApi';
-import { getMicroCalculationInstructions, parseMicrosFromDeepDive, stripDuplicateMicroLines } from '../utils/promptBuilder';
+import { getMicroCalculationInstructions, parseMicrosFromDeepDive, stripDuplicateMicroLines, cleanRecipeYields } from '../utils/promptBuilder';
 import { useEmmaVoice } from '../hooks/useEmmaVoice';
 import { useAuth } from '../context/AuthContext';
 import SEOHead from '../components/SEOHead';
@@ -317,7 +317,7 @@ const RecipeDetails = () => {
       recipeCategory: 'Plant-Based',
       suitableForDiet,
       ...(recipe.created_at ? { datePublished: recipe.created_at } : {}),
-      ...(recipe.yields ? { recipeYield: recipe.yields } : {}),
+      ...(cleanRecipeYields(recipe.yields) ? { recipeYield: cleanRecipeYields(recipe.yields) } : {}),
       ...(toIsoDuration(prepMins) ? { prepTime: toIsoDuration(prepMins) } : {}),
       ...(toIsoDuration(cookMins) ? { cookTime: toIsoDuration(cookMins) } : {}),
       ...(toIsoDuration(totalMins) ? { totalTime: toIsoDuration(totalMins) } : {}),
@@ -850,7 +850,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
         const recipeSummary = [
           `# ${recipe.title}`,
           recipe.description || '',
-          `Yields: ${recipe.yields || '4 servings'}`,
+          `Yields: ${cleanRecipeYields(recipe.yields) || '4 servings'}`,
           '## Ingredients',
           ingredientsText,
           '## Instructions',
@@ -1647,7 +1647,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
           <div className="recipe-meta-tags">
             <span className="recipe-meta-tag">⏱ Prep: {recipe.prep_time_mins || 0}m</span>
             <span className="recipe-meta-tag">🔥 Cook: {recipe.cook_time_mins || 0}m</span>
-            <span className="recipe-meta-tag">🍽 Yields: {recipe.yields}</span>
+            <span className="recipe-meta-tag">🍽 Yields: {cleanRecipeYields(recipe.yields)}</span>
           </div>
         </header>
 

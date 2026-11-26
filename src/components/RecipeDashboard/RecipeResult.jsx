@@ -14,6 +14,7 @@ import {
   getMicroCalculationInstructions,
   parseMicrosFromDeepDive,
   cleanRecipeTitle,
+  cleanRecipeYields,
   stripDuplicateMicroLines,
 } from '../../utils/promptBuilder';
 import { useEmmaVoice } from '../../hooks/useEmmaVoice';
@@ -109,7 +110,7 @@ const extractMarkdownNutritionInputs = (markdown = '') => {
     ? cleanRecipeTitle(titleMatch[1]) || 'Untitled Emma Masterpiece'
     : 'Untitled Emma Masterpiece';
   const yieldMatch = markdown.match(/yields?:?\s*(.+?)(?:\n|$)/i);
-  const yields = yieldMatch ? yieldMatch[1].trim() : '';
+  const yields = yieldMatch ? cleanRecipeYields(yieldMatch[1]) : '';
   const ingredientsMatch = markdown.match(
     /##\s*Ingredients([\s\S]*?)(?=\n##\s*(?:Instructions|Directions|Method|Nutrition Information|Chef's?\s*Notes)|$)/i
   );
