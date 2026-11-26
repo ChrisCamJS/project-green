@@ -195,6 +195,7 @@ const RecipeResult = ({
   const [regenReasonId, setRegenReasonId] = useState('');
   const [regenExtraNote, setRegenExtraNote] = useState('');
   const [freeMismatchRegenUsed, setFreeMismatchRegenUsed] = useState(false);
+  const [paidMismatchRegenPaid, setPaidMismatchRegenPaid] = useState(false);
   const [workshopImageOptions, setWorkshopImageOptions] = useState({
     ...DEFAULT_IMAGE_STYLE_OPTIONS,
     ...(imageStyleOptions || {}),
@@ -491,12 +492,31 @@ const RecipeResult = ({
     const selected = IMAGE_REGEN_REASONS.find((item) => item.id === regenReasonId);
     if (!selected) return;
 
+    const isPaidRegen = freeMismatchRegenUsed;
+    if (isPaidRegen && !paidMismatchRegenPaid) {
+      if (Number(user?.generation_tokens ?? 0) < 0.5) {
+        setShowRegenReasonModal(false);
+        await promptPurchaseTokens(0.5, 'Regenerating Masterpiece Photo');
+        return;
+      }
+      const tokenRes = await spendToken(0.5, 'Regenerating Masterpiece Photo');
+      if (tokenRes?.cancelled) return;
+      if (!tokenRes?.success) {
+        alert(tokenRes?.message || 'Unable to deduct 0.5 tokens.');
+        return;
+      }
+      setPaidMismatchRegenPaid(true);
+    }
+
     const extra = regenExtraNote.trim();
     const correctiveNote = extra ? `${selected.hint} User note: ${extra}` : selected.hint;
 
     setShowRegenReasonModal(false);
     setFreeMismatchRegenUsed(true);
-    await handleMasterpieceImageRetry(correctiveNote);
+    const resultImg = await handleMasterpieceImageRetry(correctiveNote);
+    if (isPaidRegen && resultImg) {
+      setPaidMismatchRegenPaid(false);
+    }
   };
 
   const handleUploadDraftPhoto = (e) => {
@@ -738,24 +758,34 @@ const RecipeResult = ({
             <img src={displayImageUrl} alt="A glorious AI-generated WFPB meal" />
             {!effectiveIsDraft && !isChat && (onRetryImage || isUpgradedToMasterpiece) && (
               <div className="regen-mismatch-row">
-                {!freeMismatchRegenUsed ? (
-                  <button
-                    type="button"
-                    className="regen-mismatch-btn"
-                    onClick={() => {
-                      setRegenReasonId('');
-                      setRegenExtraNote('');
-                      setShowRegenReasonModal(true);
-                    }}
-                    disabled={effectiveGeneratingImage}
-                    title="If the generated photo does not match the dish, choose a reason to regenerate it once at no cost"
-                  >
-                    🔄 Image Doesn&apos;t Match? Regenerate (Free)
-                  </button>
-                ) : (
-                  <span className="regen-mismatch-used-note">
-                    ✓ Free image regeneration applied
-                  </span>
+                <button
+                  type="button"
+                  className="regen-mismatch-btn"
+                  onClick={() => {
+                    setRegenReasonId('');
+                    setRegenExtraNote('');
+                    setShowRegenReasonModal(true);
+                  }}
+                  disabled={effectiveGeneratingImage}
+                  title={
+                    !freeMismatchRegenUsed
+                      ? 'If the generated photo does not match the dish, choose a reason to regenerate it once at no cost'
+                      : (paidMismatchRegenPaid
+                          ? 'Retry generating your paid Masterpiece photo at no extra cost'
+                          : 'Regenerate the Masterpiece photo for 0.5 tokens')
+                  }
+                >
+                  {!freeMismatchRegenUsed
+                    ? "🔄 Image Doesn't Match? Regenerate (Free)"
+                    : (paidMismatchRegenPaid
+                        ? '🔄 Retry Paid Regeneration (0 Tokens)'
+                        : '🔄 Regenerate Image (0.5 Tokens)')}
+                </button>
+                {freeMismatchRegenUsed && (
+                  <p className="regen-mismatch-used-note">
+                    ✓ Free regeneration used. Additional regenerations cost 0.5 tokens. Want another free image? Email a screenshot of the issue to{' '}
+                    <a href="mailto:support@theveggievault.com">support@theveggievault.com</a> for review.
+                  </p>
                 )}
               </div>
             )}
@@ -1070,7 +1100,13 @@ const RecipeResult = ({
         >
           <div className="regen-modal-card">
             <div className="regen-modal-header">
-              <h3 id="regen-reason-modal-title">Regenerate Masterpiece Photo (Free)</h3>
+              <h3 id="regen-reason-modal-title">
+                {!freeMismatchRegenUsed
+                  ? 'Regenerate Masterpiece Photo (Free)'
+                  : (paidMismatchRegenPaid
+                      ? 'Retry Masterpiece Photo (Paid)'
+                      : 'Regenerate Masterpiece Photo (0.5 Tokens)')}
+              </h3>
               <button
                 type="button"
                 className="regen-modal-close"
@@ -1082,7 +1118,16 @@ const RecipeResult = ({
               </button>
             </div>
             <p className="regen-modal-subtitle">
-              Tell Emma what was off about the generated photo so she can fix it at <strong>0 tokens</strong>. Select a reason to continue:
+              {!freeMismatchRegenUsed ? (
+                <>
+                  Tell Emma what was off about the generated photo so she can fix it at <strong>0 tokens</strong>. Select a reason to continue:
+                </>
+              ) : (
+                <>
+                  Your 1 free regeneration has been used. Regenerating again costs <strong>0.5 tokens</strong>. To request another free image, email a screenshot of the issue to{' '}
+                  <a href="mailto:support@theveggievault.com">support@theveggievault.com</a> for review.
+                </>
+              )}
             </p>
 
             <form onSubmit={handleConfirmMismatchRegenerate}>
@@ -1139,7 +1184,11 @@ const RecipeResult = ({
                   className="regen-confirm-btn"
                   disabled={!regenReasonId || effectiveGeneratingImage}
                 >
-                  Regenerate Image (Free)
+                  {!freeMismatchRegenUsed
+                    ? 'Regenerate Image (Free)'
+                    : (paidMismatchRegenPaid
+                        ? 'Retry Image (0 Tokens)'
+                        : 'Regenerate Image (0.5 Tokens)')}
                 </button>
               </div>
             </form>

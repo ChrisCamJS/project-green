@@ -203,6 +203,7 @@ const AchievementsSection = ({
 
     const [shareTarget, setShareTarget] = useState(null); // { mode: 'badge', badge } | { mode: 'all' }
     const [copiedUrl, setCopiedUrl] = useState(false);
+    const [selectedTrack, setSelectedTrack] = useState(null);
 
     const ownerIdentifier = ownerProfile?.username || ownerProfile?.id || '';
     const ownerDisplayName = ownerProfile?.displayName || ownerProfile?.username || 'This Chef';
@@ -335,7 +336,13 @@ const AchievementsSection = ({
                                 ? Math.min(100, Math.round((track.current_value / target) * 100))
                                 : 100;
                             return (
-                                <div key={track.key} className="achievement-track-card">
+                                <button
+                                    key={track.key}
+                                    type="button"
+                                    className="achievement-track-card achievement-track-clickable"
+                                    onClick={() => setSelectedTrack(track)}
+                                    title={`View full ${track.title} progression tree`}
+                                >
                                     <div className="achievement-track-top">
                                         <span>
                                             {track.icon} <strong>{track.title}</strong>
@@ -360,7 +367,8 @@ const AchievementsSection = ({
                                                 : 'Max Level Reached!'}
                                         </span>
                                     </div>
-                                </div>
+                                    <span className="achievement-track-tree-hint">View progression →</span>
+                                </button>
                             );
                         })}
                     </div>
@@ -382,6 +390,94 @@ const AchievementsSection = ({
                         <Link to="/" className="achievements-cta-secondary">
                             🍽️ Explore The Veggie Vault
                         </Link>
+                    </div>
+                </div>
+            )}
+
+            {/* PROGRESSION TREE MODAL */}
+            {selectedTrack && (
+                <div
+                    className="ach-share-backdrop"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="ach-tree-modal-title"
+                    onClick={() => setSelectedTrack(null)}
+                >
+                    <div className="ach-tree-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="ach-share-modal-header">
+                            <h3 id="ach-tree-modal-title">
+                                {selectedTrack.icon} {selectedTrack.title} Progression
+                            </h3>
+                            <button
+                                type="button"
+                                className="ach-share-close"
+                                onClick={() => setSelectedTrack(null)}
+                                aria-label="Close progression tree"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="ach-tree-summary">
+                            <div>
+                                <strong>{selectedTrack.current_value}</strong> {selectedTrack.unit}
+                            </div>
+                            <span className="achievement-track-lvl">
+                                Level {selectedTrack.highest_level} / {selectedTrack.max_level}
+                            </span>
+                        </div>
+
+                        <div className="ach-tree-list">
+                            {(selectedTrack.levels || []).map((tier, idx, arr) => {
+                                const isNext = !tier.unlocked && Number(selectedTrack.next_level) === Number(tier.level);
+                                const pct = tier.target > 0
+                                    ? Math.min(100, Math.round((selectedTrack.current_value / tier.target) * 100))
+                                    : 100;
+                                const remaining = Math.max(0, Number(tier.target) - Number(selectedTrack.current_value));
+
+                                return (
+                                    <div
+                                        key={tier.level}
+                                        className={`ach-tree-node ${
+                                            tier.unlocked ? 'unlocked' : (isNext ? 'next' : 'locked')
+                                        }`}
+                                    >
+                                        <div className="ach-tree-rail">
+                                            <span className="ach-tree-dot" aria-hidden="true">
+                                                {tier.unlocked ? '✓' : (isNext ? '▶' : '🔒')}
+                                            </span>
+                                            {idx < arr.length - 1 && <span className="ach-tree-line" aria-hidden="true" />}
+                                        </div>
+
+                                        <div className="ach-tree-card">
+                                            <div className="ach-tree-card-top">
+                                                <strong>
+                                                    Level {tier.level}: {tier.name}
+                                                </strong>
+                                                <span className="ach-tree-status-pill">
+                                                    {tier.unlocked
+                                                        ? `Unlocked ${formatEarnedDate(tier.earned_at)}`
+                                                        : (isNext ? `${remaining} to go` : 'Locked')}
+                                                </span>
+                                            </div>
+                                            <p className="ach-tree-desc">{tier.description}</p>
+                                            <div className="ach-tree-target-row">
+                                                <span>
+                                                    Goal: {tier.target} {selectedTrack.unit}
+                                                </span>
+                                                <span>{tier.unlocked ? '100%' : `${pct}%`}</span>
+                                            </div>
+                                            <div className="achievement-progress-bar">
+                                                <div
+                                                    className="achievement-progress-fill"
+                                                    style={{ width: `${tier.unlocked ? 100 : pct}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             )}

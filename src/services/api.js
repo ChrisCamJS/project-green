@@ -199,6 +199,38 @@ export const api = {
             body: JSON.stringify({ cost })
         });
     },
+
+    getAdminUsageAnalytics: () => {
+        return fetchWrapper('/admin/usage', {
+            method: 'GET',
+            cache: 'no-store',
+        });
+    },
+
+    deleteAdminUser: (userId) => {
+        return fetchWrapper(`/admin/users?id=${encodeURIComponent(userId)}`, {
+            method: 'DELETE',
+        });
+    },
+
+    grantAdminUserTokens: ({ userId = null, identifier = '', amount, reason = '' }) => {
+        return fetchWrapper('/admin/users/grant-tokens', {
+            method: 'POST',
+            body: JSON.stringify({
+                user_id: userId,
+                identifier,
+                amount,
+                reason,
+            }),
+        });
+    },
+
+    toggleAdminUserSuspension: (userId, suspend, reason = '') => {
+        return fetchWrapper('/admin/users/suspend', {
+            method: 'PUT',
+            body: JSON.stringify({ user_id: userId, suspend, reason }),
+        });
+    },
     // FAVORITES & DRAFT GRADUATION
     toggleFavorite: (recipeId) => {
         return fetchWrapper('/recipes/favorite', {

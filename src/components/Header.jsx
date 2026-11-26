@@ -156,13 +156,37 @@ const Header = () => {
     const avatarSrc = !avatarFailed ? resolveAvatarSrc(user?.profile_image) : null;
     const tokenBalance = Number(Number(user?.generation_tokens ?? 0).toFixed(1));
 
+    const handleBrandClick = () => {
+        closeAllMenus();
+        try {
+            const raw = window.sessionStorage.getItem('veggieVault_homeGridState');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && typeof parsed === 'object') {
+                    window.sessionStorage.setItem(
+                        'veggieVault_homeGridState',
+                        JSON.stringify({
+                            ...parsed,
+                            currentPage: 1,
+                            endlessCount: 10,
+                            scrollY: 0,
+                        })
+                    );
+                }
+            }
+        } catch {
+            // Ignore storage failures
+        }
+        window.dispatchEvent(new CustomEvent('veggie-vault:reset-home-pagination'));
+    };
+
     return (
         <header className="main-header">
             <div className="header-inner">
                 {/* ZONE 1 (Left): Brand */}
                 <div className="logo-container">
                     <h1>
-                        <Link to="/" onClick={closeAllMenus}>
+                        <Link to="/" onClick={handleBrandClick}>
                             The Veggie Vault
                         </Link>
                     </h1>
@@ -554,6 +578,19 @@ const Header = () => {
                         </ul>
                     )}
                 </div>
+
+                {!isStandalone && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            closeAllMenus();
+                            handleInstallClick();
+                        }}
+                        className="install-app-btn mobile-drawer-install-btn"
+                    >
+                        📲 Install The Veggie Vault App
+                    </button>
+                )}
             </nav>
         </header>
     );

@@ -162,7 +162,8 @@
   top: calc(100% + 8px);
   right: 0;
   z-index: 50;
-  width: min(88vw, 280px);
+  width: min(calc(100vw - 2rem), 280px);
+  box-sizing: border-box;
   background: #ffffff;
   border: 1px solid #d5e2d7;
   border-radius: 12px;
@@ -173,7 +174,7 @@
   gap: 0.65rem;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 960px) {
   .filterDropdownMenu {
     left: 0;
     right: auto;
@@ -283,6 +284,19 @@
 
 .emptyResetBtn:hover {
   background-color: #1b5e20;
+}
+
+.filterFeedRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.filterFeedRow .filterPill {
+  width: 100%;
+  justify-content: center;
+  padding: 0.45rem 0.5rem;
+  font-size: 0.84rem;
 }
 
 /* Mobile Tweak */

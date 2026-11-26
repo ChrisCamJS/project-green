@@ -161,6 +161,8 @@ const NotificationBell = ({ onNavigate }) => {
         if (onNavigate) onNavigate();
         if (notif.type === 'achievement') {
             navigate('/profile#achievements');
+        } else if (notif.type === 'admin_token_grant') {
+            navigate('/buy-tokens');
         } else if (notif.story_slug) {
             navigate(`/stories/${notif.story_slug}`);
         } else {

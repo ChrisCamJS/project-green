@@ -547,3 +547,223 @@
     color: #92400e;
     margin-bottom: 0.85rem;
 }
+
+/* Clickable Track Cards & Progression Tree Modal */
+.achievement-track-clickable {
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.achievement-track-clickable:hover {
+    border-color: #2f855a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(47, 133, 90, 0.12);
+}
+
+.achievement-track-tree-hint {
+    display: inline-block;
+    margin-top: 0.35rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #2f855a;
+}
+
+.ach-tree-modal {
+    width: 100%;
+    max-width: 520px;
+    max-height: 88vh;
+    overflow-y: auto;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 1.35rem;
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.25);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.ach-tree-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.9rem;
+    color: #166534;
+}
+
+.ach-tree-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.ach-tree-node {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.ach-tree-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.ach-tree-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 800;
+    background: #e2e8f0;
+    color: #475569;
+    flex-shrink: 0;
+}
+
+.ach-tree-node.unlocked .ach-tree-dot {
+    background: #16a34a;
+    color: #ffffff;
+}
+
+.ach-tree-node.next .ach-tree-dot {
+    background: #f59e0b;
+    color: #ffffff;
+}
+
+.ach-tree-line {
+    width: 2px;
+    flex: 1;
+    min-height: 18px;
+    background: #cbd5e1;
+    margin: 4px 0;
+}
+
+.ach-tree-node.unlocked .ach-tree-line {
+    background: #86efac;
+}
+
+.ach-tree-card {
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0.85rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.ach-tree-node.unlocked .ach-tree-card {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.ach-tree-node.next .ach-tree-card {
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+
+.ach-tree-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0.25rem;
+    color: #1e293b;
+    font-size: 0.92rem;
+}
+
+.ach-tree-status-pill {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.14rem 0.5rem;
+    border-radius: 999px;
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.ach-tree-node.unlocked .ach-tree-status-pill {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.ach-tree-node.next .ach-tree-status-pill {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.ach-tree-desc {
+    margin: 0 0 0.45rem;
+    font-size: 0.82rem;
+    color: #475569;
+}
+
+.ach-tree-target-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 0.3rem;
+}
+
+/* Mobile 2-column compact badge grid */
+@media (max-width: 640px) {
+    .achievements-earned-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.55rem;
+    }
+
+    .achievement-badge-card {
+        padding: 0.68rem;
+        border-radius: 10px;
+        gap: 0.2rem;
+    }
+
+    .achievement-icon {
+        font-size: 1.2rem;
+    }
+
+    .achievement-level-pill {
+        padding: 0.1rem 0.42rem;
+        font-size: 0.66rem;
+    }
+
+    .achievement-badge-name {
+        font-size: 0.86rem;
+        line-height: 1.2;
+    }
+
+    .achievement-badge-track {
+        font-size: 0.72rem;
+    }
+
+    .achievement-badge-desc {
+        font-size: 0.73rem;
+        line-height: 1.3;
+    }
+
+    .achievement-badge-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.3rem;
+    }
+
+    .achievement-earned-date {
+        font-size: 0.68rem;
+        padding-top: 0.25rem;
+    }
+
+    .achievement-badge-share-btn {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.48rem;
+    }
+}

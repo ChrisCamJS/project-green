@@ -5,6 +5,7 @@ import styles from './AdminDashboard.module.css';
 import { useToast } from '../context/ToastContext';
 import AdminEmmaChat from '../components/AdminEmmaChat';
 import AdminEmmaContextPanel from '../components/AdminEmmaContextPanel';
+import AdminUsagePanel from '../components/AdminUsagePanel';
 import VariantBadge from '../components/VariantBadge';
 import StoryEditorModal from '../components/StoryEditorModal';
 import { formatStoryDate } from '../utils/storyUtils';
@@ -579,6 +580,12 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('context')}
           >
             🧠 Emma Context
+          </button>
+          <button 
+            className={activeTab === 'usage' ? styles.active : ''} 
+            onClick={() => setActiveTab('usage')}
+          >
+            📊 Users &amp; Tokens
           </button>
           <button 
             className={activeTab === 'add' ? styles.active : ''} 
@@ -1275,6 +1282,10 @@ const AdminDashboard = () => {
         {/* TAB 5: EMMA ADMIN PERSONAL CONTEXT DOCUMENT */}
         {activeTab === 'context' && (
           <AdminEmmaContextPanel />
+        )}
+        {/* TAB 6: API & TOKEN USAGE MONITOR */}
+        {activeTab === 'usage' && (
+          <AdminUsagePanel onUserDeleted={loadRecipes} addToast={addToast} />
         )}
       </main>
 

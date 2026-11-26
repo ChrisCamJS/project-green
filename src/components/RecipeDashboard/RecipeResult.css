@@ -457,8 +457,11 @@
 .regen-mismatch-row {
   margin-top: 0.75rem;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+  gap: 0.45rem;
+  text-align: center;
 }
 
 .regen-mismatch-btn {
@@ -488,9 +491,18 @@
 }
 
 .regen-mismatch-used-note {
+  margin: 0;
+  max-width: 46ch;
+  line-height: 1.4;
   font-size: 0.8rem;
   font-weight: 600;
+  color: #475569;
+}
+
+.regen-mismatch-used-note a {
   color: #2f855a;
+  font-weight: 700;
+  text-decoration: underline;
 }
 
 .regen-modal-overlay {

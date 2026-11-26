@@ -901,6 +901,19 @@
   color: #ffffff;
 }
 
+.profile-default-feed-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.profile-default-feed-saved {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #2f855a;
+}
+
 @media (max-width: 640px) {
   .profile-tabs {
     display: grid;

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import RecipeCard from '../components/RecipeCard';
+import StoryCard from '../components/StoryCard';
 import SearchBar from '../components/SearchBar';
 import Paginator from '../components/Paginator';
 import { RecipeViewControls, EndlessScrollSentinel } from '../components/RecipeViewControls';
@@ -24,7 +25,18 @@ const QUERY_TAG_PATTERNS = [
 ];
 
 const HOME_GRID_STATE_KEY = 'veggieVault_homeGridState';
+const DEFAULT_HOME_FEED_KEY = 'veggieVault_defaultHomeFeed';
 const VALID_VIEW_MODES = ['6', '10', '15', 'endless'];
+const VALID_FEED_TYPES = ['recipes', 'stories'];
+
+const loadDefaultHomeFeed = () => {
+    try {
+        const saved = window.localStorage.getItem(DEFAULT_HOME_FEED_KEY);
+        return VALID_FEED_TYPES.includes(saved) ? saved : 'recipes';
+    } catch {
+        return 'recipes';
+    }
+};
 
 const loadSavedHomeGridState = () => {
     try {
@@ -53,7 +65,15 @@ const Home = () => {
     const { user } = useAuth();
     const { isFollowingUser } = useFollow();
     const [initialSavedState] = useState(() => loadSavedHomeGridState());
+    const [feedType, setFeedType] = useState(() => {
+        const savedFeed = initialSavedState?.feedType;
+        if (VALID_FEED_TYPES.includes(savedFeed)) return savedFeed;
+        return loadDefaultHomeFeed();
+    });
     const [recipes, setRecipes] = useState([]);
+    const [stories, setStories] = useState([]);
+    const [storiesLoading, setStoriesLoading] = useState(false);
+    const [storiesLoaded, setStoriesLoaded] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState(() =>
@@ -109,6 +129,7 @@ const Home = () => {
     const lastScrollYRef = useRef(savedScrollYRef.current);
     const hasRestoredScrollRef = useRef(false);
     const latestGridStateRef = useRef({
+        feedType,
         searchQuery,
         activeFilters,
         minRating,
@@ -129,6 +150,7 @@ const Home = () => {
 
     useEffect(() => {
         const snapshot = {
+            feedType,
             searchQuery,
             activeFilters,
             minRating,
@@ -142,16 +164,59 @@ const Home = () => {
             ...snapshot,
             scrollY: lastScrollYRef.current,
         });
-    }, [currentPage, viewMode, endlessCount, searchQuery, activeFilters, minRating, followingOnly]);
+    }, [feedType, currentPage, viewMode, endlessCount, searchQuery, activeFilters, minRating, followingOnly]);
 
     useEffect(() => {
+        const handleResetPagination = () => {
+            setCurrentPage(1);
+            setEndlessCount(10);
+            lastScrollYRef.current = 0;
+            latestGridStateRef.current = {
+                ...latestGridStateRef.current,
+                currentPage: 1,
+                endlessCount: 10,
+            };
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.addEventListener('veggie-vault:reset-home-pagination', handleResetPagination);
         return () => {
+            window.removeEventListener('veggie-vault:reset-home-pagination', handleResetPagination);
             persistHomeGridState({
                 ...latestGridStateRef.current,
                 scrollY: lastScrollYRef.current,
             });
         };
     }, []);
+
+    useEffect(() => {
+        if (feedType !== 'stories' || storiesLoaded) return undefined;
+        let active = true;
+        setStoriesLoading(true);
+        api.getStories({ page: 1, perPage: 100 })
+            .then((res) => {
+                if (!active) return;
+                const list = Array.isArray(res?.stories) ? res.stories : [];
+                setStories(list);
+                setStoriesLoaded(true);
+            })
+            .catch((err) => {
+                console.error('Failed to fetch published stories:', err);
+            })
+            .finally(() => {
+                if (active) setStoriesLoading(false);
+            });
+        return () => {
+            active = false;
+        };
+    }, [feedType, storiesLoaded]);
+
+    const handleFeedTypeChange = (nextFeed) => {
+        if (!VALID_FEED_TYPES.includes(nextFeed) || nextFeed === feedType) return;
+        setFeedType(nextFeed);
+        setCurrentPage(1);
+        setEndlessCount(10);
+    };
 
     useEffect(() => {
         if (loading || hasRestoredScrollRef.current) return undefined;
@@ -338,13 +403,33 @@ const Home = () => {
         });
     }, [normalizedRecipes, searchQuery, activeFilters, minRating, followingOnly, isFollowingUser]);
 
-    const hasActiveFilters =
-        Boolean(searchQuery.trim()) ||
-        activeFilters.glutenFree ||
-        activeFilters.oilFree ||
-        activeFilters.sugarFree ||
-        minRating > 0 ||
-        followingOnly;
+    const filteredStories = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        return stories.filter((story) => {
+            if (followingOnly && user) {
+                const authorId = story.userId || story.user_id;
+                if (!authorId || !isFollowingUser(authorId)) {
+                    return false;
+                }
+            }
+            if (!q) return true;
+            const titleMatch = String(story.title || '').toLowerCase().includes(q);
+            const summaryMatch = String(story.summary || story.excerpt || '').toLowerCase().includes(q);
+            const authorMatch = String(story.authorName || story.author_name || story.authorDisplayName || '').toLowerCase().includes(q);
+            const recipeMatch = String(story.recipeTitle || story.recipe_title || '').toLowerCase().includes(q);
+            return titleMatch || summaryMatch || authorMatch || recipeMatch;
+        });
+    }, [stories, searchQuery, followingOnly, user, isFollowingUser]);
+
+    const isStoriesFeed = feedType === 'stories';
+    const hasActiveFilters = isStoriesFeed
+        ? Boolean(searchQuery.trim()) || followingOnly
+        : Boolean(searchQuery.trim()) ||
+          activeFilters.glutenFree ||
+          activeFilters.oilFree ||
+          activeFilters.sugarFree ||
+          minRating > 0 ||
+          followingOnly;
 
     const homeJsonLd = useMemo(() => {
         const publicList = (recipes || []).slice(0, 24);
@@ -370,15 +455,16 @@ const Home = () => {
     if (loading) return <div className={styles.loadingState}>Unlocking the Vault...</div>;
     if (error) return <div className={styles.errorState}>{error}</div>;
 
+    const activeFeedList = isStoriesFeed ? filteredStories : filteredRecipes;
     const isEndless = viewMode === 'endless';
-    const itemsPerPage = isEndless ? filteredRecipes.length || 1 : Number(viewMode) || 6;
-    const totalPages = Math.max(1, Math.ceil(filteredRecipes.length / itemsPerPage));
+    const itemsPerPage = isEndless ? activeFeedList.length || 1 : Number(viewMode) || 6;
+    const totalPages = Math.max(1, Math.ceil(activeFeedList.length / itemsPerPage));
     const safeCurrentPage = Math.min(currentPage, totalPages);
     const indexOfLastRecipe = safeCurrentPage * itemsPerPage;
     const indexOfFirstRecipe = indexOfLastRecipe - itemsPerPage;
-    const currentRecipes = isEndless
-        ? filteredRecipes.slice(0, endlessCount)
-        : filteredRecipes.slice(indexOfFirstRecipe, indexOfLastRecipe);
+    const currentItems = isEndless
+        ? activeFeedList.slice(0, endlessCount)
+        : activeFeedList.slice(indexOfFirstRecipe, indexOfLastRecipe);
 
     return (
         <div className={styles.homeContainer}>
@@ -399,18 +485,29 @@ const Home = () => {
                     setCurrentPage(1);
                     setEndlessCount(10);
                 }}
+                placeholder={
+                    isStoriesFeed
+                        ? 'Search stories by title, chef, or linked recipe...'
+                        : undefined
+                }
             />
             <div className={styles.gridHeaderRow}>
                 <div>
-                    <h2 className={styles.title}>Latest Culinary Discoveries</h2>
-                    <p className={styles.subTitle}>Hand-crafted, plant-based, and powered by you.</p>
+                    <h2 className={styles.title}>
+                        {isStoriesFeed ? 'Latest Recipe Stories' : 'Latest Culinary Discoveries'}
+                    </h2>
+                    <p className={styles.subTitle}>
+                        {isStoriesFeed
+                            ? 'Cooking reflections, kitchen notes, and plant-based stories from our community.'
+                            : 'Hand-crafted, plant-based, and powered by you.'}
+                    </p>
                 </div>
                 <div className={styles.controlsCluster}>
                     <div className={styles.filterDropdownWrap} ref={filtersMenuRef}>
                         <button
                             type="button"
                             className={`${styles.filterDropdownBtn} ${
-                                (activeFilters.glutenFree || activeFilters.oilFree || activeFilters.sugarFree || minRating > 0 || followingOnly)
+                                (isStoriesFeed || activeFilters.glutenFree || activeFilters.oilFree || activeFilters.sugarFree || minRating > 0 || followingOnly)
                                     ? styles.filterDropdownBtnActive
                                     : ''
                             }`}
@@ -422,10 +519,11 @@ const Home = () => {
                                 Filters
                                 {(() => {
                                     const count =
-                                        (activeFilters.glutenFree ? 1 : 0) +
-                                        (activeFilters.oilFree ? 1 : 0) +
-                                        (activeFilters.sugarFree ? 1 : 0) +
-                                        (minRating > 0 ? 1 : 0) +
+                                        (isStoriesFeed ? 1 : 0) +
+                                        (!isStoriesFeed && activeFilters.glutenFree ? 1 : 0) +
+                                        (!isStoriesFeed && activeFilters.oilFree ? 1 : 0) +
+                                        (!isStoriesFeed && activeFilters.sugarFree ? 1 : 0) +
+                                        (!isStoriesFeed && minRating > 0 ? 1 : 0) +
                                         (followingOnly ? 1 : 0);
                                     return count > 0 ? ` (${count})` : '';
                                 })()}
@@ -434,41 +532,69 @@ const Home = () => {
                         </button>
 
                         {showFiltersDropdown && (
-                            <div className={styles.filterDropdownMenu} role="group" aria-label="Recipe filters">
-                                <div className={styles.filterDropdownSectionTitle}>Diet</div>
-                                <div className={styles.filterDropdownPills}>
-                                    {DIETARY_FILTER_OPTIONS.map(({ key, label }) => {
-                                        const isActive = activeFilters[key];
-                                        return (
-                                            <button
-                                                key={key}
-                                                type="button"
-                                                onClick={() => toggleFilter(key)}
-                                                aria-pressed={isActive}
-                                                className={`${styles.filterPill} ${styles[`${key}Pill`]} ${
-                                                    isActive ? styles.filterPillActive : ''
-                                                }`}
-                                            >
-                                                <span>{label}</span>
-                                                <span className={styles.filterCount}>{dietaryCounts[key]}</span>
-                                            </button>
-                                        );
-                                    })}
+                            <div className={styles.filterDropdownMenu} role="group" aria-label="Feed and recipe filters">
+                                <div className={styles.filterDropdownSectionTitle}>Show in Feed</div>
+                                <div className={styles.filterFeedRow}>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleFeedTypeChange('recipes')}
+                                        aria-pressed={!isStoriesFeed}
+                                        className={`${styles.filterPill} ${styles.oilFreePill} ${
+                                            !isStoriesFeed ? styles.filterPillActive : ''
+                                        }`}
+                                    >
+                                        🍽️ Recipes
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleFeedTypeChange('stories')}
+                                        aria-pressed={isStoriesFeed}
+                                        className={`${styles.filterPill} ${styles.oilFreePill} ${
+                                            isStoriesFeed ? styles.filterPillActive : ''
+                                        }`}
+                                    >
+                                        📖 Stories
+                                    </button>
                                 </div>
 
-                                <div className={styles.filterDropdownSectionTitle}>Rating</div>
-                                <select
-                                    className={styles.ratingFilterSelect}
-                                    value={minRating}
-                                    onChange={(e) => handleRatingChange(e.target.value)}
-                                    aria-label="Filter by minimum star rating"
-                                >
-                                    <option value={0}>⭐ All Ratings</option>
-                                    <option value={4}>⭐ 4+ Stars</option>
-                                    <option value={3}>⭐ 3+ Stars</option>
-                                    <option value={2}>⭐ 2+ Stars</option>
-                                    <option value={1}>⭐ 1+ Stars</option>
-                                </select>
+                                {!isStoriesFeed && (
+                                    <>
+                                        <div className={styles.filterDropdownSectionTitle}>Diet</div>
+                                        <div className={styles.filterDropdownPills}>
+                                            {DIETARY_FILTER_OPTIONS.map(({ key, label }) => {
+                                                const isActive = activeFilters[key];
+                                                return (
+                                                    <button
+                                                        key={key}
+                                                        type="button"
+                                                        onClick={() => toggleFilter(key)}
+                                                        aria-pressed={isActive}
+                                                        className={`${styles.filterPill} ${styles[`${key}Pill`]} ${
+                                                            isActive ? styles.filterPillActive : ''
+                                                        }`}
+                                                    >
+                                                        <span>{label}</span>
+                                                        <span className={styles.filterCount}>{dietaryCounts[key]}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <div className={styles.filterDropdownSectionTitle}>Rating</div>
+                                        <select
+                                            className={styles.ratingFilterSelect}
+                                            value={minRating}
+                                            onChange={(e) => handleRatingChange(e.target.value)}
+                                            aria-label="Filter by minimum star rating"
+                                        >
+                                            <option value={0}>⭐ All Ratings</option>
+                                            <option value={4}>⭐ 4+ Stars</option>
+                                            <option value={3}>⭐ 3+ Stars</option>
+                                            <option value={2}>⭐ 2+ Stars</option>
+                                            <option value={1}>⭐ 1+ Stars</option>
+                                        </select>
+                                    </>
+                                )}
 
                                 {user && (
                                     <button
@@ -508,28 +634,40 @@ const Home = () => {
                     <RecipeViewControls
                         viewMode={viewMode}
                         onChange={handleViewModeChange}
-                        totalItems={filteredRecipes.length}
+                        totalItems={activeFeedList.length}
+                        itemLabel={isStoriesFeed ? 'stories' : 'recipes'}
                     />
                 </div>
             </div>
             {hasActiveFilters && (
                 <p className={styles.filterStatusText}>
-                    Showing <strong>{filteredRecipes.length}</strong> of {recipes.length} recipes
+                    Showing <strong>{activeFeedList.length}</strong> of{' '}
+                    {isStoriesFeed ? `${stories.length} stories` : `${recipes.length} recipes`}
                 </p>
             )}
             <div className={styles.recipeGrid}>
-                {currentRecipes.length > 0 ? (
-                    currentRecipes.map(recipe => (
-                        <RecipeCard key={recipe.id} recipe={recipe} />
-                    ))
+                {isStoriesFeed && storiesLoading && !storiesLoaded ? (
+                    <div className={styles.emptyStateBox}>Loading latest stories...</div>
+                ) : currentItems.length > 0 ? (
+                    isStoriesFeed ? (
+                        currentItems.map((story) => (
+                            <StoryCard key={story.id || story.slug} story={story} showRecipeTag />
+                        ))
+                    ) : (
+                        currentItems.map((recipe) => (
+                            <RecipeCard key={recipe.id} recipe={recipe} />
+                        ))
+                    )
                 ) : (
                     <div className={styles.emptyStateBox}>
                         <p>
                             {hasActiveFilters
-                                ? `No wholesome dishes found matching ${
+                                ? `No ${isStoriesFeed ? 'stories' : 'wholesome dishes'} found matching ${
                                       searchQuery.trim() ? `"${searchQuery.trim()}" and ` : ''
-                                  }your selected dietary filters.`
-                                : 'The Vault is Empty. Add Some Recipes.'}
+                                  }your selected filters.`
+                                : isStoriesFeed
+                                    ? 'No published stories yet. Start one from any recipe!'
+                                    : 'The Vault is Empty. Add Some Recipes.'}
                         </p>
                         {hasActiveFilters && (
                             <button
@@ -546,15 +684,15 @@ const Home = () => {
 
             {isEndless ? (
                 <EndlessScrollSentinel
-                    hasMore={endlessCount < filteredRecipes.length}
+                    hasMore={endlessCount < activeFeedList.length}
                     onLoadMore={handleLoadMoreEndless}
-                    visibleCount={currentRecipes.length}
-                    totalItems={filteredRecipes.length}
+                    visibleCount={currentItems.length}
+                    totalItems={activeFeedList.length}
                 />
             ) : (
-                filteredRecipes.length > itemsPerPage && (
+                activeFeedList.length > itemsPerPage && (
                     <Paginator 
-                        totalItems={filteredRecipes.length} 
+                        totalItems={activeFeedList.length} 
                         itemsPerPage={itemsPerPage} 
                         currentPage={safeCurrentPage} 
                         onPageChange={setCurrentPage} 

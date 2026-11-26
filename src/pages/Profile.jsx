@@ -105,6 +105,36 @@ export default function Profile() {
     sugarFree: false,
   });
   const [recipeMinRating, setRecipeMinRating] = useState(0);
+  const [defaultHomeFeed, setDefaultHomeFeed] = useState(() => {
+    try {
+      return window.localStorage.getItem('veggieVault_defaultHomeFeed') === 'stories' ? 'stories' : 'recipes';
+    } catch {
+      return 'recipes';
+    }
+  });
+  const [homeFeedSavedMsg, setHomeFeedSavedMsg] = useState('');
+
+  const handleChangeDefaultHomeFeed = (nextFeed) => {
+    const normalized = nextFeed === 'stories' ? 'stories' : 'recipes';
+    setDefaultHomeFeed(normalized);
+    try {
+      window.localStorage.setItem('veggieVault_defaultHomeFeed', normalized);
+      const rawGrid = window.sessionStorage.getItem('veggieVault_homeGridState');
+      if (rawGrid) {
+        const parsed = JSON.parse(rawGrid);
+        if (parsed && typeof parsed === 'object') {
+          window.sessionStorage.setItem(
+            'veggieVault_homeGridState',
+            JSON.stringify({ ...parsed, feedType: normalized, currentPage: 1, endlessCount: 10 })
+          );
+        }
+      }
+    } catch {
+      // Ignore storage errors
+    }
+    setHomeFeedSavedMsg(normalized === 'stories' ? '✓ Default set to Stories' : '✓ Default set to Recipes');
+    setTimeout(() => setHomeFeedSavedMsg(''), 2500);
+  };
 
   // Email change form state
   const [emailForm, setEmailForm] = useState({
@@ -1005,6 +1035,34 @@ export default function Profile() {
                   onChange={(e) => setProfileForm((prev) => ({ ...prev, allergies: e.target.value }))}
                 />
               </label>
+            </div>
+
+            <div className="profile-allergies-box">
+              <div className="profile-allergies-header">
+                <span>🏠 Default Home Screen Feed</span>
+                <small>Choose whether the main Home screen opens to Recipes or community Recipe Stories by default.</small>
+              </div>
+              <div className="profile-default-feed-row">
+                <button
+                  type="button"
+                  className={`profile-kind-pill ${defaultHomeFeed === 'recipes' ? 'active' : ''}`}
+                  onClick={() => handleChangeDefaultHomeFeed('recipes')}
+                  aria-pressed={defaultHomeFeed === 'recipes'}
+                >
+                  🍽️ Recipes
+                </button>
+                <button
+                  type="button"
+                  className={`profile-kind-pill ${defaultHomeFeed === 'stories' ? 'active' : ''}`}
+                  onClick={() => handleChangeDefaultHomeFeed('stories')}
+                  aria-pressed={defaultHomeFeed === 'stories'}
+                >
+                  📖 Stories
+                </button>
+                {homeFeedSavedMsg && (
+                  <span className="profile-default-feed-saved">{homeFeedSavedMsg}</span>
+                )}
+              </div>
             </div>
 
             <label className="profile-field full-width">
