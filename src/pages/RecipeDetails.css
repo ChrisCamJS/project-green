@@ -594,6 +594,31 @@
   margin-bottom: 0.4rem;
 }
 
+.recipe-deep-dive-container h1,
+.recipe-deep-dive-container h2,
+.recipe-deep-dive-container h3,
+.recipe-deep-dive-container h4 {
+  text-align: center;
+}
+
+.recipe-deep-dive-container .recipe-deep-dive-title {
+  text-align: left;
+}
+
+.deep-dive-title-mobile {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .deep-dive-title-desktop {
+    display: none;
+  }
+
+  .deep-dive-title-mobile {
+    display: inline;
+  }
+}
+
 /* --- Draft-to-Masterpiece Workshop --- */
 .draft-workshop-card {
   margin: 1rem 0 1.5rem;

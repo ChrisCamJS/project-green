@@ -493,6 +493,9 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
   const isAdmin = Boolean(
     user && (Number(user.is_admin) === 1 || user.is_admin === true)
   );
+  const isRecipeCreator = Boolean(
+    user && authorId && Number(user.id) === Number(authorId)
+  );
   const isRecipeOwner = Boolean(
     user &&
     (Number(user.id) === Number(authorId) || isAdmin)
@@ -692,6 +695,12 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
       }
   }
   displayNotes = stripDuplicateMicroLines(displayNotes);
+  if (displayNotes) {
+      displayNotes = displayNotes
+          .replace(/^\s{0,3}(?:#{1,6}\s*|\*\*\s*)?Advanced Nutritional Analysis(?:\s*\*\*)?\s*$/gim, '')
+          .replace(/^\n+/, '')
+          .trim();
+  }
 
   const handleRateRecipe = async (id, newRating) => {
     try {
@@ -1018,13 +1027,13 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
         </button>
       </div>
 
-      {(galleryImages.length > 1 || isRecipeOwner) && (
+      {(galleryImages.length > 1 || isRecipeCreator) && (
         <div className="recipe-gallery-bar no-print">
           <div className="recipe-gallery-header">
             <span className="recipe-gallery-title">
               📸 Dish Photos ({galleryImages.length})
             </span>
-            {isRecipeOwner && (
+            {isRecipeCreator && (
               <label className={`recipe-gallery-upload-btn ${isUploadingPhotos ? 'disabled' : ''}`}>
                 {isUploadingPhotos ? '⏳ Uploading...' : '➕ Add Dish Photos'}
                 <input
@@ -1067,7 +1076,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
                         <span className="recipe-gallery-cover-badge">✓ Cover</span>
                       )}
                     </button>
-                    {isRecipeOwner && (
+                    {isRecipeCreator && (
                       <div className="recipe-gallery-thumb-actions">
                         {!isPrimary && (
                           <button
@@ -1740,7 +1749,10 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
         {displayNotes && (
             <div className="recipe-deep-dive-container" style={{ margin: '0 1.5rem 2rem 1.5rem', padding: '1.5rem', backgroundColor: '#faf5ff', borderRadius: '12px', borderLeft: '4px solid #805ad5' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e9d5ff', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
-                    <h3 style={{ margin: 0, color: '#6b21a8', fontSize: '1.25rem', fontWeight: 'bold' }}>🔬 Emma's Deep Dive Analysis</h3>
+                    <h3 className="recipe-deep-dive-title" style={{ margin: 0, color: '#6b21a8', fontSize: '1.25rem', fontWeight: 'bold' }}>
+                        <span className="deep-dive-title-desktop">🔬 Emma&apos;s Deep Dive Analysis</span>
+                        <span className="deep-dive-title-mobile">🔬 Emma&apos;s Analysis</span>
+                    </h3>
                     <button
                         type="button"
                         onClick={() => handleSpeak(displayNotes, 'deepDive')}
