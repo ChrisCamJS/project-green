@@ -163,6 +163,9 @@ const StoryReader = () => {
   const heroCoverUrl = resolveStoryAssetUrl(
     story.coverImage || story.cover_image || story.effectiveCoverImage || linkedRecipe?.imageUrl
   );
+  const storyOgImageUrl = story.slug
+    ? `${API_BASE_URL}/stories/og-image?slug=${encodeURIComponent(story.slug)}`
+    : heroCoverUrl;
   const recipeThumbUrl = resolveStoryAssetUrl(linkedRecipe?.imageUrl || story.recipeImageUrl);
 
   const authorUsername = story.authorName || 'Vault Chef';
@@ -233,7 +236,7 @@ const StoryReader = () => {
         description={story.excerpt}
         canonicalPath={`/stories/${story.slug}`}
         ogType="article"
-        image={heroCoverUrl}
+        image={storyOgImageUrl}
         publishedTime={publishedIso}
         authorName={authorLabel}
         jsonLd={blogPostingJsonLd}

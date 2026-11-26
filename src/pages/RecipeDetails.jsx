@@ -232,13 +232,16 @@ const RecipeDetails = () => {
       ? apiOrigin
       : `${SITE_URL}${apiOrigin ? (apiOrigin.startsWith('/') ? '' : '/') + apiOrigin : ''}`;
 
-    const recipeImg = hasValidDishImg
-      ? (
-          rawImg.startsWith('http') || rawImg.startsWith('data:')
-            ? rawImg
-            : encodeURI(`${resolvedApiBase}${rawImg.startsWith('/') ? '' : '/'}${rawImg}`)
-        )
-      : DEFAULT_OG_IMAGE;
+    const isVariantOg = Boolean(recipe.parent_recipe_id || recipe.parentRecipeId);
+    const recipeImg = isVariantOg
+      ? `${resolvedApiBase}/recipes/variant-og-image?id=${recipe.id}`
+      : hasValidDishImg
+        ? (
+            rawImg.startsWith('http') || rawImg.startsWith('data:')
+              ? rawImg
+              : encodeURI(`${resolvedApiBase}${rawImg.startsWith('/') ? '' : '/'}${rawImg}`)
+          )
+        : DEFAULT_OG_IMAGE;
 
     const isDraft = !Number(recipe.is_public ?? (recipe.isPublic ? 1 : 0));
     const canonicalPath = `/recipe/${recipe.id}`;
@@ -1264,7 +1267,11 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
                   <strong>{parentAuthorName}</strong>
                 )}
                 {' · '}
-                <Link to={`/recipe/${parentRecipeId}`} className="recipe-inspired-recipe-link">
+                <Link
+                  to={`/recipe/${parentRecipeId}`}
+                  className="recipe-inspired-recipe-link"
+                  title={parentRecipeTitle}
+                >
                   {parentRecipeTitle}
                 </Link>
               </span>
