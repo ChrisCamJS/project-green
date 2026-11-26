@@ -13,6 +13,9 @@ Disallow: /forgot-password
 Disallow: /buy-tokens
 Disallow: /favorites
 Disallow: /meal-planner
+Allow: /pantry-rebuild-api/public/images/
+Allow: /pantry-rebuild-api/public/uploads/
+Allow: /pantry-rebuild-api/public/users/profile-og-image
 Disallow: /pantry-rebuild-api/
 
 Sitemap: https://theveggievault.com/sitemap.xml

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './RecipeViewControls.css';
 
 const VIEW_MODE_OPTIONS = [
@@ -9,26 +9,81 @@ const VIEW_MODE_OPTIONS = [
 ];
 
 export const RecipeViewControls = ({ viewMode, onChange, totalItems, itemLabel = 'recipes' }) => {
+    const [open, setOpen] = useState(false);
+    const menuRef = useRef(null);
+    const currentValue = String(viewMode);
+    const activeOption = VIEW_MODE_OPTIONS.find((opt) => opt.value === currentValue) || VIEW_MODE_OPTIONS[0];
+
+    useEffect(() => {
+        if (!open) return undefined;
+        const onOutside = (e) => {
+            if (menuRef.current && !menuRef.current.contains(e.target)) {
+                setOpen(false);
+            }
+        };
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                setOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', onOutside);
+        document.addEventListener('touchstart', onOutside, { passive: true });
+        document.addEventListener('keydown', onKeyDown);
+        return () => {
+            document.removeEventListener('mousedown', onOutside);
+            document.removeEventListener('touchstart', onOutside);
+            document.removeEventListener('keydown', onKeyDown);
+        };
+    }, [open]);
+
     return (
         <div className="recipe-view-controls">
             <span className="recipe-view-total">
                 {totalItems} {itemLabel}
             </span>
-            <label className="recipe-view-label">
+            <div className="recipe-view-label" ref={menuRef}>
                 <span>View:</span>
-                <select
-                    className="recipe-view-select"
-                    value={String(viewMode)}
-                    onChange={(e) => onChange(e.target.value)}
-                    aria-label="Recipes per page or endless scroll"
-                >
-                    {VIEW_MODE_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                        </option>
-                    ))}
-                </select>
-            </label>
+                <div className="rvc-dropdown-wrap">
+                    <button
+                        type="button"
+                        className={`rvc-dropdown-btn ${open ? 'active' : ''}`}
+                        onClick={() => setOpen((prev) => !prev)}
+                        aria-expanded={open}
+                        aria-haspopup="listbox"
+                        aria-label="Recipes per page or endless scroll"
+                    >
+                        <span>{activeOption.label}</span>
+                        <span aria-hidden="true">{open ? '▲' : '▼'}</span>
+                    </button>
+
+                    {open && (
+                        <div className="rvc-dropdown-menu" role="listbox" aria-label="View options">
+                            <div className="rvc-section-title">View Mode</div>
+                            <div className="rvc-pills">
+                                {VIEW_MODE_OPTIONS.map((opt) => {
+                                    const isActive = opt.value === currentValue;
+                                    return (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            role="option"
+                                            aria-selected={isActive}
+                                            className={`rvc-pill ${isActive ? 'active' : ''}`}
+                                            onClick={() => {
+                                                onChange(opt.value);
+                                                setOpen(false);
+                                            }}
+                                        >
+                                            <span>{opt.label}</span>
+                                            {isActive && <span className="rvc-check" aria-hidden="true">✓</span>}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };
