@@ -449,7 +449,7 @@ export const fetchPublishedRecipesCatalog = async (forceRefresh = false, userId 
 
   inFlightCatalogPromise = Promise.allSettled([
     api.getRecipes(),
-    api.getPlannableRecipes(),
+    normalizedUid ? api.getPlannableRecipes() : Promise.resolve({ recipes: [] }),
   ])
     .then(([publicRes, plannableRes]) => {
       const publicRows =

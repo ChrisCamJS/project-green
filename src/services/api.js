@@ -23,11 +23,22 @@ async function fetchWrapper(endpoint, options = {}) {
             headers,
         });
 
-        const data = await response.json();
+        const rawText = await response.text();
+        let data = {};
+        if (rawText) {
+            try {
+                data = JSON.parse(rawText);
+            } catch {
+                data = {};
+            }
+        }
 
         if (!response.ok) {
             // If PHP says our session died (401) on a user-initiated route, clear out the ghost login
-            const isBackgroundCheck = endpoint === '/notifications' || endpoint === '/users/following';
+            const isBackgroundCheck =
+                endpoint === '/notifications' ||
+                endpoint === '/users/following' ||
+                endpoint === '/meal-plans/recipes';
             if (response.status === 401 && endpoint !== '/login' && endpoint !== '/register' && !isBackgroundCheck) {
                 localStorage.removeItem('vault_user');
                 window.location.href = '/login'; // Or reload so AuthContext resets
@@ -613,13 +624,6 @@ export const api = {
         return fetchWrapper('/ai/google-drive-fetch', {
             method: 'POST',
             body: JSON.stringify({ url }),
-        });
-    },
-
-    synthesizeSpeech: (text) => {
-        return fetchWrapper('/ai/tts', {
-            method: 'POST',
-            body: JSON.stringify({ text }),
         });
     }
 };

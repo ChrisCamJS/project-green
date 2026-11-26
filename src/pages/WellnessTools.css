@@ -115,12 +115,14 @@
     gap: 0.5rem;
 }
 
-.wellness-banner-link {
+.wellness-banner-link,
+.wellness-banner-link:visited,
+.wellness-banner-guest .wellness-banner-link {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
     background: #059669;
-    color: white;
+    color: #ffffff;
     font-weight: 700;
     font-size: 0.875rem;
     padding: 0.5rem 1rem;
@@ -129,8 +131,11 @@
     transition: all 0.2s ease;
 }
 
-.wellness-banner-link:hover {
+.wellness-banner-link:hover,
+.wellness-banner-guest .wellness-banner-link:hover {
     background: #047857;
+    color: #ffffff;
+    text-decoration: none;
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(5, 150, 105, 0.25);
 }
@@ -183,7 +188,7 @@
     margin: 0;
 }
 
-.wellness-banner-guest a {
+.wellness-banner-guest p a {
     color: #059669;
     font-weight: 700;
     text-decoration: underline;
