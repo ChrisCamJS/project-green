@@ -614,5 +614,12 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ url }),
         });
+    },
+
+    synthesizeSpeech: (text) => {
+        return fetchWrapper('/ai/tts', {
+            method: 'POST',
+            body: JSON.stringify({ text }),
+        });
     }
 };

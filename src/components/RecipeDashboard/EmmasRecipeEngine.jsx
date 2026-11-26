@@ -579,8 +579,13 @@ const EmmasRecipeEngine = () => {
         setFollowUpUploadedDoc(null);
         setFollowUpFileError(null);
         setShowInlineLiveChat(false);
+        setShowBottomBin(false);
         setPrefillPrompt('');
         setError(null);
+        window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+        window.requestAnimationFrame(() => {
+            window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+        });
     }, []);
 
     const handleLaunchIdeaInForge = useCallback(
