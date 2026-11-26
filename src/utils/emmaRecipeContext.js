@@ -567,7 +567,7 @@ const formatIngredientsPreview = (ingredients) => {
 export const buildPublishedRecipesPromptSection = (
   recipes = [],
   maxRecipes = 150,
-  { vocalMode = false, currentUser = null } = {}
+  { vocalMode = false, currentUser = null, query = '', compact = false } = {}
 ) => {
   if (!Array.isArray(recipes) || recipes.length === 0) return '';
 
@@ -621,15 +621,54 @@ export const buildPublishedRecipesPromptSection = (
       return `- "${r.title}" (ID ${r.id}; ${statusBadge}; ${diet}${totalMins > 0 ? `; ${totalMins} mins` : ''}${cal})`;
     }
 
+    if (compact) {
+      return `- [ID ${r.id}] "${r.title}" (${diet}${totalMins > 0 ? `; ${totalMins}m` : ''}${cal})`;
+    }
+
     const desc = r.description
       ? ` — ${String(r.description).replace(/\s+/g, ' ').trim().slice(0, 100)}`
       : '';
     return `- [ID ${r.id}] "${r.title}" | Status: ${statusBadge} | Link: /recipe/${r.id} | Diet: ${diet}${totalMins > 0 ? ` | ${totalMins}m` : ''}${cal}${formatIngredientsPreview(r.ingredients)}${desc}`;
   };
 
-  const userLines = userRecipes.map(formatLine);
-  const remainingBudget = Math.max(40, maxRecipes - userLines.length);
-  const publicLines = publicPoolOnly.slice(0, remainingBudget).map(formatLine);
+  const queryTerms = String(query || '')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length >= 3);
+
+  const scoreByQuery = (item) => {
+    if (queryTerms.length === 0) return 0;
+    const r = item.recipe;
+    const haystack = [
+      r.title,
+      r.description,
+      formatDietTags(r),
+      Array.isArray(r.ingredients)
+        ? r.ingredients.map((i) => (typeof i === 'string' ? i : i?.ingredient_name || '')).join(' ')
+        : '',
+    ]
+      .join(' ')
+      .toLowerCase();
+    let score = 0;
+    for (const term of queryTerms) {
+      if (haystack.includes(term)) score += 1;
+    }
+    return score;
+  };
+
+  const orderedUserRecipes =
+    queryTerms.length > 0
+      ? [...userRecipes].sort((a, b) => scoreByQuery(b) - scoreByQuery(a))
+      : userRecipes;
+  const orderedPublicPool =
+    queryTerms.length > 0
+      ? [...publicPoolOnly].sort((a, b) => scoreByQuery(b) - scoreByQuery(a))
+      : publicPoolOnly;
+
+  const userBudget = compact ? Math.min(orderedUserRecipes.length, Math.max(8, Math.floor(maxRecipes * 0.4))) : orderedUserRecipes.length;
+  const userLines = orderedUserRecipes.slice(0, userBudget).map(formatLine);
+  const remainingBudget = Math.max(compact ? 10 : 40, maxRecipes - userLines.length);
+  const publicLines = orderedPublicPool.slice(0, remainingBudget).map(formatLine);
   const sample = recipes.find((r) => !r?.isDraft) || recipes[0];
 
   if (vocalMode) {

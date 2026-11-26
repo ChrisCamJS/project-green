@@ -32,8 +32,19 @@ const extractInternalPath = (href = '') => {
   return null;
 };
 
+const normalizeMarkdownForDisplay = (text = '') => {
+  return String(text || '')
+    .replace(/<RECIPE_IDEAS>[\s\S]*?<\/RECIPE_IDEAS>/gi, '')
+    .replace(/<RECIPE_IDEAS>[\s\S]*$/i, '')
+    .replace(/<\/?RECIPE_IDEAS>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/^(#{1,6})([^\s#])/gm, '$1 $2')
+    .trim();
+};
+
 const EmmaMarkdown = ({ children }) => {
   if (!children) return null;
+  const cleaned = normalizeMarkdownForDisplay(children);
 
   return (
     <ReactMarkdown
@@ -76,7 +87,7 @@ const EmmaMarkdown = ({ children }) => {
         },
       }}
     >
-      {children}
+      {cleaned}
     </ReactMarkdown>
   );
 };

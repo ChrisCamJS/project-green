@@ -1,7 +1,7 @@
 // src/services/geminiApi.js
 import { api } from './api';
 
-export const sendChatMessage = async (chatHistory, systemInstructionText) => {
+export const sendChatMessage = async (chatHistory, systemInstructionText, options = {}) => {
   // Strip UI-only properties (such as displayParts) so Gemini's strict schema doesn't reject follow-up turns
   const apiContents = chatHistory.map(({ role, parts }) => ({
     role,
@@ -9,9 +9,11 @@ export const sendChatMessage = async (chatHistory, systemInstructionText) => {
   }));
 
   try {
-    const data = await api.aiChat(apiContents, {
-      parts: [{ text: systemInstructionText }]
-    });
+    const data = await api.aiChat(
+      apiContents,
+      { parts: [{ text: systemInstructionText }] },
+      options?.purpose || null
+    );
     return data.text;
   } catch (error) {
     console.error("Gemini Chat API Error:", error);

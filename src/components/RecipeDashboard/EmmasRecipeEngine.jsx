@@ -307,7 +307,12 @@ const EmmasRecipeEngine = () => {
                 setLastImagePrompt(imageSubjectHint);
             }
 
-            const modelReplyText = await sendChatMessage(apiHistory, systemInstructions);
+            const isFreeChatMode = engineMode === 'chat';
+            const modelReplyText = await sendChatMessage(
+                isFreeChatMode ? apiHistory.slice(-12) : apiHistory,
+                systemInstructions,
+                isFreeChatMode ? { purpose: 'free_chat' } : {}
+            );
 
             let emmaCommentary = '';
             let recipeMarkdown = modelReplyText;

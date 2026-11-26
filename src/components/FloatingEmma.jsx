@@ -290,13 +290,15 @@ export default function FloatingEmma() {
         displayParts: { userText: textToSend },
       },
     ];
-    const apiHistory = updatedHistory.map(({ role, parts }) => ({ role, parts }));
+    const apiHistory = updatedHistory.slice(-10).map(({ role, parts }) => ({ role, parts }));
 
     try {
       const catalogToUse =
         publishedCatalog.length > 0 ? publishedCatalog : await fetchPublishedRecipesCatalog(false, user?.id);
-      const catalogSection = buildPublishedRecipesPromptSection(catalogToUse, 150, {
+      const catalogSection = buildPublishedRecipesPromptSection(catalogToUse, 25, {
         currentUser: user,
+        query: textToSend,
+        compact: true,
       });
       const baseInstructions = getSystemInstructions(
         DEFAULT_PREFS,
@@ -311,10 +313,12 @@ export default function FloatingEmma() {
         assistantMode: 'helper',
       });
       const helperBoundary =
-        'FLOATING HELPER ROLE:\nYou are acting as the site-wide floating guide. Help users find published recipes (linking as [Title](/recipe/<id>)), answer nutrition/cooking questions, explain how to use site features, and direct them to the right page. If the user asks to generate/forge a brand-new Recipe Draft or Full Masterpiece Recipe with AI photo & macros, warmly direct them to [Emma\'s Flavor Forge](/engine) to create it there.';
+        'FLOATING HELPER ROLE:\nYou are acting as the site-wide floating guide. Keep replies concise and punchy (2–4 short paragraphs or bullets). Help users find published recipes (linking as [Title](/recipe/<id>)), answer nutrition/cooking questions, explain how to use site features, and direct them to the right page. If pitching new recipe ideas, include at most 2–3 ideas in <RECIPE_IDEAS>. If the user asks to generate/forge a brand-new Recipe Draft or Full Masterpiece Recipe with AI photo & macros, warmly direct them to [Emma\'s Flavor Forge](/engine) to create it there.';
       const fullSystemInstructions = `${baseInstructions}\n\n${helperBoundary}\n\n${pageContextBlock}`;
 
-      const replyText = await sendChatMessage(apiHistory, fullSystemInstructions);
+      const replyText = await sendChatMessage(apiHistory, fullSystemInstructions, {
+        purpose: 'free_chat',
+      });
 
       setChatHistory([
         ...updatedHistory,

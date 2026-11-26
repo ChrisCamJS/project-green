@@ -403,8 +403,10 @@ const RecipeDetails = () => {
           const ingredientsList = recipe.ingredients?.map(i => i.ingredient_name).join(', ') || 'Unknown ingredients';
           const catalogToUse =
             publishedCatalog.length > 0 ? publishedCatalog : await fetchPublishedRecipesCatalog(false, user?.id);
-          const publishedSection = buildPublishedRecipesPromptSection(catalogToUse, 120, {
+          const publishedSection = buildPublishedRecipesPromptSection(catalogToUse, 15, {
             currentUser: user,
+            query: newUserMsg,
+            compact: true,
           });
 
           const systemPrompt = `You are Emma Advanced, a sassy British culinary expert and co-host of The Chris and Emma Show. 
@@ -426,10 +428,18 @@ const RecipeDetails = () => {
 
 ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
 
-          const reply = await sendChatMessage(updatedHistory, systemPrompt);
+          const reply = await sendChatMessage(updatedHistory.slice(-10), systemPrompt, {
+            purpose: 'free_chat',
+          });
           setChatHistory([...updatedHistory, { role: 'model', parts: [{ text: reply }] }]);
-      } catch {
-          setChatHistory([...updatedHistory, { role: 'model', parts: [{ text: "Oh dear, my brain seems to have short-circuited. Could you ask that again, love?" }] }]);
+      } catch (err) {
+          setChatHistory([
+            ...updatedHistory,
+            {
+              role: 'model',
+              parts: [{ text: err?.message || "Oh dear, my brain seems to have short-circuited. Could you ask that again, love?" }],
+            },
+          ]);
       } finally {
           setIsChatting(false);
       }

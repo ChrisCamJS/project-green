@@ -90,8 +90,12 @@ export const extractRecipeIdeas = (rawText = '') => {
     }
   }
 
-  // Always strip <RECIPE_IDEAS> tags so raw XML/JSON never renders or speaks
-  cleanText = cleanText.replace(tagRegex, '').trim();
+  // Always strip <RECIPE_IDEAS> tags (including any truncated unclosed tag) so raw XML/JSON never renders or speaks
+  cleanText = cleanText
+    .replace(tagRegex, '')
+    .replace(/<RECIPE_IDEAS>[\s\S]*$/i, '')
+    .replace(/<\/?RECIPE_IDEAS>/gi, '')
+    .trim();
 
   // Graceful fallback if Emma wrapped recipe ideas inside a ```json``` block without XML tags
   if (collected.length === 0) {

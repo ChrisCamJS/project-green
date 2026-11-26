@@ -527,10 +527,14 @@ export const api = {
     },
 
     // AI PROXY (KEEPS GEMINI API KEY SERVER-SIDE)
-    aiChat: (contents, systemInstruction) => {
+    aiChat: (contents, systemInstruction, purpose = null) => {
+        const body = { contents, systemInstruction };
+        if (purpose) {
+            body.purpose = purpose;
+        }
         return fetchWrapper('/ai/chat', {
             method: 'POST',
-            body: JSON.stringify({ contents, systemInstruction }),
+            body: JSON.stringify(body),
         });
     },
 
