@@ -186,7 +186,7 @@ export default function SharedMealPlan() {
               alt={share.author?.displayName || 'Vault Member'}
               className="mp-shared-author-avatar"
               onError={(e) => {
-                e.currentTarget.src = '/og-vault-preview.jpeg';
+                e.currentTarget.src = '/og-vault-preview.jpg';
               }}
             />
             <div>
@@ -312,7 +312,7 @@ export default function SharedMealPlan() {
                             alt={meal.title}
                             className="mp-day-meal-img"
                             onError={(e) => {
-                              e.currentTarget.src = '/og-vault-preview.jpeg';
+                              e.currentTarget.src = '/og-vault-preview.jpg';
                             }}
                           />
                         </Link>

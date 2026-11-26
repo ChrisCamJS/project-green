@@ -208,7 +208,7 @@ const StoryReader = () => {
       url: SITE_URL,
       logo: {
         '@type': 'ImageObject',
-        url: `${SITE_URL}/og-vault-preview.jpeg`,
+        url: `${SITE_URL}/og-vault-preview.jpg`,
       },
     },
     ...(recipeId
@@ -341,7 +341,7 @@ const StoryReader = () => {
             alt={story.title}
             className="story-reader-hero-img"
             onError={(e) => {
-              e.currentTarget.src = '/og-vault-preview.jpeg';
+              e.currentTarget.src = '/og-vault-preview.jpg';
             }}
           />
         </div>
@@ -355,7 +355,7 @@ const StoryReader = () => {
                 alt={linkedRecipe.title}
                 className="story-recipe-ref-thumb"
                 onError={(e) => {
-                  e.currentTarget.src = '/og-vault-preview.jpeg';
+                  e.currentTarget.src = '/og-vault-preview.jpg';
                 }}
               />
             </Link>

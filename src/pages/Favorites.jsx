@@ -727,7 +727,7 @@ export default function Favorites() {
                         alt={r.title}
                         className="vault-picker-thumb"
                         onError={(e) => {
-                          e.currentTarget.src = '/og-vault-preview.jpeg';
+                          e.currentTarget.src = '/og-vault-preview.jpg';
                         }}
                       />
                       <div className="vault-picker-meta">

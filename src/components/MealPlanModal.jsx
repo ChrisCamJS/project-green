@@ -140,7 +140,7 @@ const MealPlanModal = () => {
             alt={recipe.title}
             className="meal-plan-preview-img"
             onError={(e) => {
-              e.currentTarget.src = '/og-vault-preview.jpeg';
+              e.currentTarget.src = '/og-vault-preview.jpg';
             }}
           />
           <div className="meal-plan-preview-info">

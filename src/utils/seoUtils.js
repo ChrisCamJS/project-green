@@ -1,5 +1,5 @@
 export const SITE_URL = 'https://theveggievault.com';
-export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-vault-preview.jpeg`;
+export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-vault-preview.jpg`;
 export const DEFAULT_SITE_NAME = 'The Veggie Vault';
 export const DEFAULT_DESCRIPTION =
   'Discover, generate, and plan whole-food, oil-free plant-based recipes with complete macro and micronutrient breakdowns powered by The Chris & Emma Show.';

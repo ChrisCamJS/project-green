@@ -38,7 +38,7 @@ export const resolveRecipeImageUrl = (recipeOrPath, apiBaseUrl = import.meta.env
 
   const trimmed = String(raw || '').trim();
   if (!trimmed || trimmed.includes('default-veggie-vault-placeholder')) {
-    return '/og-vault-preview.jpeg';
+    return '/og-vault-preview.jpg';
   }
   if (trimmed.startsWith('http') || trimmed.startsWith('data:')) {
     return trimmed;

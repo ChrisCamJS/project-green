@@ -78,7 +78,7 @@ const RecipeCard = ({ recipe }) => {
                         src={fullImageUrl}
                         alt={title}
                         onError={(e) => {
-                            e.currentTarget.src = '/og-vault-preview.jpeg';
+                            e.currentTarget.src = '/og-vault-preview.jpg';
                         }}
                     />
                 </Link>

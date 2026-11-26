@@ -135,7 +135,7 @@ export default function RecipeConnections() {
             alt={recipe.title}
             className="rc-hero-thumb"
             onError={(e) => {
-              e.currentTarget.src = '/og-vault-preview.jpeg';
+              e.currentTarget.src = '/og-vault-preview.jpg';
             }}
           />
           <div className="rc-hero-info">
@@ -238,7 +238,7 @@ export default function RecipeConnections() {
                         alt={step.title}
                         className="rc-lineage-thumb"
                         onError={(e) => {
-                          e.currentTarget.src = '/og-vault-preview.jpeg';
+                          e.currentTarget.src = '/og-vault-preview.jpg';
                         }}
                       />
                       <div className="rc-lineage-node-body">
@@ -366,7 +366,7 @@ export default function RecipeConnections() {
                       alt={v.title}
                       className="rc-item-img"
                       onError={(e) => {
-                        e.currentTarget.src = '/og-vault-preview.jpeg';
+                        e.currentTarget.src = '/og-vault-preview.jpg';
                       }}
                     />
                     <div className="rc-item-top-badges">
@@ -511,7 +511,7 @@ export default function RecipeConnections() {
                     alt={s.title}
                     className="rc-item-img"
                     onError={(e) => {
-                      e.currentTarget.src = '/og-vault-preview.jpeg';
+                      e.currentTarget.src = '/og-vault-preview.jpg';
                     }}
                   />
                   <div className="rc-item-top-badges">

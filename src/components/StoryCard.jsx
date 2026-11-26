@@ -37,7 +37,7 @@ const StoryCard = ({ story, showRecipeTag = false }) => {
             alt={story.title}
             loading="lazy"
             onError={(e) => {
-              e.currentTarget.src = '/og-vault-preview.jpeg';
+              e.currentTarget.src = '/og-vault-preview.jpg';
             }}
           />
           <div className="story-card-badges">

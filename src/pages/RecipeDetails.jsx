@@ -69,6 +69,7 @@ const RecipeDetails = () => {
   const [shareCopied, setShareCopied] = useState(false);
   const [recipeCopied, setRecipeCopied] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const shareMenuRef = useRef(null);
   const [showMoreActionsMenu, setShowMoreActionsMenu] = useState(false);
   const moreActionsRef = useRef(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
@@ -103,10 +104,13 @@ const RecipeDetails = () => {
   }, [isImageModalOpen]);
 
   useEffect(() => {
-    if (!showMoreActionsMenu) return undefined;
+    if (!showMoreActionsMenu && !showShareMenu) return undefined;
     const handleOutsideClick = (event) => {
-      if (moreActionsRef.current && !moreActionsRef.current.contains(event.target)) {
+      if (showMoreActionsMenu && moreActionsRef.current && !moreActionsRef.current.contains(event.target)) {
         setShowMoreActionsMenu(false);
+      }
+      if (showShareMenu && shareMenuRef.current && !shareMenuRef.current.contains(event.target)) {
+        setShowShareMenu(false);
       }
     };
     document.addEventListener('mousedown', handleOutsideClick);
@@ -115,7 +119,7 @@ const RecipeDetails = () => {
       document.removeEventListener('mousedown', handleOutsideClick);
       document.removeEventListener('touchstart', handleOutsideClick);
     };
-  }, [showMoreActionsMenu]);
+  }, [showMoreActionsMenu, showShareMenu]);
   const currentUserName = user?.username || 'Love';
   
   const [recipe, setRecipe] = useState(null);
@@ -1358,7 +1362,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
               <span className="recipe-btn-desktop-only">Add to </span>Meal Plan
             </button>
 
-            <div className="recipe-share-wrapper">
+            <div className="recipe-share-wrapper" ref={shareMenuRef}>
               <button
                 type="button"
                 className="recipe-details-action-btn share-btn"

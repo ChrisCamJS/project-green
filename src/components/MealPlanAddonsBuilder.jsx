@@ -475,7 +475,7 @@ export default function MealPlanAddonsBuilder({
                     src={resolveRecipeImageUrl(r)}
                     alt=""
                     onError={(e) => {
-                      e.currentTarget.src = '/og-vault-preview.jpeg';
+                      e.currentTarget.src = '/og-vault-preview.jpg';
                     }}
                   />
                   <span>{r.title}</span>

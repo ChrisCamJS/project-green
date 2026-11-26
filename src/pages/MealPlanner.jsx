@@ -1811,7 +1811,7 @@ export default function MealPlanner() {
                                   alt={meal.title}
                                   className="mp-month-meal-thumb"
                                   onError={(e) => {
-                                    e.currentTarget.src = '/og-vault-preview.jpeg';
+                                    e.currentTarget.src = '/og-vault-preview.jpg';
                                   }}
                                 />
                               )}
@@ -1991,7 +1991,7 @@ export default function MealPlanner() {
                                     alt={meal.title}
                                     className="mp-week-card-img"
                                     onError={(e) => {
-                                      e.currentTarget.src = '/og-vault-preview.jpeg';
+                                      e.currentTarget.src = '/og-vault-preview.jpg';
                                     }}
                                   />
                                   <span className="mp-week-slot-badge">
@@ -2253,7 +2253,7 @@ export default function MealPlanner() {
                                       alt={meal.title}
                                       className="mp-day-meal-img"
                                       onError={(e) => {
-                                        e.currentTarget.src = '/og-vault-preview.jpeg';
+                                        e.currentTarget.src = '/og-vault-preview.jpg';
                                       }}
                                     />
                                   </Link>
@@ -2469,7 +2469,7 @@ export default function MealPlanner() {
                             alt={rec.title}
                             className="mp-picker-recipe-thumb"
                             onError={(e) => {
-                              e.currentTarget.src = '/og-vault-preview.jpeg';
+                              e.currentTarget.src = '/og-vault-preview.jpg';
                             }}
                           />
                           <div className="mp-picker-recipe-meta">
@@ -2631,7 +2631,7 @@ export default function MealPlanner() {
                   alt={editingEntry.title}
                   className="mp-edit-preview-img"
                   onError={(e) => {
-                    e.currentTarget.src = '/og-vault-preview.jpeg';
+                    e.currentTarget.src = '/og-vault-preview.jpg';
                   }}
                 />
               )}

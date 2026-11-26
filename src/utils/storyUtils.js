@@ -1,6 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
-export const resolveStoryAssetUrl = (rawPath, fallback = '/og-vault-preview.jpeg') => {
+export const resolveStoryAssetUrl = (rawPath, fallback = '/og-vault-preview.jpg') => {
   if (!rawPath || String(rawPath).includes('default-veggie-vault-placeholder')) {
     return fallback;
   }
