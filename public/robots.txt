@@ -15,4 +15,4 @@ Disallow: /favorites
 Disallow: /meal-planner
 Disallow: /pantry-rebuild-api/
 
-Sitemap: https://veggievault.chrisandemmashow.com/sitemap.xml
+Sitemap: https://theveggievault.com/sitemap.xml

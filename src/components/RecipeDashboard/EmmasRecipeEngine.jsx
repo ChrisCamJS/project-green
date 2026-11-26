@@ -67,7 +67,7 @@ const EmmasRecipeEngine = () => {
 
     useEffect(() => {
         let active = true;
-        fetchPublishedRecipesCatalog().then((catalog) => {
+        fetchPublishedRecipesCatalog(false, user?.id).then((catalog) => {
             if (active && Array.isArray(catalog)) {
                 setPublishedRecipes(catalog);
             }
@@ -75,11 +75,11 @@ const EmmasRecipeEngine = () => {
         return () => {
             active = false;
         };
-    }, []);
+    }, [user?.id]);
 
     const publishedCatalogVocal = useMemo(
-        () => buildPublishedRecipesPromptSection(publishedRecipes, 80, { vocalMode: true }),
-        [publishedRecipes]
+        () => buildPublishedRecipesPromptSection(publishedRecipes, 150, { vocalMode: true, currentUser: user }),
+        [publishedRecipes, user]
     );
     
     const [showWelcomeModal, setShowWelcomeModal] = useState(() => {
@@ -287,8 +287,10 @@ const EmmasRecipeEngine = () => {
         try {
             const isChatActive = engineMode === 'chat';
             const catalogToUse =
-                publishedRecipes.length > 0 ? publishedRecipes : await fetchPublishedRecipesCatalog();
-            const publishedCatalogSection = buildPublishedRecipesPromptSection(catalogToUse, 80);
+                publishedRecipes.length > 0 ? publishedRecipes : await fetchPublishedRecipesCatalog(false, user?.id);
+            const publishedCatalogSection = buildPublishedRecipesPromptSection(catalogToUse, 150, {
+                currentUser: user,
+            });
             const systemInstructions = getSystemInstructions(
                 prefs,
                 currentUserName,

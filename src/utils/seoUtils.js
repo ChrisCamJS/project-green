@@ -1,4 +1,4 @@
-export const SITE_URL = 'https://veggievault.chrisandemmashow.com';
+export const SITE_URL = 'https://theveggievault.com';
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-vault-preview.jpeg`;
 export const DEFAULT_SITE_NAME = 'The Veggie Vault';
 export const DEFAULT_DESCRIPTION =

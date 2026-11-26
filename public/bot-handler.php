@@ -23,7 +23,7 @@ if ($recipeId <= 0) {
 }
 
 // Build the canonical human-facing URL for the recipe
-$url = 'https://veggievault.chrisandemmashow.com/recipe/' . $recipeId;
+$url = 'https://theveggievault.com/recipe/' . $recipeId;
 
 /**
  * Normalizes and truncates recipe descriptions for Open Graph / Twitter cards.
@@ -118,7 +118,7 @@ foreach ($dbCandidates as $dbFile) {
 
 // 2. Fallback to the public PHP API endpoint if direct DB lookup did not resolve
 if (!$recipe && function_exists('curl_init')) {
-    $apiUrl = 'https://veggievault.chrisandemmashow.com/pantry-rebuild-api/public/recipes/single?id=' . urlencode((string)$recipeId);
+    $apiUrl = 'https://theveggievault.com/pantry-rebuild-api/public/recipes/single?id=' . urlencode((string)$recipeId);
 
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $apiUrl);
@@ -152,7 +152,7 @@ if (
     strpos($imagePath, 'default-veggie-vault-placeholder') !== false ||
     $imageSource === 'none'
 ) {
-    $image = 'https://veggievault.chrisandemmashow.com/og-vault-preview.jpeg';
+    $image = 'https://theveggievault.com/og-vault-preview.jpeg';
 } elseif (preg_match('#^https?://#i', $imagePath)) {
     $image = $imagePath;
 } else {
@@ -161,7 +161,7 @@ if (
         $normalizedPath = '/images' . $normalizedPath;
     }
     $encodedPath = implode('/', array_map('rawurlencode', explode('/', ltrim($normalizedPath, '/'))));
-    $image = 'https://veggievault.chrisandemmashow.com/pantry-rebuild-api/public/' . $encodedPath;
+    $image = 'https://theveggievault.com/pantry-rebuild-api/public/' . $encodedPath;
 }
 
 // 4. Build Schema.org Recipe JSON-LD when recipe details exist

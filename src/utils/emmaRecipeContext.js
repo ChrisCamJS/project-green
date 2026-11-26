@@ -7,6 +7,7 @@ import { RECIPE_IDEAS_PROMPT_PROTOCOL } from './recipeIdeas';
 const CATALOG_CACHE_TTL_MS = 5 * 60 * 1000;
 let cachedCatalog = null;
 let cachedAt = 0;
+let cachedForUserId = null;
 let inFlightCatalogPromise = null;
 
 export const COMMON_NUTRIENT_TARGETS = {
@@ -425,34 +426,111 @@ export const aggregateDailyNutrients = (dayEntries = [], recipeDetailsMap = {}) 
 };
 
 /**
- * Fetches and caches all published recipes from /recipes so Emma always has
- * accurate links, titles, dietary flags, and ingredients.
+ * Fetches and caches the full public recipe pool PLUS the logged-in user's own
+ * recipes (published Masterpieces, Variants, Private Drafts) and saved Vault
+ * favorites so Emma can filter by the user's recipes or suggest untried ideas.
  */
-export const fetchPublishedRecipesCatalog = async (forceRefresh = false) => {
+export const fetchPublishedRecipesCatalog = async (forceRefresh = false, userId = null) => {
+  const normalizedUid = userId ? Number(userId) : null;
+  const userChanged = normalizedUid !== null && normalizedUid !== cachedForUserId;
   const now = Date.now();
-  if (!forceRefresh && cachedCatalog && now - cachedAt < CATALOG_CACHE_TTL_MS) {
+  if (
+    !forceRefresh &&
+    !userChanged &&
+    cachedCatalog &&
+    now - cachedAt < CATALOG_CACHE_TTL_MS
+  ) {
     return cachedCatalog;
   }
 
-  if (!forceRefresh && inFlightCatalogPromise) {
+  if (!forceRefresh && !userChanged && inFlightCatalogPromise) {
     return inFlightCatalogPromise;
   }
 
-  inFlightCatalogPromise = api
-    .getRecipes()
-    .then((rows) => {
-      const published = (Array.isArray(rows) ? rows : [])
-        .filter((r) => r && r.isPublic !== false && !r.isDraft)
-        .map((r) => ({
+  inFlightCatalogPromise = Promise.allSettled([
+    api.getRecipes(),
+    api.getPlannableRecipes(),
+  ])
+    .then(([publicRes, plannableRes]) => {
+      const publicRows =
+        publicRes.status === 'fulfilled' && Array.isArray(publicRes.value)
+          ? publicRes.value
+          : Array.isArray(publicRes.value?.recipes)
+            ? publicRes.value.recipes
+            : [];
+
+      const plannableRows =
+        plannableRes.status === 'fulfilled' && Array.isArray(plannableRes.value?.recipes)
+          ? plannableRes.value.recipes
+          : [];
+
+      const publicById = new Map(
+        publicRows
+          .filter((r) => r && r.id !== undefined && r.id !== null)
+          .map((r) => [Number(r.id), r])
+      );
+
+      const mergedById = new Map();
+
+      // 1. Seed from plannable recipes when authenticated (includes user's private drafts + isOwn + isFavorited + calories)
+      plannableRows.forEach((r) => {
+        if (!r || r.id === undefined || r.id === null) return;
+        const rid = Number(r.id);
+        const pub = publicById.get(rid);
+        const combined = {
+          ...pub,
           ...r,
+          id: rid,
+          userId: Number(r.userId ?? r.user_id ?? pub?.user_id ?? pub?.authorId ?? 0) || null,
+          authorId: Number(r.userId ?? r.user_id ?? pub?.authorId ?? pub?.user_id ?? 0) || null,
+          authorName: r.authorName || pub?.authorName || 'Emma (AI)',
+          isOwn: Boolean(r.isOwn),
+          isFavorited: Boolean(r.isFavorited ?? r.is_favorite ?? pub?.isFavorited ?? pub?.is_favorite),
+          isDraft: Boolean(r.isDraft ?? (r.isPublic === false)),
+          isPublic: r.isPublic !== undefined ? Boolean(r.isPublic) : !r.isDraft,
+          ingredients:
+            Array.isArray(r.ingredients) && r.ingredients.length > 0
+              ? r.ingredients
+              : pub?.ingredients || [],
+        };
+        mergedById.set(rid, {
+          ...combined,
+          dietary: getRecipeDietaryFlags(combined, { useGlutenHeuristicFallback: true }),
+        });
+      });
+
+      // 2. Ensure every public recipe from /recipes is present
+      publicRows.forEach((r) => {
+        if (!r || r.id === undefined || r.id === null) return;
+        const rid = Number(r.id);
+        if (mergedById.has(rid)) return;
+        const isDraft = Boolean(r.isDraft || r.isPublic === false || r.is_public === false);
+        if (isDraft) return;
+        const normalized = {
+          ...r,
+          id: rid,
+          userId: Number(r.user_id ?? r.authorId ?? 0) || null,
+          authorId: Number(r.authorId ?? r.user_id ?? 0) || null,
+          authorName: r.authorName || r.author_name || 'Emma (AI)',
+          isOwn: Boolean(r.isOwn),
+          isFavorited: Boolean(r.isFavorited ?? r.is_favorite),
+          isDraft: false,
+          isPublic: true,
           dietary: getRecipeDietaryFlags(r, { useGlutenHeuristicFallback: true }),
-        }));
-      cachedCatalog = published;
+        };
+        mergedById.set(rid, normalized);
+      });
+
+      const mergedList = Array.from(mergedById.values());
+      cachedCatalog = mergedList;
       cachedAt = Date.now();
-      return published;
+      if (normalizedUid !== null) {
+        cachedForUserId = normalizedUid;
+      }
+      return mergedList;
     })
     .catch((err) => {
-      console.warn('Could not preload published recipe catalog for Emma:', err);
+      console.warn('Could not preload recipe catalog for Emma:', err);
       return cachedCatalog || [];
     })
     .finally(() => {
@@ -482,44 +560,106 @@ const formatIngredientsPreview = (ingredients) => {
 };
 
 /**
- * Formats the published recipe catalog into a compact system prompt block.
+ * Formats the recipe catalog into a system prompt block separated into:
+ * 1) The logged-in user's own & saved Vault recipes (already created/tried by the user)
+ * 2) The remaining public recipe pool (dishes the user hasn't created or saved yet)
  */
 export const buildPublishedRecipesPromptSection = (
   recipes = [],
-  maxRecipes = 80,
-  { vocalMode = false } = {}
+  maxRecipes = 150,
+  { vocalMode = false, currentUser = null } = {}
 ) => {
   if (!Array.isArray(recipes) || recipes.length === 0) return '';
 
-  const slice = recipes.slice(0, maxRecipes);
-  const sample = slice[0];
+  const currentUid = Number(currentUser?.id || 0);
+  const currentUname = String(currentUser?.username || '').trim().toLowerCase();
 
-  const lines = slice.map((r) => {
+  const classifyRecipe = (r) => {
+    const recipeUid = Number(r.userId ?? r.user_id ?? r.authorId ?? 0);
+    const authorName = String(r.authorName ?? r.author_name ?? 'Emma (AI)').trim();
+    const isOwn =
+      Boolean(r.isOwn) ||
+      (currentUid > 0 && recipeUid === currentUid) ||
+      (currentUname !== '' && authorName.toLowerCase() === currentUname);
+    const isFavorited = Boolean(r.isFavorited || r.is_favorite);
+    const isDraft = Boolean(r.isDraft || r.isPublic === false || r.is_public === false);
+    return { isOwn, isFavorited, isDraft, authorName };
+  };
+
+  const userRecipes = [];
+  const publicPoolOnly = [];
+
+  recipes.forEach((r) => {
+    if (!r) return;
+    const meta = classifyRecipe(r);
+    if (meta.isOwn || meta.isFavorited) {
+      userRecipes.push({ recipe: r, meta });
+    } else if (!meta.isDraft) {
+      publicPoolOnly.push({ recipe: r, meta });
+    }
+  });
+
+  const formatLine = ({ recipe: r, meta }) => {
     const prep = Number(r.prepTime ?? r.prep_time_mins ?? 0);
     const cook = Number(r.cookTime ?? r.cook_time_mins ?? 0);
     const totalMins = prep + cook;
     const cal = r.calories ? ` | ${r.calories} kcal` : '';
     const diet = formatDietTags(r);
 
+    let statusBadge = `PUBLIC POOL by @${meta.authorName}`;
+    if (meta.isOwn && meta.isDraft) {
+      statusBadge = "USER'S OWN PRIVATE DRAFT";
+    } else if (meta.isOwn && meta.isFavorited) {
+      statusBadge = "USER'S OWN PUBLISHED RECIPE & SAVED IN VAULT";
+    } else if (meta.isOwn) {
+      statusBadge = "USER'S OWN PUBLISHED RECIPE";
+    } else if (meta.isFavorited) {
+      statusBadge = `SAVED IN USER'S VAULT (by @${meta.authorName})`;
+    }
+
     if (vocalMode) {
-      return `- "${r.title}" (ID ${r.id}; ${diet}${totalMins > 0 ? `; ${totalMins} mins` : ''}${cal})`;
+      return `- "${r.title}" (ID ${r.id}; ${statusBadge}; ${diet}${totalMins > 0 ? `; ${totalMins} mins` : ''}${cal})`;
     }
 
     const desc = r.description
-      ? ` — ${String(r.description).replace(/\s+/g, ' ').trim().slice(0, 110)}`
+      ? ` — ${String(r.description).replace(/\s+/g, ' ').trim().slice(0, 100)}`
       : '';
-    return `- [ID ${r.id}] "${r.title}" | Link: /recipe/${r.id} | Diet: ${diet}${totalMins > 0 ? ` | ${totalMins}m` : ''}${cal}${formatIngredientsPreview(r.ingredients)}${desc}`;
-  });
+    return `- [ID ${r.id}] "${r.title}" | Status: ${statusBadge} | Link: /recipe/${r.id} | Diet: ${diet}${totalMins > 0 ? ` | ${totalMins}m` : ''}${cal}${formatIngredientsPreview(r.ingredients)}${desc}`;
+  };
+
+  const userLines = userRecipes.map(formatLine);
+  const remainingBudget = Math.max(40, maxRecipes - userLines.length);
+  const publicLines = publicPoolOnly.slice(0, remainingBudget).map(formatLine);
+  const sample = recipes.find((r) => !r?.isDraft) || recipes[0];
 
   if (vocalMode) {
-    return `\n\nTHE VEGGIE VAULT PUBLISHED RECIPE LIBRARY (${recipes.length} recipes available):
-Whenever the user asks for dish ideas, examples, or what recipes exist on The Veggie Vault, recommend real published recipes from this list naturally by title:
-${lines.join('\n')}`;
+    return `\n\nTHE VEGGIE VAULT RECIPE CATALOG (User's Recipes: ${userRecipes.length} | Other Public Pool Recipes: ${publicPoolOnly.length}):
+HOW TO USE THIS CATALOG:
+1. Section A lists the logged-in user's own recipes (their published Masterpieces, Variants, Private Drafts) and recipes they have saved in their Vault. You can filter specifically for their recipes whenever they ask about "my recipes", "my drafts", or "what have I made?".
+2. Section B lists public community recipes that the user has NOT created or saved yet.
+3. ANTI-REPEAT / UNTRIED IDEAS RULE: Whenever the user asks for recipe ideas they haven't tried yet, something new, or fresh inspiration, treat every dish in Section A as ALREADY TRIED/MADE by the user — do NOT repeat or suggest dishes from Section A unless they specifically ask to revisit or remix one of their own recipes!
+
+SECTION A — LOGGED-IN USER'S RECIPES (ALREADY CREATED OR SAVED BY USER — ${userRecipes.length}):
+${userLines.length > 0 ? userLines.join('\n') : '(None yet — this user has not created or saved any recipes yet.)'}
+
+SECTION B — OTHER PUBLIC RECIPE POOL (NOT YET IN USER'S RECIPES — ${publicPoolOnly.length}):
+${publicLines.length > 0 ? publicLines.join('\n') : '(No other public recipes.)'}`;
   }
 
-  return `\n\nTHE VEGGIE VAULT PUBLISHED RECIPE CATALOG (${recipes.length} published recipes):
-Whenever the user asks for recipe examples, ideas, recommendations, or dishes from The Veggie Vault, recommend matching real recipes from the catalog below and include clickable Markdown links using the exact format [Recipe Title](/recipe/<id>) (e.g., [${sample?.title || 'Sample Recipe'}](/recipe/${sample?.id || 1})). ONLY link to real recipe IDs present in this catalog—never invent fake IDs or external links for Vault recipes:
-${lines.join('\n')}`;
+  return `\n\nTHE VEGGIE VAULT RECIPE CATALOG (User's Personal/Saved Recipes: ${userRecipes.length} | Other Public Pool Recipes: ${publicPoolOnly.length}):
+HOW TO FILTER & USE THIS CATALOG:
+1. **Filter for the User's Recipes (Section A):** Section A contains all recipes authored by the logged-in user (\`USER'S OWN PUBLISHED RECIPE\`, \`USER'S OWN PRIVATE DRAFT\`) plus recipes they saved to their Vault (\`SAVED IN USER'S VAULT\`). Whenever the user asks about "my recipes", "my drafts", "my favorites", or what dishes they have already created/saved, filter and answer from Section A.
+2. **Filter for Untried Public Recipes (Section B):** Section B contains the rest of the public recipe pool that the user has NOT created or saved yet.
+3. **ANTI-REPEAT / "HAVEN'T TRIED YET" RULE (CRITICAL):** Whenever the user asks for **"recipe ideas we haven't tried yet"**, **"something new"**, **"new ideas"**, or fresh inspiration, treat every recipe in Section A as **ALREADY TRIED / ALREADY MADE** by the user!
+   - When recommending existing Vault recipes they haven't tried yet, pick exclusively from Section B.
+   - When brainstorming brand-new custom recipe ideas (\`<RECIPE_IDEAS>\`), make sure none of your suggested dishes duplicate or repeat any recipe in Section A!
+4. **Linking Rule:** Whenever you mention an existing Vault recipe from either section, include a clickable Markdown link in the exact format [Recipe Title](/recipe/<id>) (e.g., [${sample?.title || 'Sample Recipe'}](/recipe/${sample?.id || 1})). Never invent fake IDs:
+
+SECTION A — LOGGED-IN USER'S RECIPES (ALREADY CREATED, DRAFTED, OR SAVED BY THIS USER — ${userRecipes.length}):
+${userLines.length > 0 ? userLines.join('\n') : '(None yet — this user has not created or saved any recipes yet.)'}
+
+SECTION B — OTHER PUBLIC RECIPE POOL (NOT YET CREATED OR SAVED BY THIS USER — ${publicPoolOnly.length}):
+${publicLines.length > 0 ? publicLines.join('\n') : '(No other public recipes outside the user\'s collection.)'}`;
 };
 
 /**
@@ -677,8 +817,15 @@ NEVER recommend or schedule any recipe whose title or ingredients contain ${user
         }`
       : `Focused Date (${focusedDateYmd}) currently has 0 planned meals.`;
 
-  const recipeLines = (plannableRecipes || []).slice(0, 100).map((r) => {
-    const draftBadge = r.isDraft ? ' [PRIVATE DRAFT]' : ' [PUBLISHED]';
+  const recipeLines = (plannableRecipes || []).slice(0, 150).map((r) => {
+    let ownershipBadge = ' [PUBLIC POOL — NOT YET IN USER\'S VAULT]';
+    if (r.isOwn && r.isDraft) {
+      ownershipBadge = ' [USER\'S OWN PRIVATE DRAFT]';
+    } else if (r.isOwn) {
+      ownershipBadge = ' [USER\'S OWN PUBLISHED RECIPE]';
+    } else if (r.isFavorited || r.is_favorite) {
+      ownershipBadge = ' [SAVED IN USER\'S VAULT]';
+    }
     const diet = formatDietTags(r);
     const macros =
       r.calories !== null && r.calories !== undefined
@@ -686,9 +833,9 @@ NEVER recommend or schedule any recipe whose title or ingredients contain ${user
         : '';
     const ing = formatIngredientsPreview(r.ingredients);
     if (vocalMode) {
-      return `- recipe_id=${r.id} | "${r.title}"${draftBadge} | ${diet}${macros}${ing}`;
+      return `- recipe_id=${r.id} | "${r.title}"${ownershipBadge} | ${diet}${macros}${ing}`;
     }
-    return `- recipe_id=${r.id} | "${r.title}" | Link: /recipe/${r.id}${draftBadge} | Diet: ${diet}${macros}${ing}`;
+    return `- recipe_id=${r.id} | "${r.title}" | Link: /recipe/${r.id}${ownershipBadge} | Diet: ${diet}${macros}${ing}`;
   });
 
   const actionProtocol = vocalMode

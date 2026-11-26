@@ -84,17 +84,20 @@ const LiveChat = ({
       return undefined;
     }
     let active = true;
-    fetchPublishedRecipesCatalog().then((catalog) => {
+    fetchPublishedRecipesCatalog(false, user?.id).then((catalog) => {
       if (active && Array.isArray(catalog) && catalog.length > 0) {
         setAutoPublishedCatalogText(
-          buildPublishedRecipesPromptSection(catalog, 80, { vocalMode: true })
+          buildPublishedRecipesPromptSection(catalog, 150, {
+            vocalMode: true,
+            currentUser: user,
+          })
         );
       }
     });
     return () => {
       active = false;
     };
-  }, [publishedRecipesContext, mealPlanContext]);
+  }, [publishedRecipesContext, mealPlanContext, user]);
 
   // Ensure microphone and WebSocket close cleanly if the inline Live Chat panel unmounts
   useEffect(() => {
@@ -185,8 +188,11 @@ const LiveChat = ({
     try {
       let resolvedPublishedText = publishedRecipesContext || autoPublishedCatalogText || '';
       if (!resolvedPublishedText && !mealPlanContext) {
-        const catalog = await fetchPublishedRecipesCatalog();
-        resolvedPublishedText = buildPublishedRecipesPromptSection(catalog, 80, { vocalMode: true });
+        const catalog = await fetchPublishedRecipesCatalog(false, user?.id);
+        resolvedPublishedText = buildPublishedRecipesPromptSection(catalog, 150, {
+          vocalMode: true,
+          currentUser: user,
+        });
       }
 
       const tokenRes = await api.aiGetLiveToken();

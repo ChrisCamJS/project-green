@@ -14,6 +14,8 @@ const extractInternalPath = (href = '') => {
     const url = new URL(raw);
     const host = url.hostname.toLowerCase();
     const isVaultHost =
+      host === 'theveggievault.com' ||
+      host === 'www.theveggievault.com' ||
       host === 'veggievault.chrisandemmashow.com' ||
       host === 'www.veggievault.chrisandemmashow.com' ||
       host === 'vault.chrisandemmashow.com' ||

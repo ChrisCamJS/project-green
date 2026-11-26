@@ -83,7 +83,7 @@ export default function FloatingEmma() {
   useEffect(() => {
     if (uiState !== 'open' || shouldHideWidget) return;
     let active = true;
-    fetchPublishedRecipesCatalog().then((catalog) => {
+    fetchPublishedRecipesCatalog(false, user?.id).then((catalog) => {
       if (active && Array.isArray(catalog)) {
         setPublishedCatalog(catalog);
       }
@@ -91,7 +91,7 @@ export default function FloatingEmma() {
     return () => {
       active = false;
     };
-  }, [uiState, shouldHideWidget]);
+  }, [uiState, shouldHideWidget, user?.id]);
 
   // Load current recipe details when viewing /recipe/:id so Emma knows the dish
   useEffect(() => {
@@ -253,8 +253,10 @@ export default function FloatingEmma() {
 
     try {
       const catalogToUse =
-        publishedCatalog.length > 0 ? publishedCatalog : await fetchPublishedRecipesCatalog();
-      const catalogSection = buildPublishedRecipesPromptSection(catalogToUse, 80);
+        publishedCatalog.length > 0 ? publishedCatalog : await fetchPublishedRecipesCatalog(false, user?.id);
+      const catalogSection = buildPublishedRecipesPromptSection(catalogToUse, 150, {
+        currentUser: user,
+      });
       const baseInstructions = getSystemInstructions(
         DEFAULT_PREFS,
         currentUserName,
@@ -338,8 +340,9 @@ export default function FloatingEmma() {
     );
   }
 
-  const publishedCatalogVocal = buildPublishedRecipesPromptSection(publishedCatalog, 80, {
+  const publishedCatalogVocal = buildPublishedRecipesPromptSection(publishedCatalog, 150, {
     vocalMode: true,
+    currentUser: user,
   });
 
   return (

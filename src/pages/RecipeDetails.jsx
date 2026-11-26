@@ -171,7 +171,7 @@ const RecipeDetails = () => {
     );
 
     return publishedCatalog
-      .filter((item) => Number(item.id) !== currentId)
+      .filter((item) => Number(item.id) !== currentId && !item.isDraft && item.isPublic !== false)
       .map((item) => {
         const flags = getRecipeDietaryFlags(item);
         let score = 0;
@@ -195,7 +195,7 @@ const RecipeDetails = () => {
 
   useEffect(() => {
     let active = true;
-    fetchPublishedRecipesCatalog().then((catalog) => {
+    fetchPublishedRecipesCatalog(false, user?.id).then((catalog) => {
       if (active && Array.isArray(catalog)) {
         setPublishedCatalog(catalog);
       }
@@ -203,7 +203,7 @@ const RecipeDetails = () => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [user?.id]);
 
   // Dynamic SEO, Open Graph, Twitter Card & Schema.org Recipe JSON-LD
   const recipeSeo = useMemo(() => {
@@ -401,8 +401,10 @@ const RecipeDetails = () => {
           // We feed Emma the exact context of THIS recipe AND the published Vault catalog so she can link related dishes!
           const ingredientsList = recipe.ingredients?.map(i => i.ingredient_name).join(', ') || 'Unknown ingredients';
           const catalogToUse =
-            publishedCatalog.length > 0 ? publishedCatalog : await fetchPublishedRecipesCatalog();
-          const publishedSection = buildPublishedRecipesPromptSection(catalogToUse, 60);
+            publishedCatalog.length > 0 ? publishedCatalog : await fetchPublishedRecipesCatalog(false, user?.id);
+          const publishedSection = buildPublishedRecipesPromptSection(catalogToUse, 120, {
+            currentUser: user,
+          });
 
           const systemPrompt = `You are Emma Advanced, a sassy British culinary expert and co-host of The Chris and Emma Show. 
           You are talking to ${currentUserName}.
@@ -1781,7 +1783,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
                     <div className="no-print" style={{ margin: '0 1.5rem 2rem 1.5rem' }}>
                         <LiveChat
                             recipeContext={`The user is currently viewing the recipe: "${recipe.title}". Ingredients: ${recipe.ingredients?.map(i => i.ingredient_name).join(', ')}`}
-                            publishedRecipesContext={buildPublishedRecipesPromptSection(publishedCatalog, 60, { vocalMode: true })}
+                            publishedRecipesContext={buildPublishedRecipesPromptSection(publishedCatalog, 120, { vocalMode: true, currentUser: user })}
                             chatContext={
                                 chatHistory.length > 0
                                     ? chatHistory
