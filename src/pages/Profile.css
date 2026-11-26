@@ -900,3 +900,43 @@
   border-color: #2f855a;
   color: #ffffff;
 }
+
+@media (max-width: 640px) {
+  .profile-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    margin-top: 1.1rem;
+    padding-top: 1rem;
+  }
+
+  .profile-tab-btn {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.48rem 0.45rem;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .profile-section-heading {
+    text-align: center;
+    font-size: 1.3rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .profile-recipe-kind-tabs {
+    justify-content: center;
+    gap: 0.4rem;
+    margin: 0.15rem 0 0.65rem;
+  }
+
+  .profile-kind-pill {
+    padding: 0.36rem 0.7rem;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+}

@@ -202,7 +202,7 @@ article.recipe-card {
 
 .recipe-author {
   font-size: 0.85rem;
-  color: #718096;
+  color: #475569;
   font-style: italic;
   margin: 0;
 }
@@ -257,7 +257,7 @@ article.recipe-card {
   align-items: center;
   font-weight: 600;
   font-size: 0.78rem;
-  color: #777;
+  color: #4b5563;
   gap: 12px;
   margin-top: auto; /* Keeps stats pushed down evenly */
 }

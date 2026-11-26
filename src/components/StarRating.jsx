@@ -25,7 +25,7 @@ export default function StarRating({ recipeId, initialRating = 0, onRate }) {
             />
             <span 
               className="star" 
-              style={{ color: ratingValue <= (hover || rating) ? "#F6E05E" : "#E2E8F0" }}
+              style={{ color: ratingValue <= (hover || rating) ? "#eab308" : "#94a3b8" }}
               onMouseEnter={() => setHover(ratingValue)}
               onMouseLeave={() => setHover(0)}
             >

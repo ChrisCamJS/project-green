@@ -62,6 +62,7 @@ export default function FloatingEmma() {
   const [publishedCatalog, setPublishedCatalog] = useState([]);
   const [currentRecipe, setCurrentRecipe] = useState(null);
 
+  const drawerRef = useRef(null);
   const inputRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const latestModelMsgRef = useRef(null);
@@ -69,7 +70,7 @@ export default function FloatingEmma() {
   const shouldHideWidget =
     !user || HIDE_ON_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
-  const pageMeta = useMemo(() => getPageMeta(pathname), [pathname]);
+  const pageMeta = useMemo(() => getPageMeta(pathname, currentRecipe), [pathname, currentRecipe]);
   const currentUserName = user?.username || 'Love';
 
   useEffect(() => {
@@ -78,6 +79,22 @@ export default function FloatingEmma() {
     } catch {
       // Ignore storage failures
     }
+  }, [uiState]);
+
+  // Minimize Emma when clicking or tapping outside the open chat drawer
+  useEffect(() => {
+    if (uiState !== 'open') return undefined;
+    const handleOutsideTap = (e) => {
+      if (drawerRef.current && !drawerRef.current.contains(e.target)) {
+        setUiState('minimized');
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideTap);
+    document.addEventListener('touchstart', handleOutsideTap, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideTap);
+      document.removeEventListener('touchstart', handleOutsideTap);
+    };
   }, [uiState]);
 
   useEffect(() => {
@@ -95,7 +112,7 @@ export default function FloatingEmma() {
 
   // Load current recipe details when viewing /recipe/:id so Emma knows the dish
   useEffect(() => {
-    if (uiState !== 'open' || !pathname.startsWith('/recipe/')) {
+    if (shouldHideWidget || !pathname.startsWith('/recipe/')) {
       setCurrentRecipe(null);
       return;
     }
@@ -116,7 +133,7 @@ export default function FloatingEmma() {
     return () => {
       active = false;
     };
-  }, [pathname, uiState]);
+  }, [pathname, shouldHideWidget]);
 
   // Auto-expand textarea height to keep all typed/dictated text visible
   useEffect(() => {
@@ -162,6 +179,30 @@ export default function FloatingEmma() {
       return [
         'How do I sync my Wellness targets here?',
         'Suggest published Vault recipes for my week',
+      ];
+    }
+    if (pathname.startsWith('/favorites')) {
+      return [
+        'How do I organize drafts, variants, and stories in Your Vault?',
+        'How do I manage chefs I follow?',
+      ];
+    }
+    if (pathname.startsWith('/privacy-policy')) {
+      return [
+        'Summarize how my account and recipe data are handled',
+        'How do I update my email or password?',
+      ];
+    }
+    if (pathname.startsWith('/sitemap')) {
+      return [
+        'Help me find a specific page or recipe on the site',
+        'Where do I open Flavor Forge or Meal Planner?',
+      ];
+    }
+    if (pathname.startsWith('/contact')) {
+      return [
+        'How do I contact The Veggie Vault team?',
+        'Where can I get help with my account or tokens?',
       ];
     }
     return [
@@ -347,6 +388,7 @@ export default function FloatingEmma() {
 
   return (
     <aside
+      ref={drawerRef}
       className={`floating-emma-drawer ${isExpanded ? 'expanded' : ''}`}
       aria-label="Emma Site Assistant"
     >
@@ -355,7 +397,6 @@ export default function FloatingEmma() {
           <span className="floating-emma-title">👩‍🍳 Emma Helper</span>
           <span className="floating-emma-page-badge">
             📍 {pageMeta.label}
-            {currentRecipe?.title ? ` · ${currentRecipe.title}` : ''}
           </span>
         </div>
         <div className="floating-emma-header-actions">
@@ -404,8 +445,17 @@ export default function FloatingEmma() {
         {chatHistory.length === 0 ? (
           <div className="floating-emma-empty">
             <strong>Hi {currentUserName}!</strong> I can see you’re on{' '}
-            <strong>{pageMeta.label}</strong>. Ask me to find recipes, explain any feature,
-            or tap <strong>🎙️ Live</strong> below to talk out loud. Need to forge a brand-new
+            <strong>{pageMeta.label}</strong>.{' '}
+            {pathname.startsWith('/privacy-policy')
+              ? 'Ask me anything about how your data and privacy work here, or tap '
+              : pathname.startsWith('/sitemap')
+                ? 'Ask me to point you to any page or recipe in the directory, or tap '
+                : pathname.startsWith('/contact')
+                  ? 'Ask me how to reach our team or get quick help with any feature, or tap '
+                  : pathname.startsWith('/favorites')
+                    ? 'Ask me about your saved recipes, drafts, variants, or stories, or tap '
+                    : 'Ask me to find recipes, explain any feature, or tap '}
+            <strong>🎙️ Live</strong> below to talk out loud. Need to forge a brand-new
             recipe or Masterpiece? Head to <Link to="/engine">Flavor Forge</Link>!
             <div className="floating-emma-quick-prompts">
               {quickPrompts.map((prompt) => (

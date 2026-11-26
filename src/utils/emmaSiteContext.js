@@ -6,13 +6,15 @@ THE VEGGIE VAULT SITE NAVIGATION & FEATURES (link using Markdown like [Page Name
 - [Flavor Forge](/engine): Full-screen AI kitchen studio with Nutrition Natter (Chat + Live Audio), Quick Recipe Draft (free), Full Masterpiece Recipe (1 token, includes AI dish photo & full micronutrient analysis), Reference Document upload/paste, and Recent Chats history.
 - [Meal Planner](/meal-planner): Interactive weekly/monthly meal calendar, daily/weekly calorie & macro progress bars against your Wellness targets, Fitness Tracker, and Meal Planning Concierge.
 - [Wellness Tools](/wellness): BMI, BMR, TDEE, and custom macro target calculator that saves directly to your profile and Meal Planner.
-- [Favorites](/favorites): Your saved favorite recipes.
+- [Your Vault](/favorites): Your saved recipes, private drafts, recipe variants, stories, and chefs you follow.
 - [Profile](/profile): Edit bio, dietary focus, saved food allergies, and view your published recipes and drafts.
 - [Buy Tokens](/buy-tokens): Top up tokens for Full Masterpiece recipes (1 token), Live Audio (0.10 tokens/min), and Meal Planner Concierge (0.05 tokens/msg).
 - [Sitemap](/sitemap): Quick directory of all pages and published recipes.
+- [Privacy Policy](/privacy-policy): Information on how The Veggie Vault handles account data, cookies, and privacy.
+- [Contact](/contact): Ways to reach The Veggie Vault team for support or feedback.
 `.trim();
 
-export function getPageMeta(pathname = '/') {
+export function getPageMeta(pathname = '/', currentRecipe = null) {
   if (pathname === '/') {
     return {
       label: 'Home Feed',
@@ -21,10 +23,11 @@ export function getPageMeta(pathname = '/') {
     };
   }
   if (pathname.startsWith('/recipe/')) {
+    const recipeTitle = currentRecipe?.title?.trim();
     return {
-      label: 'Recipe Details',
+      label: recipeTitle || 'Recipe',
       summary:
-        'The user is viewing a single Recipe Details page, where they can inspect ingredients, step-by-step instructions, macros/micros, copy the full formatted recipe to clipboard, save to Favorites, add to their Meal Planner, rate, or comment.',
+        `The user is viewing ${recipeTitle ? `"${recipeTitle}"` : 'a single recipe page'}, where they can inspect ingredients, step-by-step instructions, macros/micros, copy the full formatted recipe to clipboard, save to Your Vault, add to their Meal Planner, rate, or comment.`,
     };
   }
   if (pathname.startsWith('/meal-planner')) {
@@ -43,8 +46,8 @@ export function getPageMeta(pathname = '/') {
   }
   if (pathname.startsWith('/favorites')) {
     return {
-      label: 'Favorites',
-      summary: 'The user is viewing their saved Favorite recipes.',
+      label: 'Your Vault',
+      summary: 'The user is viewing Your Vault, where they manage saved recipes, private drafts, recipe variants, stories, and followed chefs.',
     };
   }
   if (pathname.startsWith('/profile')) {
@@ -64,7 +67,19 @@ export function getPageMeta(pathname = '/') {
   if (pathname.startsWith('/sitemap')) {
     return {
       label: 'Sitemap',
-      summary: 'The user is viewing the Sitemap directory of pages and published recipes.',
+      summary: 'The user is viewing the Sitemap directory of all pages and published recipes on The Veggie Vault.',
+    };
+  }
+  if (pathname.startsWith('/privacy-policy')) {
+    return {
+      label: 'Privacy Policy',
+      summary: 'The user is viewing The Veggie Vault Privacy Policy page, which explains how account data, sessions, AI interactions, and privacy preferences are handled.',
+    };
+  }
+  if (pathname.startsWith('/contact')) {
+    return {
+      label: 'Contact',
+      summary: 'The user is on the Contact page, where they can reach out to The Veggie Vault team with questions, feedback, or support requests.',
     };
   }
   if (pathname.startsWith('/admin')) {
@@ -84,7 +99,7 @@ export function buildFloatingEmmaPageContext({
   currentRecipe = null,
   assistantMode = 'chat',
 }) {
-  const meta = getPageMeta(pathname);
+  const meta = getPageMeta(pathname, currentRecipe);
   const lines = [
     `CURRENT PAGE CONTEXT (${meta.label} — ${pathname}):`,
     meta.summary,

@@ -1,8 +1,8 @@
 /* Floating Emma Assistant (Site-wide) */
 .floating-emma-pill-wrap {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  bottom: 14px;
+  right: 14px;
   z-index: 1200;
   display: flex;
   align-items: center;
@@ -12,14 +12,14 @@
 .floating-emma-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.72rem 1.1rem;
+  gap: 0.5rem;
+  padding: 0.58rem 0.95rem;
   border-radius: 999px;
   border: 2px solid #805ad5;
   background: linear-gradient(135deg, #2d3748 0%, #44337a 100%);
   color: #ffffff;
   font-weight: 700;
-  font-size: 0.94rem;
+  font-size: 0.88rem;
   cursor: pointer;
   box-shadow: 0 10px 26px rgba(45, 55, 72, 0.28);
   transition: transform 0.16s ease, box-shadow 0.16s ease;
@@ -356,7 +356,8 @@
 .floating-emma-textarea {
   flex: 1;
   min-width: 0;
-  padding: 0.58rem 0.75rem;
+  box-sizing: border-box;
+  padding: 0.58rem 2.5rem 0.58rem 0.75rem;
   border-radius: 10px;
   border: 1.5px solid #cbd5e0;
   font-family: inherit;
@@ -427,13 +428,23 @@
 }
 
 @media (max-width: 600px) {
-  .floating-emma-drawer,
-  .floating-emma-drawer.expanded {
+  .floating-emma-drawer {
     right: 8px;
     left: 8px;
     bottom: 8px;
     width: auto;
-    max-height: 85vh;
+    max-height: 75vh;
+  }
+
+  .floating-emma-drawer.expanded {
+    top: 8px;
+    right: 8px;
+    left: 8px;
+    bottom: 8px;
+    width: auto;
+    max-height: none;
+    height: calc(100vh - 16px);
+    height: calc(100dvh - 16px);
   }
 
   .floating-emma-pill-wrap {

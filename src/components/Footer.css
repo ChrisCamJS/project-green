@@ -3,7 +3,7 @@
 .vault-footer {
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
   border-top: 3px solid var(--primary-green, #2e7d32);
-  padding: 2.75rem 0 1.5rem;
+  padding: 2.75rem 0 5.5rem;
   margin-top: 3.5rem;
   width: 100%;
 }
