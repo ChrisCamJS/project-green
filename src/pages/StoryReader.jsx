@@ -8,6 +8,7 @@ import StoryCard from '../components/StoryCard';
 import { resolveStoryAssetUrl, formatStoryDate } from '../utils/storyUtils';
 import StoryEditorModal from '../components/StoryEditorModal';
 import VariantBadge from '../components/VariantBadge';
+import { navigateToLogin } from '../utils/authRedirect';
 import './StoryReader.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -62,7 +63,7 @@ const StoryReader = () => {
 
   const handleToggleLike = async () => {
     if (!user) {
-      navigate('/login');
+      navigateToLogin(navigate);
       return;
     }
     if (!story || likeBusy) return;
@@ -491,7 +492,7 @@ const StoryReader = () => {
                 className="story-reader-write-btn"
                 onClick={() => {
                   if (!user) {
-                    navigate('/login');
+                    navigateToLogin(navigate);
                     return;
                   }
                   setIsWriteNewModalOpen(true);

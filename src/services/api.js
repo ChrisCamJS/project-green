@@ -1,3 +1,5 @@
+import { saveLoginRedirect } from '../utils/authRedirect';
+
 // base url from .env file
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -41,7 +43,13 @@ async function fetchWrapper(endpoint, options = {}) {
                 endpoint === '/meal-plans/recipes';
             if (response.status === 401 && endpoint !== '/login' && endpoint !== '/register' && !isBackgroundCheck) {
                 localStorage.removeItem('vault_user');
-                window.location.href = '/login'; // Or reload so AuthContext resets
+                const currentPath =
+                    typeof window !== 'undefined'
+                        ? saveLoginRedirect(`${window.location.pathname}${window.location.search}${window.location.hash}`)
+                        : '';
+                window.location.href = currentPath
+                    ? `/login?redirect=${encodeURIComponent(currentPath)}`
+                    : '/login'; // Or reload so AuthContext resets
             }
             throw new Error(data.error || data.message || 'Something went wrong with the API!');
         }
@@ -125,6 +133,19 @@ export const api = {
         return fetchWrapper('/recipes/comments/vote', {
             method: 'POST',
             body: JSON.stringify({ comment_id: commentId, vote_type: voteType }),
+        });
+    },
+
+    deleteComment: (commentId) => {
+        return fetchWrapper(`/recipes/comments?id=${encodeURIComponent(commentId)}`, {
+            method: 'DELETE',
+        });
+    },
+
+    updateComment: (commentId, body) => {
+        return fetchWrapper('/recipes/comments', {
+            method: 'PUT',
+            body: JSON.stringify({ comment_id: commentId, body }),
         });
     },
 

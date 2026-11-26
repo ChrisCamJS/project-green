@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import SEOHead from '../components/SEOHead';
 import { SITE_URL, DEFAULT_OG_IMAGE, cleanSeoText, toIsoDuration } from '../utils/seoUtils';
 import { getRecipeDietaryFlags } from '../utils/dietaryUtils';
+import { navigateToLogin } from '../utils/authRedirect';
 import LiveChat from '../components/LiveChat';
 import ImageStyleOptions from '../components/RecipeDashboard/ImageStyleOptions';
 import ReactMarkdown from 'react-markdown';
@@ -1301,7 +1302,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
               className="recipe-details-variant-btn no-print"
               onClick={() => {
                 if (!user) {
-                  navigate('/login');
+                  navigateToLogin(navigate);
                   return;
                 }
                 setIsVariantModalOpen(true);
@@ -1316,7 +1317,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
               className="recipe-details-story-btn recipe-desktop-only-action no-print"
               onClick={() => {
                 if (!user) {
-                  navigate('/login');
+                  navigateToLogin(navigate);
                   return;
                 }
                 setIsStoryModalOpen(true);
@@ -1453,7 +1454,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
                     onClick={() => {
                       setShowMoreActionsMenu(false);
                       if (!user) {
-                        navigate('/login');
+                        navigateToLogin(navigate);
                         return;
                       }
                       setIsStoryModalOpen(true);
@@ -1875,7 +1876,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
             </div>
         )}
 
-        <CommentSection recipeId={recipe.id} />
+        <CommentSection recipeId={recipe.id} recipeOwnerId={authorId} />
       </div>
 
       <RecipeStoriesSection
@@ -1885,7 +1886,7 @@ ${RECIPE_IDEAS_PROMPT_PROTOCOL}`;
         refreshTrigger={storyRefreshKey}
         onWriteStory={() => {
           if (!user) {
-            navigate('/login');
+            navigateToLogin(navigate);
             return;
           }
           setIsStoryModalOpen(true);

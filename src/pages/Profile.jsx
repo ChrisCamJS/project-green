@@ -11,6 +11,7 @@ import SEOHead from '../components/SEOHead';
 import RecipeFilterToolbar from '../components/RecipeFilterToolbar';
 import { filterRecipesList } from '../utils/recipeFilterUtils';
 import { SITE_URL, cleanSeoText } from '../utils/seoUtils';
+import { navigateToLogin } from '../utils/authRedirect';
 import './Profile.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -182,7 +183,7 @@ export default function Profile() {
 
   const handleToggleFollow = async () => {
     if (!currentUser) {
-      navigate('/login');
+      navigateToLogin(navigate, location);
       return;
     }
     if (!profile || followBusy) return;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { navigateToLogin } from '../utils/authRedirect';
 import {
   MEAL_SLOTS,
   formatDateYMD,
@@ -30,7 +31,7 @@ const MealPlanModal = () => {
       if (!recipe || !recipe.id) return;
 
       if (!user) {
-        navigate('/login');
+        navigateToLogin(navigate);
         return;
       }
 

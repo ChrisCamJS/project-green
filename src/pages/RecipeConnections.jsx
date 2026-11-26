@@ -7,6 +7,7 @@ import CreateVariantModal from '../components/CreateVariantModal';
 import StoryEditorModal from '../components/StoryEditorModal';
 import { resolveRecipeImageUrl } from '../utils/mealPlanUtils';
 import { resolveStoryAssetUrl, formatStoryDate } from '../utils/storyUtils';
+import { navigateToLogin } from '../utils/authRedirect';
 import './RecipeConnections.css';
 
 const formatConnectionDate = (rawDate) => {
@@ -178,7 +179,7 @@ export default function RecipeConnections() {
             className="rc-btn variant"
             onClick={() => {
               if (!user) {
-                navigate('/login');
+                navigateToLogin(navigate);
                 return;
               }
               setIsVariantModalOpen(true);
@@ -191,7 +192,7 @@ export default function RecipeConnections() {
             className="rc-btn story"
             onClick={() => {
               if (!user) {
-                navigate('/login');
+                navigateToLogin(navigate);
                 return;
               }
               setIsStoryModalOpen(true);
@@ -478,7 +479,7 @@ export default function RecipeConnections() {
               className="rc-btn variant"
               onClick={() => {
                 if (!user) {
-                  navigate('/login');
+                  navigateToLogin(navigate);
                   return;
                 }
                 setIsVariantModalOpen(true);
@@ -565,7 +566,7 @@ export default function RecipeConnections() {
             className="rc-btn story"
             onClick={() => {
               if (!user) {
-                navigate('/login');
+                navigateToLogin(navigate);
                 return;
               }
               setIsStoryModalOpen(true);

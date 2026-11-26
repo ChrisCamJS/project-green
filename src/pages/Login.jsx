@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styles from './Login.module.css';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { consumeLoginRedirect } from '../utils/authRedirect';
 
 const Login = () => {
     // Grabbing the login dispatcher from AuthContext
@@ -19,6 +20,7 @@ const Login = () => {
 
     // Navigation hook to redirect the user after a successful vault unlock
     const navigate = useNavigate();
+    const location = useLocation();
 
     // Handler to update local state dynamically as the user types
     const handleChange = (e) => {
@@ -55,7 +57,8 @@ const Login = () => {
                     : `Welcome back to the vault, ${identifier}!`
                 );
                 
-                navigate(isAdmin ? '/admin' : '/');
+                const redirectTarget = consumeLoginRedirect(location);
+                navigate(redirectTarget || (isAdmin ? '/admin' : '/'), { replace: true });
             } else {
                 setError(response.message || 'Login failed.');
             }
@@ -133,10 +136,10 @@ const Login = () => {
                         Unlock Vault
                     </button>
                     <p className={styles.toggleText} style={{ marginTop: '14px', marginBottom: '6px' }}>
-                        Got a beta invite code? <span onClick={() => navigate('/register')}>Register here</span>.
+                        Got a beta invite code? <span onClick={() => navigate('/register', { state: location.state })}>Register here</span>.
                     </p>
                     <p className={styles.toggleText} style={{ marginTop: '4px', marginBottom: 0 }}>
-                        Forgot your password? <span onClick={() => navigate('/forgot-password')}>Reset it here</span>.
+                        Forgot your password? <span onClick={() => navigate('/forgot-password', { state: location.state })}>Reset it here</span>.
                     </p>
                 </form>
             </div>
