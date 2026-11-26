@@ -128,6 +128,15 @@
     background: #dcfce7;
 }
 
+.notif-item.achievement.unread {
+    background: #fffbeb;
+    border-left: 3px solid #f59e0b;
+}
+
+.notif-item.achievement.unread:hover {
+    background: #fef3c7;
+}
+
 .notif-item-content {
     flex: 1;
     min-width: 0;

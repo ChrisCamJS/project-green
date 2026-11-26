@@ -5,6 +5,7 @@ import Footer from './Footer';
 import InstallAppBanner from './InstallAppBanner';
 import MealPlanModal from './MealPlanModal';
 import FloatingEmma from './FloatingEmma';
+import AchievementUnlockModal from './AchievementUnlockModal';
 
 /**
  * Layout Component
@@ -22,6 +23,7 @@ const Layout = ({children}) => {
                 <Footer />
                 <InstallAppBanner />
                 <MealPlanModal />
+                <AchievementUnlockModal />
                 <FloatingEmma />
                 <ScrollToTop />
          </div>

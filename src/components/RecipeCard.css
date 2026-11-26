@@ -10,6 +10,11 @@
   height: 100%; /* Ensures uniform heights in the grid */
 }
 
+/* Prevent RecipeDetails.css .recipe-card margin-top from overflowing grid tracks */
+article.recipe-card {
+  margin: 0;
+}
+
 .recipe-card:hover {
   transform: translateY(-5px);
 }

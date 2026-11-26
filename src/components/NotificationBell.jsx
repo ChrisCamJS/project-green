@@ -1,7 +1,31 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import './NotificationBell.css';
+
+const CELEBRATED_STORAGE_PREFIX = 'vault_celebrated_ach_';
+
+const loadCelebratedIds = (userId) => {
+    if (!userId) return new Set();
+    try {
+        const raw = localStorage.getItem(`${CELEBRATED_STORAGE_PREFIX}${userId}`);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(parsed) ? parsed.map(Number) : []);
+    } catch {
+        return new Set();
+    }
+};
+
+const saveCelebratedIds = (userId, idSet) => {
+    if (!userId) return;
+    try {
+        const recent = Array.from(idSet).slice(-100);
+        localStorage.setItem(`${CELEBRATED_STORAGE_PREFIX}${userId}`, JSON.stringify(recent));
+    } catch {
+        // Ignore storage quota errors
+    }
+};
 
 const formatTimeAgo = (dateStr) => {
     if (!dateStr) return '';
@@ -16,29 +40,83 @@ const formatTimeAgo = (dateStr) => {
 
 const NotificationBell = ({ onNavigate }) => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [open, setOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const wrapperRef = useRef(null);
 
-    const fetchNotifications = useCallback(async (silent = true) => {
-        if (!silent) setLoading(true);
-        try {
-            const data = await api.getNotifications();
-            setNotifications(Array.isArray(data?.notifications) ? data.notifications : []);
-            setUnreadCount(Number(data?.unread_count ?? 0));
-        } catch {
-            // Silently ignore transient polling errors
-        } finally {
-            if (!silent) setLoading(false);
-        }
-    }, []);
+    const fetchNotifications = useCallback(
+        async (silent = true) => {
+            if (!silent) setLoading(true);
+            try {
+                const data = await api.getNotifications();
+                const list = Array.isArray(data?.notifications) ? data.notifications : [];
+                setNotifications(list);
+                setUnreadCount(Number(data?.unread_count ?? 0));
+
+                // Trigger real-time popup for any newly unlocked unread achievement notification
+                const uid = user?.id;
+                if (uid && list.length > 0) {
+                    const celebrated = loadCelebratedIds(uid);
+                    const freshAchievements = list.filter(
+                        (n) => n.type === 'achievement' && !n.is_read && !celebrated.has(Number(n.id))
+                    );
+                    if (freshAchievements.length > 0) {
+                        freshAchievements.forEach((n) => celebrated.add(Number(n.id)));
+                        saveCelebratedIds(uid, celebrated);
+                        window.dispatchEvent(
+                            new CustomEvent('vault:achievement-unlocked', {
+                                detail: { achievements: freshAchievements },
+                            })
+                        );
+                    }
+                }
+            } catch {
+                // Silently ignore transient polling errors
+            } finally {
+                if (!silent) setLoading(false);
+            }
+        },
+        [user?.id]
+    );
 
     useEffect(() => {
         fetchNotifications(true);
         const timer = setInterval(() => fetchNotifications(true), 60000);
         return () => clearInterval(timer);
+    }, [fetchNotifications]);
+
+    useEffect(() => {
+        let debounceTimer = null;
+        const onActivityMutated = () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                fetchNotifications(true);
+            }, 300);
+        };
+        const onNotificationRead = (event) => {
+            const readId = Number(event?.detail?.id || 0);
+            if (!readId) return;
+            setNotifications((prev) =>
+                prev.map((n) => {
+                    if (n.id === readId && !n.is_read) {
+                        setUnreadCount((c) => Math.max(0, c - 1));
+                        return { ...n, is_read: 1 };
+                    }
+                    return n;
+                })
+            );
+        };
+
+        window.addEventListener('vault:activity-mutated', onActivityMutated);
+        window.addEventListener('vault:notification-read', onNotificationRead);
+        return () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            window.removeEventListener('vault:activity-mutated', onActivityMutated);
+            window.removeEventListener('vault:notification-read', onNotificationRead);
+        };
     }, [fetchNotifications]);
 
     useEffect(() => {
@@ -81,7 +159,9 @@ const NotificationBell = ({ onNavigate }) => {
         }
         setOpen(false);
         if (onNavigate) onNavigate();
-        if (notif.story_slug) {
+        if (notif.type === 'achievement') {
+            navigate('/profile#achievements');
+        } else if (notif.story_slug) {
             navigate(`/stories/${notif.story_slug}`);
         } else {
             navigate(`/recipe/${notif.recipe_id}`);
@@ -169,7 +249,7 @@ const NotificationBell = ({ onNavigate }) => {
                             notifications.map((n) => (
                                 <div
                                     key={n.id}
-                                    className={`notif-item ${!n.is_read ? 'unread' : ''}`}
+                                    className={`notif-item ${!n.is_read ? 'unread' : ''} ${n.type === 'achievement' ? 'achievement' : ''}`}
                                     onClick={() => handleNotificationClick(n)}
                                     role="button"
                                     tabIndex={0}

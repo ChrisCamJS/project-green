@@ -10,7 +10,7 @@ import './Paginator.css';
  * @param {function} onPageChange - State updater function from the parent
  * @param {number} maxVisiblePages - How many numbered buttons to show at once
  */
-const Paginator = ({ totalItems, itemsPerPage, currentPage, onPageChange, maxVisiblePages = 5 }) => {
+const Paginator = ({ totalItems, itemsPerPage, currentPage, onPageChange, maxVisiblePages = 5, scrollToTop = true }) => {
     const totalPages = Math.ceil(totalItems / itemsPerPage);
 
     if (totalPages <= 1) return null;
@@ -32,10 +32,12 @@ const Paginator = ({ totalItems, itemsPerPage, currentPage, onPageChange, maxVis
     // --- Scroll Handler ---
     const handlePageClick = (page) => {
         onPageChange(page);
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
+        if (scrollToTop) {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
     };
 
     return (

@@ -252,7 +252,7 @@ const AchievementsSection = ({
     const canShare = Boolean(ownerIdentifier && earned.length > 0);
 
     return (
-        <section className="achievements-section">
+        <section id="achievements" className="achievements-section">
             <div className="achievements-header">
                 <h3>🏆 Achievements &amp; Badges</h3>
                 <div className="achievements-header-right">

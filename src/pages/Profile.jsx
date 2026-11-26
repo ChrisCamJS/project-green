@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import RecipeCard from '../components/RecipeCard';
 import StoryCard from '../components/StoryCard';
 import UserHoverFollow from '../components/UserHoverFollow';
 import AchievementsSection from '../components/AchievementsSection';
+import Paginator from '../components/Paginator';
 import SEOHead from '../components/SEOHead';
 import RecipeFilterToolbar from '../components/RecipeFilterToolbar';
 import { filterRecipesList } from '../utils/recipeFilterUtils';
@@ -13,6 +14,10 @@ import { SITE_URL, cleanSeoText } from '../utils/seoUtils';
 import './Profile.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const STORIES_PER_PAGE = 6;
+
+const isUserVariantRecipe = (recipe) =>
+  Boolean(recipe?.isVariant || recipe?.parentRecipeId || recipe?.parent_recipe_id);
 
 const COMMON_ALLERGENS = [
   'Peanuts',
@@ -36,6 +41,7 @@ const resolveAssetUrl = (path) => {
 export default function Profile() {
   const { identifier } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user: currentUser, updateUser } = useAuth();
 
   const [profile, setProfile] = useState(null);
@@ -68,6 +74,9 @@ export default function Profile() {
   const [profileFeedback, setProfileFeedback] = useState({ type: '', text: '' });
   const [profileLinkCopied, setProfileLinkCopied] = useState(false);
   const followersSectionRef = useRef(null);
+  const storiesSectionRef = useRef(null);
+  const [storiesPage, setStoriesPage] = useState(1);
+  const [showVisitorStories, setShowVisitorStories] = useState(false);
 
   const handleOpenFollowersSection = () => {
     setActiveTab('followers');
@@ -75,6 +84,19 @@ export default function Profile() {
       followersSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   };
+
+  const handleOpenStoriesSection = () => {
+    setStoriesPage(1);
+    if (profile?.is_own_profile) {
+      setActiveTab('stories');
+    } else {
+      setShowVisitorStories(true);
+    }
+    setTimeout(() => {
+      storiesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  };
+  const [recipeKindFilter, setRecipeKindFilter] = useState('all'); // 'all' | 'originals' | 'variants'
   const [recipeSearchQuery, setRecipeSearchQuery] = useState('');
   const [recipeActiveFilters, setRecipeActiveFilters] = useState({
     glutenFree: false,
@@ -140,12 +162,23 @@ export default function Profile() {
 
   useEffect(() => {
     setActiveTab('overview');
+    setStoriesPage(1);
+    setShowVisitorStories(false);
+    setRecipeKindFilter('all');
     setFollowMsg('');
     setProfileFeedback({ type: '', text: '' });
     setEmailFeedback({ type: '', text: '' });
     setPasswordFeedback({ type: '', text: '' });
     loadProfile();
   }, [loadProfile]);
+
+  useEffect(() => {
+    if (loading || !profile || location.hash !== '#achievements') return undefined;
+    const rafId = window.requestAnimationFrame(() => {
+      document.getElementById('achievements')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, [loading, profile, location.hash]);
 
   const handleToggleFollow = async () => {
     if (!currentUser) {
@@ -310,14 +343,31 @@ export default function Profile() {
     }
   };
 
+  const variantRecipesCount = useMemo(
+    () => recipes.filter((r) => isUserVariantRecipe(r)).length,
+    [recipes]
+  );
+
+  const originalRecipesCount = recipes.length - variantRecipesCount;
+
+  const recipesByKind = useMemo(() => {
+    if (recipeKindFilter === 'variants') {
+      return recipes.filter((r) => isUserVariantRecipe(r));
+    }
+    if (recipeKindFilter === 'originals') {
+      return recipes.filter((r) => !isUserVariantRecipe(r));
+    }
+    return recipes;
+  }, [recipes, recipeKindFilter]);
+
   const filteredProfileRecipes = useMemo(
     () =>
-      filterRecipesList(recipes, {
+      filterRecipesList(recipesByKind, {
         searchQuery: recipeSearchQuery,
         activeFilters: recipeActiveFilters,
         minRating: recipeMinRating,
       }),
-    [recipes, recipeSearchQuery, recipeActiveFilters, recipeMinRating]
+    [recipesByKind, recipeSearchQuery, recipeActiveFilters, recipeMinRating]
   );
 
   const profileSeo = useMemo(() => {
@@ -512,7 +562,19 @@ export default function Profile() {
             <strong>{recipes.length}</strong>
             <span>Published Masterpieces</span>
           </div>
-          <div className="profile-stat">
+          <div
+            className="profile-stat clickable"
+            onClick={handleOpenStoriesSection}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleOpenStoriesSection();
+              }
+            }}
+            title={`Click to view recipe stories by ${displayTitle}`}
+          >
             <strong>{stories.length}</strong>
             <span>Recipe Stories</span>
           </div>
@@ -629,8 +691,34 @@ export default function Profile() {
           </h2>
           {recipes.length > 0 ? (
             <>
+              <div className="profile-recipe-kind-tabs" role="group" aria-label="Filter by recipe type">
+                <button
+                  type="button"
+                  className={`profile-kind-pill ${recipeKindFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => setRecipeKindFilter('all')}
+                  aria-pressed={recipeKindFilter === 'all'}
+                >
+                  🍽️ All Recipes ({recipes.length})
+                </button>
+                <button
+                  type="button"
+                  className={`profile-kind-pill ${recipeKindFilter === 'originals' ? 'active' : ''}`}
+                  onClick={() => setRecipeKindFilter('originals')}
+                  aria-pressed={recipeKindFilter === 'originals'}
+                >
+                  ✨ Originals ({originalRecipesCount})
+                </button>
+                <button
+                  type="button"
+                  className={`profile-kind-pill ${recipeKindFilter === 'variants' ? 'active' : ''}`}
+                  onClick={() => setRecipeKindFilter('variants')}
+                  aria-pressed={recipeKindFilter === 'variants'}
+                >
+                  🔀 Variants ({variantRecipesCount})
+                </button>
+              </div>
               <RecipeFilterToolbar
-                recipes={recipes}
+                recipes={recipesByKind}
                 filteredCount={filteredProfileRecipes.length}
                 searchQuery={recipeSearchQuery}
                 onSearchChange={setRecipeSearchQuery}
@@ -641,6 +729,7 @@ export default function Profile() {
                 minRating={recipeMinRating}
                 onRatingChange={setRecipeMinRating}
                 onClearFilters={() => {
+                  setRecipeKindFilter('all');
                   setRecipeSearchQuery('');
                   setRecipeActiveFilters({ glutenFree: false, oilFree: false, sugarFree: false });
                   setRecipeMinRating(0);
@@ -655,7 +744,13 @@ export default function Profile() {
                 </div>
               ) : (
                 <div className="profile-empty-recipes">
-                  <p>No published recipes match your search or filters.</p>
+                  <p>
+                    {recipeKindFilter === 'variants' && variantRecipesCount === 0
+                      ? (profile.is_own_profile
+                          ? 'You have not published any recipe variants yet.'
+                          : `${displayTitle} has not published any recipe variants yet.`)
+                      : 'No published recipes match your search or filters.'}
+                  </p>
                 </div>
               )}
             </>
@@ -675,21 +770,50 @@ export default function Profile() {
       )}
 
       {/* TAB / SECTION: PUBLISHED STORIES */}
-      {((!profile.is_own_profile && stories.length > 0) || (profile.is_own_profile && activeTab === 'stories')) && (
-        <section className="profile-recipes-section" aria-label={`Recipe stories by ${displayTitle}`}>
+      {((!profile.is_own_profile && (stories.length > 0 || showVisitorStories)) ||
+        (profile.is_own_profile && activeTab === 'stories')) && (
+        <section
+          ref={storiesSectionRef}
+          className="profile-recipes-section"
+          aria-label={`Recipe stories by ${displayTitle}`}
+        >
           <h2 className="profile-section-heading">
             📖 Recipe Stories by {displayTitle} ({stories.length})
           </h2>
           {stories.length > 0 ? (
-            <div className="profile-recipes-grid">
-              {stories.map((story) => (
-                <StoryCard key={story.id} story={story} showRecipeTag />
-              ))}
-            </div>
+            (() => {
+              const totalStoryPages = Math.max(1, Math.ceil(stories.length / STORIES_PER_PAGE));
+              const safeStoriesPage = Math.min(storiesPage, totalStoryPages);
+              const startIdx = (safeStoriesPage - 1) * STORIES_PER_PAGE;
+              const visibleStories = stories.slice(startIdx, startIdx + STORIES_PER_PAGE);
+              return (
+                <>
+                  <div className="profile-recipes-grid">
+                    {visibleStories.map((story) => (
+                      <StoryCard key={story.id} story={story} showRecipeTag />
+                    ))}
+                  </div>
+                  {stories.length > STORIES_PER_PAGE && (
+                    <Paginator
+                      totalItems={stories.length}
+                      itemsPerPage={STORIES_PER_PAGE}
+                      currentPage={safeStoriesPage}
+                      onPageChange={(page) => {
+                        setStoriesPage(page);
+                        storiesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                      scrollToTop={false}
+                    />
+                  )}
+                </>
+              );
+            })()
           ) : (
             <div className="profile-empty-recipes">
               <p>
-                You haven&apos;t written any Recipe Stories yet. Visit any recipe page and click &ldquo;Write a Story&rdquo; to share your cooking experience!
+                {profile.is_own_profile
+                  ? 'You haven\u2019t written any Recipe Stories yet. Visit any recipe page and click "Write a Story" to share your cooking experience!'
+                  : `${displayTitle} has not published any Recipe Stories yet.`}
               </p>
             </div>
           )}

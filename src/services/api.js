@@ -45,6 +45,19 @@ async function fetchWrapper(endpoint, options = {}) {
             }
             throw new Error(data.error || data.message || 'Something went wrong with the API!');
         }
+
+        const method = String(options.method || 'GET').toUpperCase();
+        const isMutation = method === 'POST' || method === 'PUT' || method === 'DELETE';
+        const isSkippedEndpoint =
+            endpoint.startsWith('/notifications') ||
+            endpoint.startsWith('/ai/') ||
+            endpoint === '/login' ||
+            endpoint === '/register' ||
+            endpoint === '/logout';
+        if (isMutation && !isSkippedEndpoint && typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('vault:activity-mutated'));
+        }
+
         return data;
     } catch (error) {
         console.error(`API Error at ${endpoint}:`, error);

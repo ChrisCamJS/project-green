@@ -1,0 +1,190 @@
+.ach-unlock-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: achOverlayFadeIn 0.22s ease;
+}
+
+.ach-unlock-card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: linear-gradient(155deg, #0f3d28 0%, #165b39 55%, #1e293b 100%);
+  border: 2px solid #fbbf24;
+  border-radius: 22px;
+  padding: 2rem 1.75rem 1.75rem;
+  text-align: center;
+  color: #ffffff;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45), 0 0 40px rgba(251, 191, 36, 0.22);
+  animation: achCardPop 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ach-unlock-close {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.95rem;
+  border: none;
+  background: rgba(255, 255, 255, 0.14);
+  color: #f8fafc;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.ach-unlock-close:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.ach-unlock-emblem-wrap {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ach-unlock-glow {
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.45) 0%, rgba(251, 191, 36, 0) 70%);
+  animation: achPulseGlow 2s ease-in-out infinite;
+}
+
+.ach-unlock-emblem {
+  position: relative;
+  width: 82px;
+  height: 82px;
+  border-radius: 999px;
+  background: linear-gradient(145deg, #fef08a, #f59e0b);
+  border: 3px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.35rem;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.ach-unlock-eyebrow {
+  display: inline-block;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.18);
+  border: 1px solid rgba(251, 191, 36, 0.55);
+  color: #fde68a;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.75rem;
+}
+
+.ach-unlock-name {
+  margin: 0 0 0.45rem;
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.ach-unlock-detail {
+  margin: 0 0 1.25rem;
+  font-size: 0.96rem;
+  color: #d1fae5;
+  line-height: 1.45;
+}
+
+.ach-unlock-queue-note {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fde68a;
+  margin-bottom: 1rem;
+}
+
+.ach-unlock-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.ach-unlock-primary-btn {
+  width: 100%;
+  padding: 0.72rem 1.2rem;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #1e293b;
+  font-size: 0.96rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.ach-unlock-primary-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+
+.ach-unlock-secondary-btn {
+  width: 100%;
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ach-unlock-secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+@keyframes achOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes achCardPop {
+  from {
+    opacity: 0;
+    transform: scale(0.88) translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes achPulseGlow {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
