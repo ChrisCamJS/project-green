@@ -567,7 +567,7 @@ export default function MealPlanner() {
     setDragPayload(payload);
     try {
       e.dataTransfer.setData('text/plain', JSON.stringify(payload));
-      e.dataTransfer.effectAllowed = 'copy';
+      e.dataTransfer.effectAllowed = dragMode === 'copy' || e.altKey ? 'copy' : 'move';
     } catch {
       // Ignore
     }
@@ -584,19 +584,36 @@ export default function MealPlanner() {
     if (activeDrag.kind === 'day') {
       const sourceDate = activeDrag.sourceDate;
       if (!sourceDate || sourceDate === targetDate) return;
+      const duplicate = dragMode === 'copy' || e.altKey || e.ctrlKey;
       try {
-        const res = await api.copyMealPlanRange({
-          mode: 'day',
-          source_start: sourceDate,
-          target_start: targetDate,
-          overwrite: false,
-        });
-        if (res?.success) {
+        if (duplicate) {
+          const res = await api.copyMealPlanRange({
+            mode: 'day',
+            source_start: sourceDate,
+            target_start: targetDate,
+            overwrite: false,
+          });
+          if (res?.success) {
+            await loadMealPlans();
+            showToastBanner(`Copied ${res.copiedCount} meal(s) from ${sourceDate} to ${targetDate}!`);
+          }
+        } else {
+          const sourceMeals = entriesByDate[sourceDate] || [];
+          if (sourceMeals.length === 0) return;
+          await Promise.all(
+            sourceMeals.map((meal) =>
+              api.updateMealPlanEntry({
+                id: meal.id,
+                plan_date: targetDate,
+                meal_slot: meal.mealSlot || 'dinner',
+              })
+            )
+          );
           await loadMealPlans();
-          showToastBanner(`Copied ${res.copiedCount} meal(s) from ${sourceDate} to ${targetDate}!`);
+          showToastBanner(`Moved ${sourceMeals.length} meal(s) from ${sourceDate} to ${targetDate}!`);
         }
       } catch (err) {
-        showToastBanner(err.message || 'Could not copy day.', 'error');
+        showToastBanner(err.message || (duplicate ? 'Could not copy day.' : 'Could not move day.'), 'error');
       }
       return;
     }
@@ -1745,8 +1762,12 @@ export default function MealPlanner() {
                                 setDropTargetKey(null);
                               }}
                               className="mp-day-drag-handle"
-                              title="Drag onto another date to copy all meals from this day"
-                              aria-label={`Drag to copy meals from ${ymd}`}
+                              title={
+                                dragMode === 'copy'
+                                  ? 'Drag onto another date to copy all meals from this day'
+                                  : 'Drag onto another date to move all meals from this day'
+                              }
+                              aria-label={`Drag to ${dragMode === 'copy' ? 'copy' : 'move'} meals from ${ymd}`}
                             >
                               ⠿
                             </span>

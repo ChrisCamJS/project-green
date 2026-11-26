@@ -443,7 +443,7 @@ export default function Profile() {
       <div className="profile-top-nav">
         <Link to="/" className="profile-back-link">&larr; Back to Recipes</Link>
         {profile.is_own_profile && (
-          <Link to="/favorites" className="profile-vault-link">Manage Following in My Vault &rarr;</Link>
+          <Link to="/favorites" className="profile-vault-link">Open My Vault &rarr;</Link>
         )}
       </div>
 
