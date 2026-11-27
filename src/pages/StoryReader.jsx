@@ -163,8 +163,9 @@ const StoryReader = () => {
   const heroCoverUrl = resolveStoryAssetUrl(
     story.coverImage || story.cover_image || story.effectiveCoverImage || linkedRecipe?.imageUrl
   );
+  const storyOgVersion = story.updatedAt || story.updated_at || '2';
   const storyOgImageUrl = story.slug
-    ? `${API_BASE_URL}/stories/og-image?slug=${encodeURIComponent(story.slug)}`
+    ? `${API_BASE_URL}/stories/og-image?slug=${encodeURIComponent(story.slug)}&v=${encodeURIComponent(storyOgVersion)}`
     : heroCoverUrl;
   const recipeThumbUrl = resolveStoryAssetUrl(linkedRecipe?.imageUrl || story.recipeImageUrl);
 

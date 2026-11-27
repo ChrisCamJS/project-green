@@ -1,6 +1,19 @@
+User-agent: facebookexternalhit
+User-agent: Facebot
+User-agent: meta-externalagent
+User-agent: meta-externalfetcher
+User-agent: Twitterbot
+User-agent: LinkedInBot
+User-agent: Discordbot
+User-agent: WhatsApp
+User-agent: Slackbot
+User-agent: Pinterest
+Allow: /
+
 User-agent: *
 Allow: /
 Allow: /recipe/
+Allow: /stories/
 Allow: /wellness
 Allow: /sitemap
 Allow: /profile/
@@ -16,6 +29,8 @@ Disallow: /meal-planner
 Allow: /pantry-rebuild-api/public/images/
 Allow: /pantry-rebuild-api/public/uploads/
 Allow: /pantry-rebuild-api/public/users/profile-og-image
+Allow: /pantry-rebuild-api/public/recipes/variant-og-image
+Allow: /pantry-rebuild-api/public/stories/og-image
 Disallow: /pantry-rebuild-api/
 
 Sitemap: https://theveggievault.com/sitemap.xml
